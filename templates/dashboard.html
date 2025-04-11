@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Activate Crypto | Robinhood Trading Bot</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Roboto+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="/static/css/cyberpunk.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels"></script>
+</head>
+<body>
+    <!-- Navigation -->
+    <nav class="navbar">
+        <a href="/" class="navbar-brand">
+            <i class="fas fa-robot" style="color: var(--accent-purple);"></i>
+            <span class="glitch" data-text="Activate Crypto">Activate Crypto</span>
+        </a>
+        <ul class="navbar-nav">
+            <li><a href="/" class="nav-link">Dashboard</a></li>
+            <li><a href="/portfolio" class="nav-link">Portfolio</a></li>
+            <li><a href="/trades" class="nav-link">Trade History</a></li>
+            <li><a href="/settings" class="nav-link">Settings</a></li>
+        </ul>
+        <div class="user-menu">
+            <div class="action-buttons">
+                <button id="start-bot-btn" class="btn" data-component-name="<button />">
+                    <i class="fas fa-power-off" data-component-name="<i />"></i> Start Bot
+                </button>
+                <button id="stop-bot-btn" class="btn btn-danger" disabled data-component-name="<button />">
+                    <i class="fas fa-stop-circle" data-component-name="<i />"></i> Stop Bot
+                </button>
+                <button id="refresh-btn" class="btn btn-secondary" data-component-name="<button />">
+                    <i class="fas fa-sync-alt" data-component-name="<i />"></i> Refresh Status
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container">
+        <!-- Header Section -->
+        <header class="dashboard-header">
+            <h1>Trading Dashboard</h1>
+            <p class="subtitle">Real-time crypto analysis with GreenGekko strategies</p>
+        </header>
+
+        <!-- Stats Overview -->
+        <div class="dashboard-grid">
+            <div class="card" style="grid-column: span 3;">
+                <div class="stat-card">
+                    <div class="stat-label">Portfolio Value</div>
+                    <div class="stat-value">$2,458.92</div>
+                    <div class="stat-change price-up">
+                        <i class="fas fa-arrow-up"></i> 4.2% today
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="grid-column: span 3;">
+                <div class="stat-card">
+                    <div class="stat-label">Today's Profit</div>
+                    <div class="stat-value">$98.45</div>
+                    <div class="stat-change price-up">
+                        <i class="fas fa-arrow-up"></i> 12 trades
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="grid-column: span 3;">
+                <div class="stat-card">
+                    <div class="stat-label">Active Strategy</div>
+                    <div class="stat-value" style="font-size: 1.5rem; color: var(--accent-purple);">Multi-Strategy</div>
+                    <div class="stat-change">
+                        <span class="badge badge-success">MACD</span>
+                        <span class="badge badge-success">RSI</span>
+                        <span class="badge badge-success">Bollinger</span>
+                    </div>
+                </div>
+            </div>
+            <div class="card" style="grid-column: span 3;">
+                <div class="stat-card">
+                    <div class="stat-label">Bot Status</div>
+                    <div class="stat-value" style="font-size: 1.5rem; color: var(--accent-green);">Running</div>
+                    <div class="stat-change">
+                        <i class="fas fa-circle" style="color: var(--accent-green);"></i> Next check in 8 minutes
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Dashboard Content -->
+        <div class="dashboard-grid" style="margin-top: 2rem;">
+            <!-- Market Overview -->
+            <div class="card" style="grid-column: span 8;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Market Overview</h5>
+                    <div class="timeframe-selector btn-group btn-group-sm" role="group" aria-label="Chart Timeframe">
+                        <button type="button" class="btn btn-outline-primary active" data-days="1">1D</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="7">7D</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="30">1M</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="90">3M</button>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="btn">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="marketOverviewChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Trading Signals -->
+            <div class="card" style="grid-column: span 4;">
+                <div class="card-header">
+                    <h2 class="card-title">Latest Signals</h2>
+                    <div class="card-actions">
+                        <span class="badge badge-success">
+                            <i class="fas fa-bolt"></i> Live
+                        </span>
+                    </div>
+                </div>
+                <div class="signals-list">
+                    <div class="signal-item">
+                        <div class="signal-icon price-up">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="signal-details">
+                            <div class="signal-coin">BTC</div>
+                            <div class="signal-strategy">MACD Crossover</div>
+                        </div>
+                        <div class="signal-action">
+                            <span class="badge badge-success">BUY</span>
+                        </div>
+                        <div class="signal-time">2 min ago</div>
+                    </div>
+                    <div class="signal-item">
+                        <div class="signal-icon price-down">
+                            <i class="fas fa-arrow-down"></i>
+                        </div>
+                        <div class="signal-details">
+                            <div class="signal-coin">DOGE</div>
+                            <div class="signal-strategy">RSI Overbought</div>
+                        </div>
+                        <div class="signal-action">
+                            <span class="badge badge-danger">SELL</span>
+                        </div>
+                        <div class="signal-time">15 min ago</div>
+                    </div>
+                    <div class="signal-item">
+                        <div class="signal-icon price-up">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="signal-details">
+                            <div class="signal-coin">SOL</div>
+                            <div class="signal-strategy">Bollinger Breakout</div>
+                        </div>
+                        <div class="signal-action">
+                            <span class="badge badge-success">BUY</span>
+                        </div>
+                        <div class="signal-time">28 min ago</div>
+                    </div>
+                    <div class="signal-item">
+                        <div class="signal-icon price-up">
+                            <i class="fas fa-arrow-up"></i>
+                        </div>
+                        <div class="signal-details">
+                            <div class="signal-coin">SHIB</div>
+                            <div class="signal-strategy">Multi-Strategy</div>
+                        </div>
+                        <div class="signal-action">
+                            <span class="badge badge-success">BUY</span>
+                        </div>
+                        <div class="signal-time">45 min ago</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Crypto Assets Table -->
+            <div class="card" style="grid-column: span 12;">
+                <div class="card-header">
+                    <h2 class="card-title">Crypto Assets</h2>
+                    <div class="card-actions">
+                        <div class="search-container">
+                            <input type="text" class="form-control" placeholder="Search assets...">
+                        </div>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Asset</th>
+                                <th>Price</th>
+                                <th>24h Change</th>
+                                <th>Market Cap</th>
+                                <th>Signal</th>
+                                <th>Holdings</th>
+                                <th>Value</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <img src="https://cryptologos.cc/logos/bitcoin-btc-logo.png" alt="BTC" class="crypto-icon">
+                                        <span>Bitcoin (BTC)</span>
+                                    </div>
+                                </td>
+                                <td>$82,456.78</td>
+                                <td class="price-up">+2.34%</td>
+                                <td>$1.58T</td>
+                                <td><span class="badge badge-success">BUY</span></td>
+                                <td>0.0124 BTC</td>
+                                <td>$1,022.46</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm">Trade</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <img src="https://cryptologos.cc/logos/ethereum-eth-logo.png" alt="ETH" class="crypto-icon">
+                                        <span>Ethereum (ETH)</span>
+                                    </div>
+                                </td>
+                                <td>$3,789.25</td>
+                                <td class="price-up">+1.87%</td>
+                                <td>$456.2B</td>
+                                <td><span class="badge badge-success">BUY</span></td>
+                                <td>0.125 ETH</td>
+                                <td>$473.65</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm">Trade</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <img src="https://cryptologos.cc/logos/solana-sol-logo.png" alt="SOL" class="crypto-icon">
+                                        <span>Solana (SOL)</span>
+                                    </div>
+                                </td>
+                                <td>$178.45</td>
+                                <td class="price-up">+5.67%</td>
+                                <td>$78.3B</td>
+                                <td><span class="badge badge-success">BUY</span></td>
+                                <td>2.5 SOL</td>
+                                <td>$446.13</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm">Trade</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <img src="https://cryptologos.cc/logos/dogecoin-doge-logo.png" alt="DOGE" class="crypto-icon">
+                                        <span>Dogecoin (DOGE)</span>
+                                    </div>
+                                </td>
+                                <td>$0.1845</td>
+                                <td class="price-down">-2.34%</td>
+                                <td>$24.7B</td>
+                                <td><span class="badge badge-danger">SELL</span></td>
+                                <td>150 DOGE</td>
+                                <td>$27.68</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm">Trade</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <img src="https://cryptologos.cc/logos/shiba-inu-shib-logo.png" alt="SHIB" class="crypto-icon">
+                                        <span>Shiba Inu (SHIB)</span>
+                                    </div>
+                                </td>
+                                <td>$0.00001172</td>
+                                <td class="price-up">+8.45%</td>
+                                <td>$6.9B</td>
+                                <td><span class="badge badge-success">BUY</span></td>
+                                <td>4,500,000 SHIB</td>
+                                <td>$52.74</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm">Trade</button>
+                                </td>
+                            </tr>
+                            <tr>
+                                <td>
+                                    <div style="display: flex; align-items: center;">
+                                        <img src="https://cryptologos.cc/logos/pepe-pepe-logo.png" alt="PEPE" class="crypto-icon">
+                                        <span>Pepe (PEPE)</span>
+                                    </div>
+                                </td>
+                                <td>$0.00000671</td>
+                                <td class="price-up">+12.34%</td>
+                                <td>$2.8B</td>
+                                <td><span class="badge badge-success">BUY</span></td>
+                                <td>7,500,000 PEPE</td>
+                                <td>$50.33</td>
+                                <td>
+                                    <button class="btn btn-primary btn-sm">Trade</button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Meme Coins Section -->
+            <div class="card" style="grid-column: span 6;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Meme Coin Tracker</h5>
+                    <div class="timeframe-selector btn-group btn-group-sm" role="group" aria-label="Chart Timeframe">
+                        <button type="button" class="btn btn-outline-primary active" data-days="1">1D</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="7">7D</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="30">1M</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="90">3M</button>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <span class="badge badge-warning">
+                        <i class="fas fa-info-circle"></i> Not on Robinhood
+                    </span>
+                </div>
+                <div class="chart-container">
+                    <canvas id="memeCoinsChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Strategy Performance -->
+            <div class="card" style="grid-column: span 6;">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Strategy Performance</h5>
+                    <div class="timeframe-selector btn-group btn-group-sm" role="group" aria-label="Chart Timeframe">
+                        <button type="button" class="btn btn-outline-primary active" data-days="1">1D</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="7">7D</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="30">1M</button>
+                        <button type="button" class="btn btn-outline-primary" data-days="90">3M</button>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <select class="form-control">
+                        <option>Last 7 days</option>
+                        <option>Last 30 days</option>
+                        <option>Last 90 days</option>
+                    </select>
+                </div>
+                <div class="chart-container">
+                    <canvas id="strategyPerformanceChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-content">
+                <div>
+                    <p>&copy; 2025 CryptoNeon | Robinhood Trading Bot</p>
+                </div>
+                <div>
+                    <p>Powered by GreenGekko Strategies</p>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts -->
+    <script src="/static/js/dashboard.js"></script>
+</body>
+</html>

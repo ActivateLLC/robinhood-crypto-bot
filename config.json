@@ -1,0 +1,18 @@
+{
+  "symbols": ["BTC-USD", "ETH-USD"],
+  "data_interval": "1h",
+  "data_period": "3mo",
+  "trade_interval": 5,
+  "enable_trading": false,
+  "enable_rl_trading": true,
+  "rl_model_path": "models/ppo_crypto_model.zip",
+  "trading_strategy": "MACD",
+  "strategy_params": {
+    "macd_fast": 12,
+    "macd_slow": 26,
+    "macd_sign": 9
+  },
+  "trade_amount_usd": 10.0,
+  "trade_sell_percent": 1.0,
+  "yfinance_fallback": true
+}

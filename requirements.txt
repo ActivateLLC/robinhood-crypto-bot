@@ -1,0 +1,24 @@
+stable-baselines3[extra]==2.3.2
+gymnasium==0.29.1
+numpy==1.26.4
+pandas==2.2.2
+pandas-ta==0.3.14b0 # Added for advanced technical indicators
+yfinance==0.2.38 # Added for alternative historical data
+optuna==3.6.1
+scikit-learn==1.6.1
+scipy==1.15.2
+matplotlib==3.8.4
+torch==2.6.0
+tqdm==4.66.4
+python-dotenv
+schedule
+requests
+flask
+flask-cors
+gunicorn
+pycoingecko
+pynacl
+finrl
+ta
+qiskit>=0.39.0  # Quantum computing
+pyportfolioopt>=1.5.0

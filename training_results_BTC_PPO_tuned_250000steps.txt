@@ -1,0 +1,8 @@
+Initial Balance: $10000.00
+Final Net Worth: $10000.00
+Final Balance: $10000.00
+Final Crypto Held: 0.000000
+Final Crypto Price: $62601.60
+Crypto Value: $0.00
+Percentage Gain: 0.00%
+Mean Reward: 346.82

@@ -1,0 +1,27 @@
+# Log files
+*.log
+*.log.*
+
+# Model and data files
+*.pkl
+*.zip
+*.npz
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Environment files
+.env
+
+# Large data files
+*.sqlite3
+
+# Tensorboard logs
+tensorboard_logs/
+
+# Large image files
+*_price_history.png
+
+# Miscellaneous
+.DS_Store

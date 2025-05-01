@@ -242,10 +242,7 @@ class CrewOptimizationAgent:
             logger.info(f"Starting Optimization Pipeline for {self.symbol}")
             
             # 1. Advanced Market Data Analysis
-            market_data = self.agents['data_analyst'].analyze_market_data(
-                days=1825,  # 5 years of historical data
-                interval='1h'
-            )
+            market_data = self.agents['data_analyst'].analyze_market_data()
             
             # 2. Sophisticated Feature Engineering
             enhanced_features = self.agents['feature_engineer'].engineer_features(market_data)
@@ -360,37 +357,25 @@ class DataAnalystAgent:
         self.symbol = symbol
         self.communication_hub = None
     
-    def analyze_market_data(self, days: int = 365, interval: str = '1h'):
-        """
-        Analyze historical market data with advanced preprocessing
-        
-        Args:
-            days (int): Number of historical days to analyze
-            interval (str): Data interval
-        
-        Returns:
-            Processed market data
-        """
+    def analyze_market_data(self) -> Optional[pd.DataFrame]:
+        """Analyze market data using yfinance and ta libraries"""
         try:
-            import yfinance as yf
-            import pandas as pd
-            import numpy as np
-            import ta
-            
-            # Fetch historical data with fallback mechanism
-            try:
-                data = yf.download(
-                    self.symbol, 
-                    period=f'{days}d', 
-                    interval=interval
-                )
-            except Exception as fetch_error:
-                logger.warning(f"Primary data fetch failed: {fetch_error}. Attempting alternative sources.")
-                # Fallback to alternative data source if yfinance fails
-                data = self._fetch_alternative_data(days, interval)
-            
-            # Comprehensive data validation
-            if data is None or data.empty:
+            logger.info(f"Analyzing market data for {self.symbol}...")
+            # Define date range - Last 40 days 
+            end_date = datetime.now()
+            start_date = end_date - timedelta(days=40)
+
+            # Fetch historical data
+            # Use start/end dates instead of period for hourly data 
+            data = yf.download(
+                self.symbol, 
+                start=start_date.strftime('%Y-%m-%d'), 
+                end=end_date.strftime('%Y-%m-%d'), 
+                interval='1h', 
+                progress=False
+            )
+
+            if data.empty:
                 raise ValueError(f"No market data available for {self.symbol}")
             
             # Data cleaning and preprocessing
@@ -483,55 +468,49 @@ class DataAnalystAgent:
             DataFrame with additional technical indicators
         """
         try:
-            # Moving Averages
-            data['SMA_50'] = ta.trend.sma_indicator(data['Close'], window=50)
-            data['SMA_200'] = ta.trend.sma_indicator(data['Close'], window=200)
-            
-            # Relative Strength Index (RSI)
-            data['RSI'] = ta.momentum.rsi(data['Close'], window=14)
-            
+            # Ensure 'Close' is a Series
+            close_price = data['Close']
+            if not isinstance(close_price, pd.Series):
+                close_price = pd.Series(close_price.values.flatten(), index=data.index)
+
+            # Calculate technical indicators using the ensured Series
+            data['SMA_50'] = ta.trend.SMAIndicator(close=close_price, window=50).sma_indicator()
+            data['SMA_200'] = ta.trend.SMAIndicator(close=close_price, window=200).sma_indicator()
+            data['RSI'] = ta.momentum.RSIIndicator(close=close_price, window=14).rsi()
             # MACD
-            macd = ta.trend.MACD(data['Close'])
-            data['MACD'] = macd.macd()
-            data['MACD_signal'] = macd.macd_signal()
+            macd_indicator = ta.trend.MACD(close=close_price)
+            data['MACD'] = macd_indicator.macd()
+            data['MACD_signal'] = macd_indicator.macd_signal()
             
             # Bollinger Bands
-            bollinger = ta.volatility.BollingerBands(data['Close'])
-            data['BB_high'] = bollinger.bollinger_hband()
-            data['BB_low'] = bollinger.bollinger_lband()
+            bollinger_indicator = ta.volatility.BollingerBands(close=close_price)
+            data['Bollinger_High'] = bollinger_indicator.bollinger_hband()
+            data['Bollinger_Low'] = bollinger_indicator.bollinger_lband()
+            # Stochastic Oscillator
+            stoch_indicator = ta.momentum.StochasticOscillator(high=data['High'], low=data['Low'], close=close_price)
+            data['Stoch_Signal'] = stoch_indicator.stoch_signal()
+
+            # Feature Scaling (Example: Standard Scaler)
+            from sklearn.preprocessing import StandardScaler
+            
+            # Select features for normalization
+            features_to_normalize = [
+                'Open', 'High', 'Low', 'Close', 'Volume', 
+                'SMA_50', 'SMA_200', 'RSI', 'MACD', 'MACD_signal',
+                'Bollinger_High', 'Bollinger_Low', 'Stoch_Signal'
+            ]
+            
+            # Initialize scaler
+            scaler = StandardScaler()
+            
+            # Normalize selected features
+            data[features_to_normalize] = scaler.fit_transform(data[features_to_normalize])
             
             return data
         
         except Exception as e:
             logger.error(f"Technical indicator calculation failed: {e}")
             return data
-    
-    def _normalize_features(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Normalize and scale features
-        
-        Args:
-            data (DataFrame): Market data with technical indicators
-        
-        Returns:
-            Normalized DataFrame
-        """
-        from sklearn.preprocessing import StandardScaler
-        
-        # Select features for normalization
-        features_to_normalize = [
-            'Open', 'High', 'Low', 'Close', 'Volume', 
-            'SMA_50', 'SMA_200', 'RSI', 'MACD', 'MACD_signal',
-            'BB_high', 'BB_low'
-        ]
-        
-        # Initialize scaler
-        scaler = StandardScaler()
-        
-        # Normalize selected features
-        data[features_to_normalize] = scaler.fit_transform(data[features_to_normalize])
-        
-        return data
 
 class FeatureEngineeringAgent:
     """Agent responsible for feature engineering"""
@@ -589,8 +568,8 @@ class HyperparameterTuningAgent:
         Use Optuna for hyperparameter tuning
         
         Args:
-            features (pd.DataFrame): Engineered features
-            objectives (list): Optimization objectives
+            features (pd.DataFrame): Engineered features (used for context, not passed to env directly)
+            objectives (list): Optimization objectives (currently unused in objective)
         
         Returns:
             Best hyperparameters
@@ -598,35 +577,125 @@ class HyperparameterTuningAgent:
         try:
             import optuna
             import os
-            
+            from stable_baselines3 import PPO
+            from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment
+            import numpy as np
+            import pandas as pd 
+            from datetime import datetime, timedelta 
+
             # Ensure storage directory exists
-            os.makedirs('/Users/activate/Dev/robinhood-crypto-bot/optuna_storage', exist_ok=True)
-            
+            storage_dir = '/Users/activate/Dev/robinhood-crypto-bot/optuna_storage'
+            os.makedirs(storage_dir, exist_ok=True)
+            # Create a unique DB path per symbol
+            db_filename = f"hyperparameter_optimization_{self.symbol.replace('-', '_')}.db"
+            db_path = os.path.join(storage_dir, db_filename)
+            storage_url = f'sqlite:///{db_path}'
+
+            # --- Define the Optuna Objective Function --- 
             def objective(trial):
-                # Hyperparameter search space
-                return {
-                    'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-2, log=True),
-                    'batch_size': trial.suggest_categorical('batch_size', [32, 64, 128]),
-                    'n_steps': trial.suggest_categorical('n_steps', [2048, 4096, 8192]),
-                    'gamma': trial.suggest_float('gamma', 0.8, 0.9999),
-                    'gae_lambda': trial.suggest_float('gae_lambda', 0.8, 1.0),
-                    'ent_coef': trial.suggest_float('ent_coef', 1e-4, 1e-1, log=True),
-                    'clip_range': trial.suggest_float('clip_range', 0.1, 0.4)
-                }
+                try:
+                    # 1. Define Hyperparameter Search Space
+                    hyperparameters = {
+                        'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True),
+                        'batch_size': trial.suggest_categorical('batch_size', [64, 128, 256]),
+                        'n_steps': trial.suggest_categorical('n_steps', [1024, 2048, 4096]),
+                        'gamma': trial.suggest_float('gamma', 0.9, 0.999),
+                        'gae_lambda': trial.suggest_float('gae_lambda', 0.9, 0.99),
+                        'ent_coef': trial.suggest_float('ent_coef', 0.0, 0.1),
+                        'clip_range': trial.suggest_float('clip_range', 0.1, 0.3),
+                        'n_epochs': trial.suggest_int('n_epochs', 5, 20),
+                    }
+                    
+                    # 2. Create Environment Instance for this trial
+                    # Define date range for tuning environment data
+                    end_date = datetime.now()
+                    start_date = end_date - timedelta(days=730) # Use last 2 years for tuning data
+                    
+                    # Initialize Environment - let it fetch its own data
+                    env = CryptoTradingEnvironment(
+                        symbol=self.symbol,
+                        start_date=start_date.strftime('%Y-%m-%d'),
+                        end_date=end_date.strftime('%Y-%m-%d'),
+                        interval='1h', # Consistent interval
+                        initial_balance=10000, # Use a standard balance for comparison
+                        fee=0.001, # Example fee 
+                        log_metrics=False # Disable detailed logging during tuning
+                    )
+                    
+                    # Check if data loading failed in the environment
+                    if env.df is None or env.df.empty:
+                        logger.warning(f"Trial {trial.number}: Data loading failed for symbol {self.symbol}. Skipping trial.")
+                        return -1e9 # Return poor score if data fails
+
+                    # Wrap in a VecEnv (required by SB3)
+                    vec_env = make_vec_env(lambda: env, n_envs=1)
+
+                    # 3. Create and Train PPO Model
+                    model = PPO(
+                        "MlpPolicy", 
+                        vec_env, 
+                        verbose=0, 
+                        device='auto', 
+                        **hyperparameters
+                    )
+                    
+                    training_timesteps = 10000 
+                    model.learn(total_timesteps=training_timesteps)
+
+                    # 4. Evaluate the Trained Model
+                    obs, _ = vec_env.reset()
+                    cumulative_reward = 0
+                    # Get initial portfolio value from the environment after reset
+                    final_portfolio_value = env.balance 
+                    # Evaluate over the length of the data fetched by the env
+                    n_steps = len(env.df) 
+
+                    for step in range(n_steps):
+                        action, _ = model.predict(obs, deterministic=True)
+                        obs, reward, terminated, truncated, info = vec_env.step(action)
+                        done = terminated or truncated
+                        cumulative_reward += reward[0] 
+                        if isinstance(info, list) and len(info) > 0 and 'portfolio_value' in info[0]:
+                            final_portfolio_value = info[0]['portfolio_value']
+                        
+                        if done:
+                            # Get final value directly from env property before reset
+                            final_portfolio_value = env.portfolio_value
+                            break
+                    
+                    # If loop finished without done, get final value
+                    if not done:
+                        final_portfolio_value = env.portfolio_value
+
+                    # Cleanup environment
+                    vec_env.close()
+
+                    logger.debug(f"Trial {trial.number}: Params={trial.params}, Final Value={final_portfolio_value}, Cum Reward={cumulative_reward}")
+                    
+                    if np.isnan(final_portfolio_value) or final_portfolio_value <= 0:
+                        return -1e9 
+                        
+                    return final_portfolio_value
+                
+                except Exception as e:
+                    logger.warning(f"Trial {trial.number} failed during execution: {e}")
+                    logger.warning(traceback.format_exc()) 
+                    return -1e9 
+            # --- End of Objective Function --- 
             
             # Create and run study
             study = optuna.create_study(
                 study_name=f'{self.symbol} Hyperparameter Optimization',
-                direction='maximize',
-                storage='sqlite:////Users/activate/Dev/robinhood-crypto-bot/optuna_storage/hyperparameter_optimization.db',
-                load_if_exists=True
+                direction='maximize', 
+                storage=storage_url,
+                load_if_exists=True,
+                pruner=optuna.pruners.MedianPruner() 
             )
             
-            study.optimize(objective, n_trials=50)
+            study.optimize(objective, n_trials=50, n_jobs=1) 
             
-            # Log best hyperparameters
             logger.info("Hyperparameter Tuning Completed")
-            logger.info(f"Best Trial Value: {study.best_trial.value}")
+            logger.info(f"Best Trial Value (Final Portfolio): {study.best_trial.value}")
             logger.info(f"Best Hyperparameters: {study.best_trial.params}")
             
             return study.best_trial.params
@@ -695,11 +764,9 @@ class ModelTrainingAgent:
             import torch
             
             # Create custom gym environment
-            import sys
-            sys.path.append('/Users/activate/Dev/robinhood-crypto-bot')
-            from rl_environment import CryptoTradingEnv
+            from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment
             
-            env = CryptoTradingEnv(
+            env = CryptoTradingEnvironment(
                 market_data=features,
                 initial_balance=100000,
                 **hyperparameters

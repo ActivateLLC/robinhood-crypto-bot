@@ -779,8 +779,11 @@ class AutoRemediationAgent:
                 recent_errors = self._parse_recent_errors()
                 
                 for error in recent_errors:
-                    # Check error cache to prevent repeated attempts
-                    error_key = (error['error_type'], error['message'])
+                    # Create a robust, hashable key from error details
+                    # Convert dicts/lists to sorted JSON strings to ensure hashability
+                    key_part1 = json.dumps(error['error_type'], sort_keys=True) if isinstance(error['error_type'], (dict, list)) else str(error['error_type'])
+                    key_part2 = json.dumps(error['message'], sort_keys=True) if isinstance(error['message'], (dict, list)) else str(error['message'])
+                    error_key = (key_part1, key_part2)
                     
                     if error_key not in self._error_cache:
                         # Attempt to resolve error

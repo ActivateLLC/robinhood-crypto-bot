@@ -37,11 +37,12 @@ class CryptoTradingEnvironment(gym.Env):
         # Action space: 0=Hold, 1=Buy 25%, 2=Buy 50%, 3=Buy 100%, 4=Sell 25%, 5=Sell 50%, 6=Sell 100%
         self.action_space = gym.spaces.Discrete(7)
         
-        # Observation space remains the same
+        # Observation space: Includes market indicators + portfolio state (capital, holdings)
+        # Shape needs to accommodate the 11 original indicators + 2 portfolio features
         self.observation_space = gym.spaces.Box(
             low=-np.inf, 
             high=np.inf, 
-            shape=(11,),
+            shape=(13,), 
             dtype=np.float32
         )
         
@@ -79,6 +80,13 @@ class CryptoTradingEnvironment(gym.Env):
         self.current_step = 0
         self.portfolio_value = initial_capital
         self.max_portfolio_value = initial_capital
+
+        # --- Additions for Differential Sharpe Ratio ---
+        self.sharpe_window = 100  # Rolling window for Sharpe calculation
+        self.risk_free_rate = 0.0 # Assuming daily/step risk-free rate is negligible
+        self.portfolio_history = [initial_capital] # History of portfolio values
+        self.previous_sharpe_ratio = 0.0
+        # ---------------------------------------------
         
         # Ensure initial observation is prepared
         self._initial_observation = self._generate_observation(
@@ -108,7 +116,7 @@ class CryptoTradingEnvironment(gym.Env):
                 if not data.empty and len(data) > 0:
                     return data
             except Exception as e:
-                error_monitor.log_error(f"Data fetch failed for {source_name}: {str(e)}")
+                error_monitor.logger.warning(f"Data fetch failed for {source_name}: {str(e)}")
         
         # If all sources fail, generate simulated data
         return self._generate_simulated_data()
@@ -120,31 +128,27 @@ class CryptoTradingEnvironment(gym.Env):
         Returns:
             pd.DataFrame: Historical price data
         """
-        # Calculate date range within the last 730 days
-        end_date = datetime.now()
-        start_date = end_date - timedelta(days=730)
+        self.logger.info(f"Fetching {self.symbol} data from yfinance...")
+        ticker = yf.Ticker(self.symbol)
+        try:
+            # Fetch data for the last 729 days with 1-hour interval to stay within yfinance limits
+            data = ticker.history(period='729d', interval='1h', auto_adjust=True)
+            
+            if data.empty:
+                self.logger.warning("yfinance returned an empty dataset.")
+            
+            # Rename columns to standard format
+            data.columns = [col.lower().replace(' ', '_') for col in data.columns]
+            
+            # Add additional technical indicators
+            data['returns'] = data['close'].pct_change()
+            data['log_returns'] = np.log(1 + data['returns'])
+            
+            return data
         
-        # Fetch hourly data within the last 730 days
-        data = yf.download(
-            self.symbol, 
-            start=start_date, 
-            end=end_date, 
-            interval='1h', 
-            progress=False
-        )
-        
-        # Ensure data is not empty
-        if data.empty:
-            raise ValueError("Empty dataset from yfinance")
-        
-        # Rename columns to standard format
-        data.columns = [col.lower().replace(' ', '_') for col in data.columns]
-        
-        # Add additional technical indicators
-        data['returns'] = data['close'].pct_change()
-        data['log_returns'] = np.log(1 + data['returns'])
-        
-        return data
+        except Exception as e:
+            self.logger.error(f"yfinance data fetch error: {e}")
+            raise
     
     def _fetch_ccxt_data(self) -> pd.DataFrame:
         """
@@ -533,7 +537,7 @@ class CryptoTradingEnvironment(gym.Env):
     
     def _generate_observation(self, data: pd.DataFrame) -> np.ndarray:
         """
-        Generate advanced observation vector
+        Generate advanced observation vector including portfolio state
         
         Args:
             data (pd.DataFrame): Historical price data
@@ -548,7 +552,7 @@ class CryptoTradingEnvironment(gym.Env):
         latest_dict = latest_data.to_dict() if hasattr(latest_data, 'to_dict') else latest_data
         
         # Handle potential missing columns with safe defaults
-        observation = np.array([
+        market_indicators = np.array([
             float(latest_dict.get('Close', 0)),
             float(latest_dict.get('returns', 0)),
             float(latest_dict.get('log_returns', 0)),
@@ -561,50 +565,69 @@ class CryptoTradingEnvironment(gym.Env):
             float(latest_dict.get('BB_Upper', latest_dict.get('Close', 0))),
             float(latest_dict.get('BB_Lower', latest_dict.get('Close', 0)))
         ], dtype=np.float32)
+
+        # Add portfolio state (consider normalization/scaling)
+        # Normalizing capital relative to initial capital
+        normalized_capital = self.current_capital / self.initial_capital
+        # Holdings could also be scaled if needed, but using raw value for now
+        portfolio_state = np.array([
+            normalized_capital, 
+            self.crypto_holdings
+        ], dtype=np.float32)
+
+        # Concatenate market indicators and portfolio state
+        observation = np.concatenate((market_indicators, portfolio_state))
         
         return observation
     
     def _calculate_reward(self, action: int, current_price: float) -> float:
         """
-        Refined reward calculation with more balanced approach
+        Calculate reward based on the change in Sharpe Ratio (Differential Sharpe Ratio).
         """
-        # Current portfolio value
-        current_value = float(self.current_capital + (self.crypto_holdings * current_price))
+        # 1. Calculate current portfolio value
+        current_portfolio_value = float(self.current_capital + (self.crypto_holdings * current_price))
+        self.portfolio_history.append(current_portfolio_value)
+
+        # 2. Check if enough history exists for Sharpe calculation
+        if len(self.portfolio_history) < self.sharpe_window:
+            # Not enough data yet, return 0 reward
+            return 0.0
+
+        # 3. Calculate step-wise returns for the window
+        relevant_history = np.array(self.portfolio_history[-self.sharpe_window:], dtype=np.float32)
+        # Calculate percentage change between consecutive steps
+        step_returns = (relevant_history[1:] - relevant_history[:-1]) / relevant_history[:-1]
         
-        # 1. Base ROI calculation (less aggressive scaling)
-        roi = (current_value / self.initial_capital - 1) * 100
-        roi_reward = np.tanh(roi / 10)  # Sigmoid-like scaling
-        
-        # 2. Momentum component (more conservative)
-        price_change = current_price / float(self.historical_data.iloc[max(0, self.current_step-1)]['Close']) - 1
-        momentum_bonus = np.tanh(price_change * 50)
-        
-        # 3. Trading action efficiency
-        action_efficiency = 0
-        if action in [1,2,3] and self.current_capital > 0:  # Buy actions
-            action_efficiency = 0.1
-        elif action in [4,5,6] and self.crypto_holdings > 0:  # Sell actions
-            action_efficiency = 0.1
-        
-        # 4. Drawdown protection (less punitive)
-        max_portfolio_value = float(max(self.max_portfolio_value, self.initial_capital))
-        drawdown = 1 - (current_value / max_portfolio_value)
-        drawdown_penalty = -np.tanh(drawdown * 5)
-        
-        # Combine components with careful weighting
-        total_reward = (
-            roi_reward * 0.6 + 
-            momentum_bonus * 0.2 + 
-            action_efficiency * 0.1 +
-            drawdown_penalty * 0.1
-        )
-        
-        # Logging for debugging
+        # Replace potential NaNs or infs resulting from division by zero (if portfolio value hit 0)
+        step_returns = np.nan_to_num(step_returns, nan=0.0, posinf=0.0, neginf=0.0)
+
+        # 4. Calculate standard deviation of returns
+        std_dev = np.std(step_returns)
+
+        # Avoid division by zero if returns are flat
+        if std_dev == 0:
+            current_sharpe_ratio = 0.0
+        else:
+            # 5. Calculate mean of returns
+            mean_return = np.mean(step_returns)
+            # 6. Calculate current Sharpe Ratio (annualized is complex here, using step-wise)
+            current_sharpe_ratio = (mean_return - self.risk_free_rate) / std_dev
+
+        # 7. Calculate Differential Sharpe Ratio (the reward)
+        reward = current_sharpe_ratio - self.previous_sharpe_ratio
+
+        # 8. Update previous Sharpe ratio for the next step
+        self.previous_sharpe_ratio = current_sharpe_ratio
+
+        # Optional: Logging for debugging reward calculation
         if self.current_step % 100 == 0:
-            self.logger.info(f"Step {self.current_step}: ROI={roi:.2f}, Portfolio=${current_value:.2f}, Reward={total_reward:.4f}")
-        
-        return total_reward
-    
+             self.logger.info(f"Step {self.current_step}: Portfolio=${current_portfolio_value:.2f}, Sharpe={current_sharpe_ratio:.4f}, Reward={reward:.6f}")
+
+        # Clip extreme reward values to prevent destabilization
+        reward = np.clip(reward, -1.0, 1.0)
+
+        return float(reward)
+
     def _validate_state(self):
         """
         Validate the current trading environment state
@@ -662,7 +685,7 @@ class CryptoTradingEnvironment(gym.Env):
             self.logger.debug(f"Crypto Holdings: {self.crypto_holdings:.8f}")
             
             # Fetch current price
-            current_price = float(self.historical_data.iloc[self.current_step]['Close'])
+            current_price = float(self.historical_data.iloc[self.current_step]['close'])
             pre_portfolio_value = self.current_capital + (self.crypto_holdings * current_price)
             
             # Sell actions with enhanced diagnostics
@@ -715,6 +738,46 @@ class CryptoTradingEnvironment(gym.Env):
                 # Post-sell logging
                 self.logger.debug(f"Crypto Holdings After Sell: {self.crypto_holdings:.8f}")
             
+            # Buy actions (added for completeness, original code only had sell logic here)
+            elif action in [1, 2, 3]: # Buy 25%, 50%, 100%
+                buy_percentage = [0.25, 0.5, 1.0][action-1]
+                investment_amount = buy_percentage * self.current_capital
+                
+                # Enhanced safety check for buy
+                if investment_amount <= 0 or current_price <= 0:
+                    self.logger.warning(
+                        f"Invalid buy conditions: "
+                        f"investment_amount=${investment_amount:.4f}, "
+                        f"price=${current_price:.4f}, "
+                        f"capital=${self.current_capital:.4f}, "
+                        f"buy_percentage={buy_percentage}"
+                    )
+                    # Assuming no reward/penalty for invalid buy attempt
+                    return self._generate_observation(self.historical_data.iloc[max(0, self.current_step - self.lookback_window):self.current_step + 1]), 0, False, False, {"buy_failure_reason": "invalid_buy_conditions"}
+                
+                position_size = investment_amount / current_price
+                fee = investment_amount * self.trading_fee
+                cost = investment_amount + fee
+                
+                if self.current_capital >= cost:
+                    self.logger.info(f"BUY Action: {['25%', '50%', '100%'][action-1]} of capital")
+                    self.logger.info(f"Investment Amount: ${investment_amount:.4f}")
+                    self.logger.info(f"Position Size: {position_size:.8f}")
+                    self.logger.info(f"Fee: ${fee:.4f}")
+                    
+                    self.current_capital -= cost
+                    self.crypto_holdings += position_size
+                    
+                    self.logger.debug(f"Capital After Buy: ${self.current_capital:.4f}")
+                    self.logger.debug(f"Crypto Holdings After Buy: {self.crypto_holdings:.8f}")
+                else:
+                    self.logger.warning(
+                        f"Cannot buy: Insufficient capital. "
+                        f"Required=${cost:.4f}, Available=${self.current_capital:.4f}"
+                    )
+                    # Assuming no reward/penalty for failed buy attempt
+                    return self._generate_observation(self.historical_data.iloc[max(0, self.current_step - self.lookback_window):self.current_step + 1]), 0, False, False, {"buy_failure_reason": "insufficient_capital"}
+
             # Generate observation and calculate reward
             observation = self._generate_observation(
                 self.historical_data.iloc[max(0, self.current_step-self.lookback_window):self.current_step+1]
@@ -749,10 +812,22 @@ class CryptoTradingEnvironment(gym.Env):
         super().reset(seed=seed)
         
         # Reset state variables
-        self.current_step = self.lookback_window
+        self.current_step = self.lookback_window # Start after lookback period
+        self.current_capital = self.initial_capital
+        self.crypto_holdings = 0
         self.portfolio_value = self.initial_capital
         self.max_portfolio_value = self.initial_capital
+
+        # --- Reset Differential Sharpe Ratio tracking ---
+        self.portfolio_history = [self.initial_capital] * self.lookback_window # Start history with initial value
+        self.previous_sharpe_ratio = 0.0
+        # ---------------------------------------------
         
+        # Ensure initial observation is prepared correctly after reset
+        self._initial_observation = self._generate_observation(
+            self.historical_data.iloc[:self.lookback_window]
+        )
+
         # Return initial observation and info
         return self._initial_observation, {}
     

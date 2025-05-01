@@ -55,8 +55,8 @@ def launch_popcat_crew_optimization():
 
 def launch_all_optimizers():
     optimizers = [
-        launch_btc_roi_optimizer,
-        launch_popcat_roi_optimizer,
+        # launch_btc_roi_optimizer, # Commented out: btc_roi_optimizer.py not found
+        # launch_popcat_roi_optimizer, # Commented out: btc_roi_optimizer.py not found
         launch_btc_crew_optimization,
         launch_popcat_crew_optimization
     ]

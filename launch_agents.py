@@ -191,7 +191,7 @@ class AgentLauncher:
         while True:
             try:
                 # Run optimization for each symbol
-                for symbol in self.rl_model_tuner.symbols:
+                for symbol in self.roi_workflow.symbols:
                     logger.info(f"Optimizing model for {symbol}")
                     
                     # Optimize hyperparameters
@@ -418,12 +418,16 @@ def start_auto_remediation_agent():
     Start auto-remediation agent in a separate thread
     """
     try:
+        # Get project root dynamically, similar to how it's done at the top of the file
+        project_root_dir = os.path.dirname(os.path.abspath(__file__))
+        target_log_file = os.path.join(project_root_dir, 'logs', 'agent_launcher.log')
+
         from crew_agents.src.error_monitoring_agent import AutoRemediationAgent
         
-        # Create and start the auto-remediation agent
-        auto_remediation_agent = AutoRemediationAgent()
+        # Create and start the auto-remediation agent with the correct log path
+        auto_remediation_agent = AutoRemediationAgent(log_path=target_log_file)
         auto_remediation_thread = threading.Thread(
-            target=auto_remediation_agent.monitor_and_resolve_issues, 
+            target=auto_remediation_agent.monitor_and_resolve_errors, 
             daemon=True
         )
         auto_remediation_thread.start()

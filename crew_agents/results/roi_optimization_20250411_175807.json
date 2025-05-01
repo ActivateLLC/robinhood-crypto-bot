@@ -1,0 +1,45 @@
+{
+  "optimization_results": {
+    "symbols": [
+      "BTC-USD",
+      "ETH-USD"
+    ],
+    "roi_results": {
+      "BTC-USD": {
+        "total_profit_percentage": 24.12228663151368,
+        "annualized_return": 24.122286631513678,
+        "start_price": 67195.8671875,
+        "end_price": 83405.046875,
+        "max_drawdown_percentage": -28.144478116207868
+      },
+      "ETH-USD": {
+        "total_profit_percentage": -51.714916982165285,
+        "annualized_return": -51.714916982165285,
+        "start_price": 3243.034912109375,
+        "end_price": 1565.902099609375,
+        "max_drawdown_percentage": -63.23957203281366
+      }
+    },
+    "optimization_insights": "Mock ROI Optimization Result",
+    "training_config": {
+      "training_duration": 365,
+      "data_interval": "1d",
+      "max_episodes": 1000,
+      "learning_rate_range": [
+        0.0001,
+        0.01
+      ],
+      "batch_size_range": [
+        32,
+        256
+      ],
+      "exploration_rate_decay": 0.995,
+      "min_exploration_rate": 0.01
+    }
+  },
+  "training_results": {
+    "error": "Command '['/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/bin/python3', '/Users/activate/Dev/robinhood-crypto-bot/train_rl_agent.py', '--symbol', 'BTC-USD', '--max_episodes', '1000', '--learning_rate', '0.004256556618470735', '--batch_size', '109']' returned non-zero exit status 1.",
+    "training_output": "",
+    "training_error": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/train_rl_agent.py\", line 17, in <module>\n    from alt_crypto_data import AltCryptoDataProvider\n  File \"/Users/activate/Dev/robinhood-crypto-bot/alt_crypto_data.py\", line 20, in <module>\n    from pycoingecko import CoinGeckoAPI\nModuleNotFoundError: No module named 'pycoingecko'\n"
+  }
+}

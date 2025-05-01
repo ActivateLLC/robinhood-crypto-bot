@@ -1,0 +1,52 @@
+{
+  "timestamp": "2025-04-11T18:01:12.559241",
+  "initial_capital": 100000.0,
+  "best_symbol": "BTC-USD",
+  "trading_results": {
+    "BTC-USD": {
+      "initial_price": 69907.7578125,
+      "final_price": 83389.234375,
+      "total_return_percentage": 19.284664512712233,
+      "volatility": 0.028675516717075463,
+      "sharpe_ratio": 6.725132350005312,
+      "sentiment": {
+        "symbol": "BTC-USD",
+        "sentiment_score": -0.5,
+        "sentiment": "Neutral",
+        "latest_price": 83389.234375,
+        "rsi": 48.47101103544851,
+        "macd": -714.3442604634911
+      }
+    },
+    "ETH-USD": {
+      "initial_price": 2565.34814453125,
+      "final_price": 1565.868408203125,
+      "total_return_percentage": -38.96078348893084,
+      "volatility": 0.04209126154202777,
+      "sharpe_ratio": -9.256264141674356,
+      "sentiment": {
+        "symbol": "ETH-USD",
+        "sentiment_score": -0.5,
+        "sentiment": "Neutral",
+        "latest_price": 1565.868408203125,
+        "rsi": 34.25063846256674,
+        "macd": -96.14066175443418
+      }
+    },
+    "SOL-USD": {
+      "initial_price": 178.1049041748047,
+      "final_price": 121.06791687011719,
+      "total_return_percentage": -32.02437775026531,
+      "volatility": 0.052509190862639867,
+      "sharpe_ratio": -6.0988137931964514,
+      "sentiment": {
+        "symbol": "SOL-USD",
+        "sentiment_score": -0.5,
+        "sentiment": "Neutral",
+        "latest_price": 121.06791687011719,
+        "rsi": 44.031611144210146,
+        "macd": -3.798663421377256
+      }
+    }
+  }
+}

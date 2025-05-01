@@ -1,0 +1,83 @@
+{
+    "BTC-USD": {
+        "timestamp": "1744415266.702521",
+        "duration": "4.415751218795776",
+        "symbol": "BTC-USD",
+        "initial_capital": "100000",
+        "market_data": {},
+        "features": {},
+        "hyperparameters": {},
+        "risk_profile": {
+            "max_drawdown_tolerance": 0.2,
+            "volatility_threshold": 0.3,
+            "risk_adjusted_score": null
+        },
+        "trained_model": "None",
+        "portfolio_strategy": {
+            "initial_capital": 100000,
+            "allocation_strategy": {
+                "crypto": 0.3,
+                "stablecoin": 0.4,
+                "cash": 0.3
+            },
+            "rebalancing_frequency": "semi-annually",
+            "risk_adjusted_position_sizing": 0.1,
+            "cumulative_roi": 0.15,
+            "sharpe_ratio": 1.5
+        }
+    },
+    "ETH-USD": {
+        "timestamp": "1744415268.614757",
+        "duration": "1.9115149974822998",
+        "symbol": "ETH-USD",
+        "initial_capital": "100000",
+        "market_data": {},
+        "features": {},
+        "hyperparameters": {},
+        "risk_profile": {
+            "max_drawdown_tolerance": 0.2,
+            "volatility_threshold": 0.3,
+            "risk_adjusted_score": null
+        },
+        "trained_model": "None",
+        "portfolio_strategy": {
+            "initial_capital": 100000,
+            "allocation_strategy": {
+                "crypto": 0.3,
+                "stablecoin": 0.4,
+                "cash": 0.3
+            },
+            "rebalancing_frequency": "semi-annually",
+            "risk_adjusted_position_sizing": 0.1,
+            "cumulative_roi": 0.15,
+            "sharpe_ratio": 1.5
+        }
+    },
+    "BNB-USD": {
+        "timestamp": "1744415270.3167832",
+        "duration": "1.7017033100128174",
+        "symbol": "BNB-USD",
+        "initial_capital": "100000",
+        "market_data": {},
+        "features": {},
+        "hyperparameters": {},
+        "risk_profile": {
+            "max_drawdown_tolerance": 0.2,
+            "volatility_threshold": 0.3,
+            "risk_adjusted_score": null
+        },
+        "trained_model": "None",
+        "portfolio_strategy": {
+            "initial_capital": 100000,
+            "allocation_strategy": {
+                "crypto": 0.3,
+                "stablecoin": 0.4,
+                "cash": 0.3
+            },
+            "rebalancing_frequency": "semi-annually",
+            "risk_adjusted_position_sizing": 0.1,
+            "cumulative_roi": 0.15,
+            "sharpe_ratio": 1.5
+        }
+    }
+}

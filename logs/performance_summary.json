@@ -1,0 +1,50 @@
+{
+    "total_cryptocurrencies": 3,
+    "overall_performance": {
+        "total_roi": 0.44999999999999996,
+        "average_sharpe_ratio": 1.5,
+        "max_roi": 0.15,
+        "min_roi": 0.15
+    },
+    "detailed_crypto_performance": {
+        "BTC-USD": {
+            "roi": 0.15,
+            "sharpe_ratio": 1.5,
+            "allocation_strategy": {
+                "crypto": 0.3,
+                "stablecoin": 0.4,
+                "cash": 0.3
+            },
+            "risk_metrics": {
+                "volatility": 0,
+                "max_drawdown": 0
+            }
+        },
+        "ETH-USD": {
+            "roi": 0.15,
+            "sharpe_ratio": 1.5,
+            "allocation_strategy": {
+                "crypto": 0.3,
+                "stablecoin": 0.4,
+                "cash": 0.3
+            },
+            "risk_metrics": {
+                "volatility": 0,
+                "max_drawdown": 0
+            }
+        },
+        "BNB-USD": {
+            "roi": 0.15,
+            "sharpe_ratio": 1.5,
+            "allocation_strategy": {
+                "crypto": 0.3,
+                "stablecoin": 0.4,
+                "cash": 0.3
+            },
+            "risk_metrics": {
+                "volatility": 0,
+                "max_drawdown": 0
+            }
+        }
+    }
+}

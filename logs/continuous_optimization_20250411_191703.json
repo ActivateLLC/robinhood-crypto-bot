@@ -1,0 +1,78 @@
+{
+    "market_insights": {
+        "timestamp": 1744417009.89975,
+        "symbols": {
+            "BTC/USD": {
+                "price_trends": {
+                    "kraken": {
+                        "current_price": 83310.6,
+                        "price_change_24h": 3.63007402450235
+                    },
+                    "coinbase": {
+                        "current_price": 83344.5,
+                        "price_change_24h": 3.6606888996515874
+                    }
+                },
+                "volume_analysis": {
+                    "kraken": {
+                        "total_volume": 3025.81667235,
+                        "avg_volume": 126.07569468125
+                    },
+                    "coinbase": {
+                        "total_volume": 9705.74822655,
+                        "avg_volume": 404.40617610625003
+                    }
+                },
+                "volatility": {
+                    "kraken": 0.007014381668496176,
+                    "coinbase": 0.007063582666402948
+                },
+                "arbitrage_opportunities": []
+            },
+            "ETH/USD": {
+                "price_trends": {
+                    "kraken": {
+                        "current_price": 1562.86,
+                        "price_change_24h": 1.3383304586894074
+                    },
+                    "coinbase": {
+                        "current_price": 1564.07,
+                        "price_change_24h": 1.4161311866582649
+                    }
+                },
+                "volume_analysis": {
+                    "kraken": {
+                        "total_volume": 25576.914529889997,
+                        "avg_volume": 1065.7047720787498
+                    },
+                    "coinbase": {
+                        "total_volume": 137495.4373498,
+                        "avg_volume": 5728.976556241666
+                    }
+                },
+                "volatility": {
+                    "kraken": 0.006422389116942646,
+                    "coinbase": 0.006172050623990307
+                },
+                "arbitrage_opportunities": []
+            },
+            "BNB/USD": {
+                "price_trends": {},
+                "volume_analysis": {},
+                "volatility": {},
+                "arbitrage_opportunities": []
+            }
+        },
+        "global_sentiment": "Neutral",
+        "risk_indicators": {
+            "market_volatility": 0.006668101018958019,
+            "correlation_risk": 1.0,
+            "liquidity_risk": -0.24287310778048732
+        }
+    },
+    "BTC-USD": {
+        "timestamp": 1744417019.696821,
+        "duration": 2.968022108078003,
+        "symbol": "BTC-USD",
+        "initial_capital": 100000,
+        "market_data": 

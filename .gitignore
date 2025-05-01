@@ -3,6 +3,14 @@
 *.log.*
 alt_crypto_data.log
 
+# Secrets and sensitive files
+.env
+*.pem
+*.key
+*.secret
+*credentials*
+*secret*
+
 # Model and data files
 *.pkl
 *.zip
@@ -11,9 +19,6 @@ alt_crypto_data.log
 # Python cache
 __pycache__/
 *.pyc
-
-# Environment files
-.env
 
 # Large data files
 *.sqlite3

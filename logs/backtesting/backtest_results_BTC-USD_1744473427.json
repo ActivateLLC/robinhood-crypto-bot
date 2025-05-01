@@ -1,0 +1,9 @@
+{
+  "symbol": "BTC-USD",
+  "initial_capital": 100000,
+  "final_portfolio_value": 0.007519040362635286,
+  "total_return_percentage": -99.99999248095965,
+  "mean_reward": -0.7152755856513977,
+  "reward_std": 0.0,
+  "max_drawdown": -0.9999999248095963
+}

@@ -1,0 +1,17 @@
+{
+    "BTC-USD": {
+        "symbol": "BTC-USD",
+        "market_sentiment": "Neutral",
+        "recommended_strategy": "Balanced Momentum"
+    },
+    "ETH-USD": {
+        "symbol": "ETH-USD",
+        "market_sentiment": "Neutral",
+        "recommended_strategy": "Balanced Momentum"
+    },
+    "BNB-USD": {
+        "symbol": "BNB-USD",
+        "market_sentiment": "Neutral",
+        "recommended_strategy": "Balanced Momentum"
+    }
+}

@@ -1,0 +1,9 @@
+{
+  "symbol": "ETH-USD",
+  "initial_capital": 100000,
+  "final_portfolio_value": 0.002689407429175501,
+  "total_return_percentage": -99.99999731059258,
+  "mean_reward": -0.7534562349319458,
+  "reward_std": 0.0,
+  "max_drawdown": -0.9999999731059257
+}

@@ -1,14 +1,12 @@
 # Core Data Science and Machine Learning
 numpy
-pandas==2.0.1
-scikit-learn==1.2.2
+pandas
+scikit-learn
 scipy>=1.8.0
 
 # Deep Learning and Reinforcement Learning
 torch
 stable-baselines3
-gymnasium
-gym
 # shimmy==2.0.0
 
 # Financial Data and Trading
@@ -20,6 +18,7 @@ pycoingecko
 pynacl
 # finrl
 ta
+backtrader
 
 # Cryptocurrency and Financial Data
 yfinance==0.2.18
@@ -65,15 +64,9 @@ nltk==3.8.1
 qiskit>=0.39.0  # Quantum computing
 pyportfolioopt>=1.5.0
 tensorboard==2.13.0
-shimmy==1.1.1
 psutil==5.9.5
 
 # Advanced Error Analysis Dependencies
 psutil>=5.9.0
-pkg_resources
-platform
 
-ccxt
-backtrader
-pandas
-python-dotenv
+gymnasium # Added for RL environment

@@ -1,0 +1,14 @@
+{
+  "BTC-USD": {
+    "error": "'AltCryptoDataProvider' object has no attribute 'fetch_historical_data'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 248, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_historical_data(symbol)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_historical_data'\n"
+  },
+  "ETH-USD": {
+    "error": "'AltCryptoDataProvider' object has no attribute 'fetch_historical_data'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 248, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_historical_data(symbol)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_historical_data'\n"
+  },
+  "BNB-USD": {
+    "error": "'AltCryptoDataProvider' object has no attribute 'fetch_historical_data'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 248, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_historical_data(symbol)\n                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nAttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_historical_data'\n"
+  }
+}

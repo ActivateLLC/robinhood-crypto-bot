@@ -2,4 +2,4 @@ Initial Portfolio Value: $10000.00
 Final Portfolio Value: $10000.00
 Total Return: 0.00%
 Total Trades: 0
-Mean Reward: 284.20
+Mean Reward: 188.27

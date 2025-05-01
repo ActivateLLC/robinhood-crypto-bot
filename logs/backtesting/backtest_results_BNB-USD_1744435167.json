@@ -1,0 +1,9 @@
+{
+  "symbol": "BNB-USD",
+  "initial_capital": 100000,
+  "final_portfolio_value": 0.00020893621048199024,
+  "total_return_percentage": -99.99999979106379,
+  "mean_reward": -799.9600830078125,
+  "reward_std": 0.0,
+  "max_drawdown": -0.9999999979106379
+}

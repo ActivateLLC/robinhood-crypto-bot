@@ -787,7 +787,8 @@ class AutoRemediationAgent:
                     
                     if error_key not in self._error_cache:
                         # Attempt to resolve error
-                        resolution_success = self.error_registry.resolve_error(error)
+                        # Pass error_type string and the full error dict separately
+                        resolution_success = self.error_registry.resolve_error(error['error_type'], error)
                         
                         # Update error cache
                         if resolution_success:

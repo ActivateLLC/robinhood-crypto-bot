@@ -76,7 +76,7 @@ class AgentLauncher:
     """
     def __init__(self):
         # Initialize RLModelTuner
-        self.rl_model_tuner = RLModelTuner()
+        self.rl_model_tuner = RLModelTuner()        
         
         # Initialize ROIOptimizationWorkflow
         self.roi_workflow = ROIOptimizationWorkflow()

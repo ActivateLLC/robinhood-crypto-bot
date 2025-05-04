@@ -1,0 +1,98 @@
+/Users/activate/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+2025-05-01 18:48:45,945 - __main__ - ERROR - Failed to analyze BTC/USDT on binance: binance GET https://api.binance.com/api/v3/exchangeInfo 451  {
+  "code": 0,
+  "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."
+}
+2025-05-01 18:48:48,987 - __main__ - ERROR - Failed to analyze BTC/USDT on coinbase: coinbase requires "apiKey" credential
+2025-05-01 18:48:49,019 - __main__ - ERROR - Failed to fetch BTC/USDT price on binance: binance GET https://api.binance.com/api/v3/exchangeInfo 451  {
+  "code": 0,
+  "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."
+}
+2025-05-01 18:48:49,390 - __main__ - ERROR - Failed to fetch BTC/USDT price on coinbase: coinbase requires "apiKey" credential
+2025-05-01 18:48:49,446 - __main__ - ERROR - Failed to analyze ETH/USDT on binance: binance GET https://api.binance.com/api/v3/exchangeInfo 451  {
+  "code": 0,
+  "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."
+}
+2025-05-01 18:48:50,231 - __main__ - ERROR - Failed to analyze ETH/USDT on coinbase: coinbase requires "apiKey" credential
+2025-05-01 18:48:50,273 - __main__ - ERROR - Failed to fetch ETH/USDT price on binance: binance GET https://api.binance.com/api/v3/exchangeInfo 451  {
+  "code": 0,
+  "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."
+}
+2025-05-01 18:48:51,277 - __main__ - ERROR - Failed to fetch ETH/USDT price on coinbase: coinbase requires "apiKey" credential
+2025-05-01 18:48:51,305 - __main__ - ERROR - Failed to analyze BNB/USDT on binance: binance GET https://api.binance.com/api/v3/exchangeInfo 451  {
+  "code": 0,
+  "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."
+}
+2025-05-01 18:48:52,364 - __main__ - ERROR - Failed to analyze BNB/USDT on coinbase: coinbase requires "apiKey" credential
+2025-05-01 18:48:52,406 - __main__ - ERROR - Failed to fetch BNB/USDT price on binance: binance GET https://api.binance.com/api/v3/exchangeInfo 451  {
+  "code": 0,
+  "msg": "Service unavailable from a restricted location according to 'b. Eligibility' in https://www.binance.com/en/terms. Please contact customer service if you believe you received this message in error."
+}
+2025-05-01 18:48:54,031 - __main__ - ERROR - Failed to fetch BNB/USDT price on coinbase: coinbase requires "apiKey" credential
+2025-05-01 18:48:54,573 - __main__ - ERROR - Failed to fetch global sentiment: '>' not supported between instances of 'str' and 'int'
+{
+  "timestamp": 1746143325.5192451,
+  "symbols": {
+    "BTC/USDT": {
+      "price_trends": {
+        "kraken": {
+          "current_price": 96337.9,
+          "price_change_24h": 2.107050457923121
+        }
+      },
+      "volume_analysis": {
+        "kraken": {
+          "total_volume": 178.50756245,
+          "avg_volume": 7.437815102083333
+        }
+      },
+      "volatility": {
+        "kraken": 0.0036819716292840142
+      },
+      "arbitrage_opportunities": []
+    },
+    "ETH/USDT": {
+      "price_trends": {
+        "kraken": {
+          "current_price": 1836.83,
+          "price_change_24h": 2.2301253367172036
+        }
+      },
+      "volume_analysis": {
+        "kraken": {
+          "total_volume": 789.15887365,
+          "avg_volume": 32.88161973541667
+        }
+      },
+      "volatility": {
+        "kraken": 0.005915871906361054
+      },
+      "arbitrage_opportunities": []
+    },
+    "BNB/USDT": {
+      "price_trends": {
+        "kraken": {
+          "current_price": 603.71,
+          "price_change_24h": 8.592653883512602
+        }
+      },
+      "volume_analysis": {
+        "kraken": {
+          "total_volume": 7.30491,
+          "avg_volume": 0.30437125
+        }
+      },
+      "volatility": {
+        "kraken": 0.007099138851872817
+      },
+      "arbitrage_opportunities": []
+    }
+  },
+  "global_sentiment": "Neutral",
+  "risk_indicators": {
+    "market_volatility": 0.005565660795839295,
+    "correlation_risk": 1.0,
+    "liquidity_risk": -0.03257174503066773
+  }
+}

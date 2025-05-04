@@ -1,0 +1,6 @@
+2025-04-11 23:30:22,606 - INFO - Started command: python3 -m src.btc_roi_optimizer
+2025-04-11 23:30:22,607 - INFO - Working directory: /Users/activate/Dev/robinhood-crypto-bot/crew_agents
+2025-04-11 23:33:18,765 - INFO - Started command: python3 -m src.run_all_agents
+2025-04-11 23:33:18,766 - INFO - Working directory: /Users/activate/Dev/robinhood-crypto-bot/crew_agents
+2025-04-11 23:34:23,428 - INFO - Started command: python3 launch_agents.py
+2025-04-11 23:34:23,429 - INFO - Working directory: /Users/activate/Dev/robinhood-crypto-bot

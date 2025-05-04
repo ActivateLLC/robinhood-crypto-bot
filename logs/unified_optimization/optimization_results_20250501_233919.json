@@ -1,0 +1,14 @@
+{
+  "BTC-USD": {
+    "error": "fetch_price_history() missing 1 required positional argument: 'days'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 296, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_price_history(symbol=symbol)\nTypeError: fetch_price_history() missing 1 required positional argument: 'days'\n"
+  },
+  "ETH-USD": {
+    "error": "fetch_price_history() missing 1 required positional argument: 'days'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 296, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_price_history(symbol=symbol)\nTypeError: fetch_price_history() missing 1 required positional argument: 'days'\n"
+  },
+  "BNB-USD": {
+    "error": "fetch_price_history() missing 1 required positional argument: 'days'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 296, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_price_history(symbol=symbol)\nTypeError: fetch_price_history() missing 1 required positional argument: 'days'\n"
+  }
+}

@@ -1,0 +1,605 @@
+[I 2025-04-11 02:55:37,999] A new study created in RDB with name: crypto_ppo_tuning
+--- Configuration Loaded ---
+Symbols: ['BTC']
+Interval: 5 minutes
+Enable Trading: True
+Enable RL Model: True
+Traditional Strategy: RL
+Log Level: DEBUG
+Data Provider: yfinance
+--------------------------
+  0%|          | 0/50 [00:00<?, ?it/s]2025-04-11 02:55:38,110 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,111 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,112 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,112 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,112 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,112 - DEBUG - Using User-Agent: Mozilla/5.0 (X11; Linux i686; rv:135.0) Gecko/20100101 Firefox/135.0
+2025-04-11 02:55:38,112 - DEBUG - Entering history()
+2025-04-11 02:55:38,114 - DEBUG - ('CREATE TABLE IF NOT EXISTS "_kv" ("key" VARCHAR(255) NOT NULL PRIMARY KEY, "value" VARCHAR(255)) WITHOUT ROWID', [])
+2025-04-11 02:55:38,114 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,114 - DEBUG -  Entering history()
+2025-04-11 02:55:38,116 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,116 - DEBUG -   Entering get()
+2025-04-11 02:55:38,116 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,116 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,116 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,117 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,117 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,117 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,119 - DEBUG - ('CREATE TABLE IF NOT EXISTS "_cookieschema" ("strategy" VARCHAR(255) NOT NULL PRIMARY KEY, "fetch_date" DATETIME NOT NULL, "cookie_bytes" BLOB NOT NULL) WITHOUT ROWID', [])
+2025-04-11 02:55:38,119 - DEBUG - ('SELECT "t1"."strategy", "t1"."fetch_date", "t1"."cookie_bytes" FROM "_cookieschema" AS "t1" WHERE ("t1"."strategy" = ?) LIMIT ? OFFSET ?', ['basic', 1, 0])
+2025-04-11 02:55:38,119 - DEBUG - loaded persistent cookie
+2025-04-11 02:55:38,119 - DEBUG - reusing cookie
+2025-04-11 02:55:38,122 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,122 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,123 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,126 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,126 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,126 - DEBUG - Entering history()
+2025-04-11 02:55:38,126 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,129 - DEBUG - Starting new HTTPS connection (1): query1.finance.yahoo.com:443
+2025-04-11 02:55:38,134 - DEBUG -  Entering history()
+2025-04-11 02:55:38,134 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,134 - DEBUG -   Entering get()
+2025-04-11 02:55:38,134 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,135 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,135 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,135 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,135 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,145 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,145 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,145 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,145 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,145 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,145 - DEBUG - Entering history()
+2025-04-11 02:55:38,146 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,146 - DEBUG -  Entering history()
+2025-04-11 02:55:38,146 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,147 - DEBUG -   Entering get()
+2025-04-11 02:55:38,147 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,147 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,147 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,147 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,147 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,154 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,154 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,154 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,154 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,154 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,154 - DEBUG - Entering history()
+2025-04-11 02:55:38,154 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,155 - DEBUG -  Entering history()
+2025-04-11 02:55:38,155 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,155 - DEBUG -   Entering get()
+2025-04-11 02:55:38,155 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,155 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,155 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,155 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,155 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,173 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,173 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,173 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,173 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,173 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,173 - DEBUG - Entering history()
+2025-04-11 02:55:38,174 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,174 - DEBUG -  Entering history()
+2025-04-11 02:55:38,174 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,174 - DEBUG -   Entering get()
+2025-04-11 02:55:38,174 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,174 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,174 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,174 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,174 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,175 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,175 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,175 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,175 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,175 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,175 - DEBUG - Entering history()
+2025-04-11 02:55:38,176 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,176 - DEBUG -  Entering history()
+2025-04-11 02:55:38,176 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,176 - DEBUG -   Entering get()
+2025-04-11 02:55:38,176 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,177 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,177 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,177 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,177 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,177 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,177 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,177 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,177 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,177 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,177 - DEBUG - Entering history()
+2025-04-11 02:55:38,177 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,178 - DEBUG -  Entering history()
+2025-04-11 02:55:38,178 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,178 - DEBUG -   Entering get()
+2025-04-11 02:55:38,178 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,178 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,178 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,178 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,178 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,237 - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-04-11 02:55:38,237 - INFO - Fetching price history for BTC-USD from yfinance (Period: 30 days, Interval: 1h)...
+2025-04-11 02:55:38,237 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,237 - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-04-11 02:55:38,237 - INFO - Fetching price history for BTC-USD from yfinance (Period: 6mo, Interval: 1h)...
+2025-04-11 02:55:38,237 - DEBUG - Entering history()
+2025-04-11 02:55:38,237 - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-04-11 02:55:38,237 - DEBUG -  Entering history()
+2025-04-11 02:55:38,237 - DEBUG - BTC-USD: Yahoo GET parameters: {'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,237 - DEBUG -   Entering get()
+2025-04-11 02:55:38,237 - DEBUG -    Entering _make_request()
+2025-04-11 02:55:38,237 - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-04-11 02:55:38,237 - DEBUG - params={'range': '6mo', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-04-11 02:55:38,237 - DEBUG -     Entering _get_cookie_and_crumb()
+2025-04-11 02:55:38,237 - DEBUG - cookie_mode = 'basic'
+2025-04-11 02:55:38,374 - DEBUG - https://query1.finance.yahoo.com:443 "GET /v1/test/getcrumb HTTP/1.1" 200 11
+2025-04-11 02:55:38,375 - DEBUG - crumb = 'kgUq8obvE.l'
+2025-04-11 02:55:38,375 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,375 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,375 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,375 - DEBUG - reusing cookie
+2025-04-11 02:55:38,375 - DEBUG - reusing crumb
+2025-04-11 02:55:38,375 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,375 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,375 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,375 - DEBUG - Starting new HTTPS connection (1): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,375 - DEBUG - reusing cookie
+2025-04-11 02:55:38,376 - DEBUG - reusing crumb
+2025-04-11 02:55:38,376 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,376 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,376 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,376 - DEBUG - Starting new HTTPS connection (2): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,376 - DEBUG - reusing cookie
+2025-04-11 02:55:38,376 - DEBUG - reusing crumb
+2025-04-11 02:55:38,376 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,376 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,377 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,377 - DEBUG - Starting new HTTPS connection (3): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,377 - DEBUG - reusing cookie
+2025-04-11 02:55:38,377 - DEBUG - reusing crumb
+2025-04-11 02:55:38,377 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,377 - DEBUG - Starting new HTTPS connection (4): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,377 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,377 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,377 - DEBUG - reusing cookie
+2025-04-11 02:55:38,377 - DEBUG - reusing crumb
+2025-04-11 02:55:38,377 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,377 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,377 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,377 - DEBUG - reusing cookie
+2025-04-11 02:55:38,377 - DEBUG - Starting new HTTPS connection (5): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,378 - DEBUG - reusing crumb
+2025-04-11 02:55:38,378 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,378 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,378 - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,378 - DEBUG - Starting new HTTPS connection (6): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,378 - DEBUG - reusing cookie
+2025-04-11 02:55:38,378 - DEBUG - Starting new HTTPS connection (7): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,378 - DEBUG - reusing crumb
+2025-04-11 02:55:38,378 - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-04-11 02:55:38,378 - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-04-11 02:55:38,379 - DEBUG - Starting new HTTPS connection (8): query2.finance.yahoo.com:443
+2025-04-11 02:55:38,582 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 None
+2025-04-11 02:55:38,589 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 None
+2025-04-11 02:55:38,594 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 None
+2025-04-11 02:55:38,604 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 None
+2025-04-11 02:55:38,642 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 None
+2025-04-11 02:55:38,666 - DEBUG - response code=200
+2025-04-11 02:55:38,666 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:38,666 - DEBUG -   Exiting get()
+2025-04-11 02:55:38,673 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:38,678 - DEBUG - response code=200
+2025-04-11 02:55:38,678 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,678 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:38,679 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 None
+2025-04-11 02:55:38,680 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,680 - DEBUG -   Exiting get()
+2025-04-11 02:55:38,687 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:38,691 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,692 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,694 - DEBUG - response code=200
+2025-04-11 02:55:38,695 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:38,695 - DEBUG -   Exiting get()
+2025-04-11 02:55:38,700 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:38,707 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,708 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,708 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:38,708 - DEBUG -  Exiting history()
+2025-04-11 02:55:38,708 - DEBUG - Exiting history()
+2025-04-11 02:55:38,710 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:38,710 - DEBUG -  Exiting history()
+2025-04-11 02:55:38,710 - DEBUG - Exiting history()
+2025-04-11 02:55:38,712 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:38,712 - WARNING - Some volumes are zero or negative. Applying absolute value.
+2025-04-11 02:55:38,712 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:38,714 - WARNING - Some volumes are zero or negative. Applying absolute value.
+2025-04-11 02:55:38,715 - DEBUG - response code=200
+2025-04-11 02:55:38,716 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:38,716 - DEBUG -   Exiting get()
+2025-04-11 02:55:38,721 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 102775
+2025-04-11 02:55:38,723 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:38,726 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:38,727 - DEBUG -  Exiting history()
+2025-04-11 02:55:38,728 - DEBUG - Exiting history()
+2025-04-11 02:55:38,732 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,733 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,734 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:38,735 - WARNING - Some volumes are zero or negative. Applying absolute value.
+2025-04-11 02:55:38,769 - DEBUG - https://query2.finance.yahoo.com:443 "GET /v8/finance/chart/BTC-USD?range=6mo&interval=1h&includePrePost=False&events=div%2Csplits%2CcapitalGains&crumb=kgUq8obvE.l HTTP/1.1" 200 102591
+2025-04-11 02:55:38,789 - DEBUG - response code=200
+2025-04-11 02:55:38,793 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:38,794 - DEBUG -   Exiting get()
+2025-04-11 02:55:38,825 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:38,869 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:38,884 - DEBUG -  Exiting history()
+2025-04-11 02:55:38,888 - DEBUG - Exiting history()
+2025-04-11 02:55:38,891 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,896 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:38,970 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:38,970 - WARNING - Some volumes are zero or negative. Applying absolute value.
+2025-04-11 02:55:39,072 - DEBUG - response code=200
+2025-04-11 02:55:39,072 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:39,072 - DEBUG -   Exiting get()
+2025-04-11 02:55:39,072 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:39,085 - DEBUG -  Exiting history()
+2025-04-11 02:55:39,086 - DEBUG - Exiting history()
+2025-04-11 02:55:39,091 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:39,095 - DEBUG - response code=200
+2025-04-11 02:55:39,099 - DEBUG - response code=200
+2025-04-11 02:55:39,110 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:39,117 - DEBUG -    Exiting _make_request()
+2025-04-11 02:55:39,141 - DEBUG -   Exiting get()
+2025-04-11 02:55:39,147 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:39,147 - DEBUG -   Exiting get()
+2025-04-11 02:55:39,156 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:39,218 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:39,292 - WARNING - Some volumes are zero or negative. Applying absolute value.
+2025-04-11 02:55:39,316 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:39,358 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:39,379 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:39,381 - DEBUG - BTC-USD: yfinance received OHLC data: 2024-10-11 07:00:00 -> 2025-04-11 07:54:00
+2025-04-11 02:55:39,460 - DEBUG - BTC-USD: OHLC after cleaning: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:39,472 - DEBUG - BTC-USD: OHLC after combining events: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:54:00+00:00
+2025-04-11 02:55:39,616 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:39,619 - DEBUG -  Exiting history()
+2025-04-11 02:55:39,622 - DEBUG - Exiting history()
+2025-04-11 02:55:39,689 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:39,690 - DEBUG -  Exiting history()
+2025-04-11 02:55:39,690 - DEBUG - Exiting history()
+2025-04-11 02:55:39,692 - DEBUG - BTC-USD: yfinance returning OHLC: 2024-10-11 07:00:00+00:00 -> 2025-04-11 07:00:00+00:00
+2025-04-11 02:55:39,727 - DEBUG -  Exiting history()
+2025-04-11 02:55:39,728 - DEBUG - Exiting history()
+2025-04-11 02:55:39,745 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:39,769 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:39,817 - WARNING - Some volumes are zero or negative. Applying absolute value.
+2025-04-11 02:55:39,819 - WARNING - Some volumes are zero or negative. Applying absolute value.
+2025-04-11 02:55:39,883 - INFO - Successfully fetched 4368 data points for BTC-USD from yfinance.
+2025-04-11 02:55:39,884 - WARNING - Some volumes are zero or negative. Applying absolute value.
+                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                      [W 2025-04-11 02:57:29,899] Trial 0 failed with parameters: {'learning_rate': 9.067948035538916e-05, 'batch_size': 71, 'n_steps': 2858, 'gamma': 0.9635771137148512, 'gae_lambda': 0.8078089507298286, 'ent_coef': 0.0045645979031627305, 'clip_range': 0.28407493915550563} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"
+[W 2025-04-11 02:57:30,068] Trial 3 failed with parameters: {'learning_rate': 0.0006950573662831751, 'batch_size': 83, 'n_steps': 1802, 'gamma': 0.9868330949365346, 'gae_lambda': 0.9853287341023799, 'ent_coef': 0.007083089393246114, 'clip_range': 0.3652685465287082} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"
+[W 2025-04-11 02:57:30,205] Trial 0 failed with value None.
+[W 2025-04-11 02:57:30,206] Trial 4 failed with parameters: {'learning_rate': 0.00010625953398559763, 'batch_size': 102, 'n_steps': 3127, 'gamma': 0.9624852309532121, 'gae_lambda': 0.9252822861921093, 'ent_coef': 0.00304245239884701, 'clip_range': 0.3133707039724429} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"
+[W 2025-04-11 02:57:30,213] Trial 3 failed with value None.
+[W 2025-04-11 02:57:30,243] Trial 4 failed with value None.
+[W 2025-04-11 02:57:30,264] Trial 5 failed with parameters: {'learning_rate': 4.7822781358649735e-05, 'batch_size': 101, 'n_steps': 3394, 'gamma': 0.9520661168503306, 'gae_lambda': 0.9055745311731549, 'ent_coef': 0.0004466396721630441, 'clip_range': 0.22890648333773486} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"  0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:52<?, ?it/s]                                        0%|          | 0/50 [01:53<?, ?it/s]                                        0%|          | 0/50 [01:53<?, ?it/s]                                      
+[W 2025-04-11 02:57:30,332] Trial 2 failed with parameters: {'learning_rate': 5.053986918186918e-05, 'batch_size': 100, 'n_steps': 1924, 'gamma': 0.9353121086784268, 'gae_lambda': 0.8630092894659726, 'ent_coef': 0.021026872054333505, 'clip_range': 0.11727362017867354} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"
+[W 2025-04-11 02:57:30,373] Trial 5 failed with value None.
+[W 2025-04-11 02:57:30,385] Trial 2 failed with value None.
+[W 2025-04-11 02:57:30,517] Trial 6 failed with parameters: {'learning_rate': 0.00013235127997039263, 'batch_size': 82, 'n_steps': 1440, 'gamma': 0.935810217434877, 'gae_lambda': 0.9472573344677666, 'ent_coef': 0.07591403556250856, 'clip_range': 0.351306251305577} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"
+[W 2025-04-11 02:57:30,544] Trial 6 failed with value None.
+[W 2025-04-11 02:57:31,532] Trial 1 failed with parameters: {'learning_rate': 0.0008148797931236151, 'batch_size': 58, 'n_steps': 1071, 'gamma': 0.9866959163675993, 'gae_lambda': 0.997283639292107, 'ent_coef': 0.0003462533621656846, 'clip_range': 0.1303364382943095} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"
+[W 2025-04-11 02:57:31,533] Trial 1 failed with value None.
+[W 2025-04-11 02:57:31,536] Trial 7 failed with parameters: {'learning_rate': 1.8310116641201383e-05, 'batch_size': 62, 'n_steps': 2841, 'gamma': 0.9902470800689968, 'gae_lambda': 0.9405370258001104, 'ent_coef': 0.01675968656885625, 'clip_range': 0.14156633078537384} because of the following error: KeyError("['MACD_12_26'] not in index").
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"  0%|          | 0/50 [01:53<?, ?it/s]                                        0%|          | 0/50 [01:53<?, ?it/s]  0%|          | 0/50 [01:53<?, ?it/s]
+
+[W 2025-04-11 02:57:31,537] Trial 7 failed with value None.
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 173, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 134, in main
+    study.optimize(
+    ~~~~~~~~~~~~~~^
+        objective,
+        ^^^^^^^^^^
+    ...<3 lines>...
+        show_progress_bar=True
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/study.py", line 451, in optimize
+    _optimize(
+    ~~~~~~~~~^
+        study=self,
+        ^^^^^^^^^^^
+    ...<7 lines>...
+        show_progress_bar=show_progress_bar,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 103, in _optimize
+    f.result()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 163, in _optimize_sequential
+    frozen_trial = _run_trial(study, func, catch)
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 251, in _run_trial
+    raise func_err
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 57, in objective
+    train_env = create_env(df, training=True)
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in create_env
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/stable_baselines3/common/vec_env/dummy_vec_env.py", line 31, in __init__
+    self.envs = [_patch_env(fn()) for fn in env_fns]
+                            ~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/optuna_ppo_tuning.py", line 28, in <lambda>
+    env = DummyVecEnv([lambda: CryptoTradingEnv(df=df, symbol=symbol)])
+                               ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 79, in __init__
+    self.df_processed, self.num_features = self._preprocess_data(df.copy())
+                                           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 228, in _preprocess_data
+    df = self._select_features(df)
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 160, in _select_features
+    return df[features]
+           ~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4108, in __getitem__
+    indexer = self.columns._get_indexer_strict(key, "columns")[1]
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6200, in _get_indexer_strict
+    self._raise_if_missing(keyarr, indexer, axis_name)
+    ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/.venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 6252, in _raise_if_missing
+    raise KeyError(f"{not_found} not in index")
+KeyError: "['MACD_12_26'] not in index"

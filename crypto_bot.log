@@ -1,0 +1,474 @@
+2025-04-11 00:01:51,993 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:01:52,007 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:01:52,007 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:02:02,826 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:02:02,826 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:02:02,829 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:02:02,829 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:02:02,830 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:02:02,830 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:02:13,581 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:02:13,582 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:02:13,585 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:02:13,585 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:02:13,585 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:02:13,586 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:02:24,200 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 00:02:24,201 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:02:24,201 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:02:24,205 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:02:24,205 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:02:24,205 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:07:24,548 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:07:24,549 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:07:24,549 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:07:35,077 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:07:35,078 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:07:35,081 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:07:35,081 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:07:35,081 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:07:35,081 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:07:45,595 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:07:45,596 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:07:45,598 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:07:45,598 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:07:45,598 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:07:45,599 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:07:56,599 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 00:07:56,600 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:07:56,601 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:07:56,607 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:07:56,607 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:07:56,607 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:12:57,087 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:12:57,089 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:12:57,089 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:13:07,805 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:13:07,805 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:13:07,809 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:13:07,809 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:13:07,809 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:13:07,809 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:13:18,361 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:13:18,362 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:13:18,364 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:13:18,364 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:13:18,364 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:13:18,364 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:13:28,882 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 00:13:28,883 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:13:28,884 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:13:28,888 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:13:28,888 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:13:28,888 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:18:29,107 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:18:29,111 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:18:29,111 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:18:39,725 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:18:39,726 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:18:39,728 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:18:39,729 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:18:39,729 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:18:39,729 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:18:50,374 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:18:50,376 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:18:50,379 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:18:50,379 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:18:50,380 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:18:50,380 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:19:00,958 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:19:00,959 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:19:00,961 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:19:00,962 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:19:00,962 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:24:01,114 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:24:01,116 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:24:01,116 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:24:11,966 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:24:11,967 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:24:11,971 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:24:11,971 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:24:11,971 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:24:11,971 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:24:22,544 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:24:22,545 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:24:22,547 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:24:22,547 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:24:22,547 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:24:22,547 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:24:33,174 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 00:24:33,175 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:24:33,176 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:24:33,178 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:24:33,178 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:24:33,178 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:29:33,678 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:29:33,680 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:29:33,680 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:29:44,493 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:29:44,494 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:29:44,501 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:29:44,501 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:29:44,501 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:29:44,501 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:29:55,330 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:29:55,331 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:29:55,334 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:29:55,334 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:29:55,335 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:29:55,335 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:30:06,194 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:30:06,195 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:30:06,198 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:30:06,198 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:30:06,198 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:35:07,000 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:35:07,002 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:35:07,002 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:35:17,710 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:35:17,711 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:35:17,725 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:35:17,725 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:35:17,725 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:35:17,725 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:35:28,407 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:35:28,408 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:35:28,410 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:35:28,410 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:35:28,411 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:35:28,411 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:35:39,054 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 00:35:39,055 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:35:39,056 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:35:39,059 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:35:39,060 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:35:39,060 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:40:39,447 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:40:39,449 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:40:39,449 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:40:50,142 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:40:50,143 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:40:50,147 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:40:50,147 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:40:50,148 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:40:50,148 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:41:00,741 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:41:00,743 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:41:00,747 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:41:00,747 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:41:00,747 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:41:00,747 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:41:11,328 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:41:11,329 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:41:11,332 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:41:11,332 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:41:11,332 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:46:11,685 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:46:11,693 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:46:11,694 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:46:22,476 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:46:22,477 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:46:22,480 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:46:22,480 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:46:22,480 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:46:22,481 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:46:33,064 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:46:33,065 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:46:33,069 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:46:33,069 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:46:33,070 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:46:33,070 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:46:43,631 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 00:46:43,634 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:46:43,635 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:46:43,642 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:46:43,642 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:46:43,642 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:51:43,894 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:51:43,896 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:51:43,896 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:51:54,438 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:51:54,439 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:51:54,442 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:51:54,443 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:51:54,443 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:51:54,443 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:52:05,098 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:52:05,099 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:52:05,102 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:52:05,102 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:52:05,102 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:52:05,102 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:52:15,755 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:52:15,756 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:52:15,759 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:52:15,759 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:52:15,759 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 00:57:15,941 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 00:57:15,944 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 00:57:15,944 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 00:57:26,748 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 00:57:26,750 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 00:57:26,754 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 00:57:26,754 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 00:57:26,754 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 00:57:26,754 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 00:57:37,307 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 00:57:37,308 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 00:57:37,313 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 00:57:37,313 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 00:57:37,313 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 00:57:37,313 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 00:57:47,895 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 00:57:47,899 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 00:57:47,900 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 00:57:47,904 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 00:57:47,904 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 00:57:47,904 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:02:48,235 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:02:48,248 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:02:48,248 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:02:58,812 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:02:58,813 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:02:58,815 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:02:58,815 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:02:58,816 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:02:58,816 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:03:09,399 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:03:09,400 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:03:09,404 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:03:09,404 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:03:09,404 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:03:09,404 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:03:20,012 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:03:20,013 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:03:20,017 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:03:20,017 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:03:20,017 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:08:20,359 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:08:20,361 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:08:20,361 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:08:31,067 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:08:31,068 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:08:31,071 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:08:31,071 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:08:31,071 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:08:31,071 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:08:41,861 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:08:41,862 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:08:41,869 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:08:41,870 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:08:41,870 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:08:41,870 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:08:52,471 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 01:08:52,473 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:08:52,473 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:08:52,476 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:08:52,476 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:08:52,476 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:13:52,918 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:13:52,922 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:13:52,923 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:14:03,638 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:14:03,640 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:14:03,662 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:14:03,663 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:14:03,663 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:14:03,663 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:14:14,234 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:14:14,235 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:14:14,238 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:14:14,238 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:14:14,238 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:14:14,238 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:14:24,782 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 01:14:24,784 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:14:24,785 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:14:24,789 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:14:24,789 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:14:24,789 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:19:25,116 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:19:25,119 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:19:25,119 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:19:36,084 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:19:36,087 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:19:36,091 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:19:36,091 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:19:36,091 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:19:36,091 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:19:46,669 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:19:46,670 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:19:46,673 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:19:46,673 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:19:46,673 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:19:46,673 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:19:57,164 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 01:19:57,166 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:19:57,167 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:19:57,172 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:19:57,172 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:19:57,172 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:24:57,540 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:24:57,549 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:24:57,549 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:25:08,091 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:25:08,092 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:25:08,116 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:25:08,117 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:25:08,128 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:25:08,128 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:25:18,807 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:25:18,808 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:25:18,811 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:25:18,811 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:25:18,811 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:25:18,811 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:25:29,442 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 01:25:29,444 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:25:29,445 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:25:29,448 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:25:29,448 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:25:29,448 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:30:29,785 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:30:29,789 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:30:29,789 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:30:40,638 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:30:40,640 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:30:40,644 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:30:40,644 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:30:40,644 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:30:40,645 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:30:51,201 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:30:51,206 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:30:51,225 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:30:51,226 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:30:51,226 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:30:51,233 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:31:01,947 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:31:01,949 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:31:01,954 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:31:01,954 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:31:01,954 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:36:02,360 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:36:02,362 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:36:02,363 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:36:13,006 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:36:13,009 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:36:13,021 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:36:13,021 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:36:13,021 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:36:13,022 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:36:23,585 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:36:23,586 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:36:23,590 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:36:23,590 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:36:23,591 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:36:23,591 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:36:34,148 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 01:36:34,153 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:36:34,154 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:36:34,158 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:36:34,158 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:36:34,158 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:41:34,784 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:41:34,786 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:41:34,786 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:41:45,609 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:41:45,611 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:41:45,629 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:41:45,630 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:41:45,630 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:41:45,630 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:41:56,308 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:41:56,309 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:41:56,312 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:41:56,313 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:41:56,313 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:41:56,313 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:42:07,117 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:42:07,121 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:42:07,136 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:42:07,139 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:42:07,139 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:47:08,030 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:47:08,049 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:47:08,049 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:47:18,986 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:47:18,989 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:47:18,995 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:47:18,995 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:47:18,996 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:47:18,996 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:47:29,590 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:47:29,591 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:47:29,597 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:47:29,597 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:47:29,597 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:47:29,597 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:47:40,113 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 01:47:40,115 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:47:40,116 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:47:40,122 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:47:40,122 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:47:40,122 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:52:40,719 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:52:40,721 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:52:40,722 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:52:51,639 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:52:51,640 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:52:51,665 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:52:51,670 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:52:51,670 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:52:51,670 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:53:02,299 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:53:02,301 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:53:02,306 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:53:02,306 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:53:02,306 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:53:02,306 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:53:12,855 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:53:12,857 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:53:12,864 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:53:12,864 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:53:12,864 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 01:58:13,245 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 01:58:13,250 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 01:58:13,250 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 01:58:23,789 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 01:58:23,790 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 01:58:23,803 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 01:58:23,804 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 01:58:23,804 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 01:58:23,804 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 01:58:34,469 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 01:58:34,471 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 01:58:34,475 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 01:58:34,476 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 01:58:34,476 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 01:58:34,476 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 01:58:45,109 - alt_crypto_data - WARNING - Could not fetch volume data for SOL: 429 - {"status":{"error_code":429,"error_message":"You've exceeded the Rate Limit. Please visit https://www.coingecko.com/en/api/pricing to subscribe to our API plans for higher rate limits."}}
+2025-04-11 01:58:45,111 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 01:58:45,111 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 01:58:45,115 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 01:58:45,116 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 01:58:45,116 - __main__ - INFO - === Analysis Cycle Finished ===
+2025-04-11 02:03:45,554 - __main__ - INFO - === Starting Analysis Cycle ===
+2025-04-11 02:03:45,556 - __main__ - INFO - Analyzing BTC using macd strategy...
+2025-04-11 02:03:45,557 - alt_crypto_data - INFO - Fetching price history for BTC from CoinGecko...
+2025-04-11 02:03:56,392 - alt_crypto_data - INFO - Successfully fetched OHLCV history for BTC
+2025-04-11 02:03:56,393 - __main__ - INFO - Successfully fetched 23 data points for BTC.
+2025-04-11 02:03:56,401 - __main__ - INFO - Analysis complete for BTC. Signal: HOLD
+2025-04-11 02:03:56,402 - __main__ - INFO - [ANALYSIS RESULT] Signal for BTC: HOLD
+2025-04-11 02:03:56,402 - __main__ - INFO - Analyzing ETH using macd strategy...
+2025-04-11 02:03:56,402 - alt_crypto_data - INFO - Fetching price history for ETH from CoinGecko...
+2025-04-11 02:04:06,992 - alt_crypto_data - INFO - Successfully fetched OHLCV history for ETH
+2025-04-11 02:04:06,994 - __main__ - INFO - Successfully fetched 23 data points for ETH.
+2025-04-11 02:04:06,998 - __main__ - INFO - Analysis complete for ETH. Signal: HOLD
+2025-04-11 02:04:06,999 - __main__ - INFO - [ANALYSIS RESULT] Signal for ETH: HOLD
+2025-04-11 02:04:06,999 - __main__ - INFO - Analyzing SOL using macd strategy...
+2025-04-11 02:04:06,999 - alt_crypto_data - INFO - Fetching price history for SOL from CoinGecko...
+2025-04-11 02:04:17,611 - alt_crypto_data - INFO - Successfully fetched OHLCV history for SOL
+2025-04-11 02:04:17,613 - __main__ - INFO - Successfully fetched 23 data points for SOL.
+2025-04-11 02:04:17,616 - __main__ - INFO - Analysis complete for SOL. Signal: HOLD
+2025-04-11 02:04:17,616 - __main__ - INFO - [ANALYSIS RESULT] Signal for SOL: HOLD
+2025-04-11 02:04:17,616 - __main__ - INFO - === Analysis Cycle Finished ===

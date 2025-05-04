@@ -1,0 +1,12 @@
+/Users/activate/Library/Python/3.9/lib/python/site-packages/urllib3/__init__.py:35: NotOpenSSLWarning: urllib3 v2 only supports OpenSSL 1.1.1+, currently the 'ssl' module is compiled with 'LibreSSL 2.8.3'. See: https://github.com/urllib3/urllib3/issues/3020
+  warnings.warn(
+Traceback (most recent call last):
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py", line 197, in _run_module_as_main
+    return _run_code(code, main_globals, None,
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/runpy.py", line 87, in _run_code
+    exec(code, run_globals)
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/continuous_optimization_agent.py", line 15, in <module>
+    from crew_agents.src.crew_optimization_manager import CrewOptimizationAgent, AgentCommunicationHub
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/crew_optimization_manager.py", line 18, in <module>
+    import gym
+ModuleNotFoundError: No module named 'gym'

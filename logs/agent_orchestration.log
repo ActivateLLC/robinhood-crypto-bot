@@ -1,0 +1,148 @@
+2025-04-11 23:33:18,804 - INFO - 🚀 Starting Comprehensive Agent Optimization
+2025-04-11 23:33:18,893 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py
+2025-04-11 23:33:18,904 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py
+2025-04-11 23:33:18,907 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/logging_management_agent.py
+2025-04-11 23:33:18,927 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/continuous_optimization_agent.py
+2025-04-11 23:33:18,930 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/error_monitoring_agent.py
+2025-04-11 23:33:18,934 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py
+2025-04-11 23:33:18,935 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py
+2025-04-11 23:33:18,964 - INFO - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/logging_management_agent.py completed successfully in 0.06 seconds
+2025-04-11 23:33:18,965 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/market_intelligence_agent.py
+2025-04-11 23:33:19,698 - ERROR - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py failed with return code 1
+2025-04-11 23:33:19,698 - ERROR - STDERR: Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 342, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 328, in main
+    results = roi_agent.run_optimization_pipeline()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 303, in run_optimization_pipeline
+    optimization_results = self.optimize_trading_strategy()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 205, in optimize_trading_strategy
+    symbol: self.data_provider.fetch_price_history(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_price_history'
+
+2025-04-11 23:33:22,808 - ERROR - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py failed with return code 1
+2025-04-11 23:33:22,809 - ERROR - STDERR: Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'log_returns'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 251, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 237, in main
+    results = agent.run_infinite_returns_strategy()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 199, in run_infinite_returns_strategy
+    trading_results = self.simulate_trading_strategy()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 151, in simulate_trading_strategy
+    volatility = market_data['log_returns'].std()
+                 ~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'log_returns'
+
+2025-04-11 23:33:22,817 - ERROR - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py failed with return code 1
+2025-04-11 23:33:22,817 - ERROR - STDERR: Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 415, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 405, in main
+    research_agent = BTCPopCatResearchAgent(
+        symbols=['BTC-USD', 'POPCAT-USD'],
+        initial_capital=100000.0,
+        research_interval_hours=1
+    )
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 84, in __init__
+    self.market_research_agent = self._create_market_research_agent()
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 92, in _create_market_research_agent
+    return Agent(
+           ^^^^^
+NameError: name 'Agent' is not defined
+
+2025-04-11 23:33:27,522 - INFO - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/market_intelligence_agent.py completed successfully in 8.56 seconds
+2025-04-11 23:35:52,992 - INFO - 🚀 Starting Comprehensive Agent Optimization
+2025-04-11 23:35:53,134 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py
+2025-04-11 23:35:53,135 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py
+2025-04-11 23:35:53,144 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/logging_management_agent.py
+2025-04-11 23:35:53,172 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/continuous_optimization_agent.py
+2025-04-11 23:35:53,173 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/error_monitoring_agent.py
+2025-04-11 23:35:53,175 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py
+2025-04-11 23:35:53,176 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py
+2025-04-11 23:35:53,200 - INFO - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/logging_management_agent.py completed successfully in 0.06 seconds
+2025-04-11 23:35:53,200 - INFO - Starting agent: /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/market_intelligence_agent.py
+2025-04-11 23:35:53,913 - ERROR - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py failed with return code 1
+2025-04-11 23:35:53,913 - ERROR - STDERR: Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 342, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 328, in main
+    results = roi_agent.run_optimization_pipeline()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 303, in run_optimization_pipeline
+    optimization_results = self.optimize_trading_strategy()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/roi_optimization_agent.py", line 205, in optimize_trading_strategy
+    symbol: self.data_provider.fetch_price_history(
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_price_history'
+
+2025-04-11 23:35:57,992 - ERROR - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py failed with return code 1
+2025-04-11 23:35:57,993 - ERROR - STDERR: Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 3805, in get_loc
+    return self._engine.get_loc(casted_key)
+           ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "index.pyx", line 167, in pandas._libs.index.IndexEngine.get_loc
+  File "index.pyx", line 196, in pandas._libs.index.IndexEngine.get_loc
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7081, in pandas._libs.hashtable.PyObjectHashTable.get_item
+  File "pandas/_libs/hashtable_class_helper.pxi", line 7089, in pandas._libs.hashtable.PyObjectHashTable.get_item
+KeyError: 'log_returns'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 251, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 237, in main
+    results = agent.run_infinite_returns_strategy()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 199, in run_infinite_returns_strategy
+    trading_results = self.simulate_trading_strategy()
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/infinite_returns_agent.py", line 151, in simulate_trading_strategy
+    volatility = market_data['log_returns'].std()
+                 ~~~~~~~~~~~^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/pandas/core/frame.py", line 4102, in __getitem__
+    indexer = self.columns.get_loc(key)
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/pandas/core/indexes/base.py", line 3812, in get_loc
+    raise KeyError(key) from err
+KeyError: 'log_returns'
+
+2025-04-11 23:35:58,010 - ERROR - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py failed with return code 1
+2025-04-11 23:35:58,011 - ERROR - STDERR: Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 415, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 405, in main
+    research_agent = BTCPopCatResearchAgent(
+        symbols=['BTC-USD', 'POPCAT-USD'],
+        initial_capital=100000.0,
+        research_interval_hours=1
+    )
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 84, in __init__
+    self.market_research_agent = self._create_market_research_agent()
+                                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_popcat_research_agent.py", line 92, in _create_market_research_agent
+    return Agent(
+           ^^^^^
+NameError: name 'Agent' is not defined
+
+2025-04-11 23:36:02,765 - INFO - Agent /Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/market_intelligence_agent.py completed successfully in 9.56 seconds

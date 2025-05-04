@@ -1,7 +1,29 @@
-import os
 import sys
-import json
+import os
+
+# --- Add project root to sys.path EARLY ---
+# Calculate project root relative to this file's location
+# Go up three levels: src -> crew_agents -> robinhood-crypto-bot
+project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+# -----------------------------------------
+
+# --- Now import project modules ---
+from stable_baselines3 import PPO
+from stable_baselines3.common.vec_env import DummyVecEnv
+from stable_baselines3.common.evaluation import evaluate_policy
+
+# Import necessary components using explicit relative imports
+from trading_intelligence import TradingIntelligenceEngine
+from crypto_trading_env import CryptoTradingEnvironment
+
+# Data provider is likely outside this sub-package, keep its import as is
+import alt_crypto_data
+
 import logging
+import logging.handlers
+import json
 import numpy as np
 import pandas as pd
 import optuna
@@ -11,18 +33,8 @@ from typing import Dict, Any, List, Optional
 from datetime import datetime
 import time
 import traceback
+from dotenv import load_dotenv
 
-# Add project root to Python path
-project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-sys.path.insert(0, project_root)
-
-# Import custom modules
-from stable_baselines3 import PPO
-from stable_baselines3.common.vec_env import DummyVecEnv
-from stable_baselines3.common.evaluation import evaluate_policy
-from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment
-from alt_crypto_data import AltCryptoDataProvider
-from trading_intelligence import TradingIntelligenceEngine
 
 class UnifiedOptimizationAgent:
     """
@@ -48,8 +60,16 @@ class UnifiedOptimizationAgent:
         self.log_dir = log_dir or os.path.join(project_root, 'logs', 'unified_optimization')
         os.makedirs(self.log_dir, exist_ok=True)
         
+        # Determine run mode from environment variables
+        self.live_trading = os.getenv('LIVE_TRADING', 'false').lower() == 'true'
+        self.broker_type = os.getenv('BROKER_TYPE', 'simulation').lower()
+        if self.live_trading and self.broker_type not in ['robinhood', 'ibkr', 'simulation']: # Allow simulation override even if LIVE_TRADING is true
+            raise ValueError(f"Unsupported BROKER_TYPE '{self.broker_type}' specified in environment for live trading.")
+        if not self.live_trading:
+            self.broker_type = 'simulation' # Force simulation if LIVE_TRADING is false
+
         # Initialize data and intelligence providers
-        self.data_provider = AltCryptoDataProvider()
+        self.data_provider = alt_crypto_data.AltCryptoDataProvider()
         self.trading_intelligence = TradingIntelligenceEngine()
         
         # Setup logging
@@ -58,6 +78,9 @@ class UnifiedOptimizationAgent:
         # Load or create configuration
         self.config_path = config_path or os.path.join(project_root, 'configs', 'unified_optimization_config.json')
         self.config = self._load_or_create_config()
+        # Store lookback_days from config
+        self.lookback_days = self.config.get('data_settings', {}).get('lookback_days', 365) # Default to 365 if not found
+        self.logger.info(f"Using lookback period: {self.lookback_days} days")
         
         # Performance tracking
         self.performance_history = {symbol: [] for symbol in symbols}
@@ -99,7 +122,20 @@ class UnifiedOptimizationAgent:
         
         if os.path.exists(self.config_path):
             with open(self.config_path, 'r') as f:
-                return json.load(f)
+                # Load existing config, provide defaults for missing keys
+                loaded_config = json.load(f)
+                loaded_config.setdefault('optimization_settings', {})
+                loaded_config['optimization_settings'].setdefault('max_trials', 500)
+                loaded_config['optimization_settings'].setdefault('timeout_hours', 24)
+                loaded_config['optimization_settings'].setdefault('risk_tolerance', 0.2)
+                loaded_config.setdefault('hyperparameters', {})
+                loaded_config['hyperparameters'].setdefault('learning_rates', {})
+                loaded_config['hyperparameters'].setdefault('batch_sizes', {})
+                loaded_config['hyperparameters'].setdefault('gamma_values', {})
+                loaded_config['hyperparameters'].setdefault('exploration_rates', {})
+                loaded_config.setdefault('data_settings', {})
+                loaded_config['data_settings'].setdefault('lookback_days', 365)
+                return loaded_config
         
         default_config = {
             'optimization_settings': {
@@ -112,6 +148,9 @@ class UnifiedOptimizationAgent:
                 'batch_sizes': {'BTC-USD': 128, 'ETH-USD': 256, 'BNB-USD': 192},
                 'gamma_values': {'BTC-USD': 0.99, 'ETH-USD': 0.95, 'BNB-USD': 0.97},
                 'exploration_rates': {'BTC-USD': 0.1, 'ETH-USD': 0.15, 'BNB-USD': 0.12}
+            },
+            'data_settings': { 
+                'lookback_days': 365
             }
         }
         
@@ -130,8 +169,14 @@ class UnifiedOptimizationAgent:
         Returns:
             gym.Env: Validated trading environment
         """
+        self.logger.info(f"Creating environment for {symbol} | Live: {self.live_trading}, Broker: {self.broker_type}")
         try:
-            env = CryptoTradingEnvironment(symbol=symbol)
+            # Pass the live_trading and broker_type flags read during init
+            env = CryptoTradingEnvironment(
+                symbol=symbol,
+                live_trading=self.live_trading,
+                broker_type=self.broker_type
+            )
             
             # Validate environment
             self._validate_environment(env)
@@ -245,17 +290,29 @@ class UnifiedOptimizationAgent:
         for symbol in self.symbols:
             try:
                 # Fetch market data
-                market_data = self.data_provider.fetch_historical_data(symbol)
+                self.logger.info(f"Fetching market data for {symbol}...")
+                # Pass the lookback_days argument
+                market_data = self.data_provider.fetch_price_history(symbol=symbol, days=self.lookback_days)
+
+                if market_data is None or market_data.empty:
+                    self.logger.error(f"Failed to fetch market data for {symbol}")
+                    continue
                 
-                # Perform ROI analysis
-                roi_analysis = self.trading_intelligence.calculate_roi(market_data)
+                # Perform analysis using Trading Intelligence Engine
+                self.logger.info(f"Generating trading insights for {symbol}...")
+                # Call the correct method, passing the fetched market_data
+                insights_analysis = self.trading_intelligence.generate_comprehensive_trading_insights(historical_data=market_data)
+
+                if not insights_analysis or 'error' in insights_analysis:
+                    self.logger.error(f"Failed to generate insights for {symbol}: {insights_analysis.get('error', 'Unknown error')}")
+                    continue
                 
                 # Optimize hyperparameters
                 best_hyperparams = self.optimize_hyperparameters(symbol)
                 
                 # Combine results
                 results[symbol] = {
-                    'roi_analysis': roi_analysis,
+                    'insights_analysis': insights_analysis,
                     'best_hyperparameters': best_hyperparams
                 }
                 
@@ -283,6 +340,12 @@ def main():
     """
     Main entry point for Unified Optimization Agent
     """
+    # Construct the absolute path to the .env file
+    dotenv_path = os.path.join(project_root, '.env')
+    print(f"DEBUG: Attempting to load .env from: {dotenv_path}") # Add debug print for path
+    # Explicitly load environment variables from the specified path
+    load_dotenv(dotenv_path=dotenv_path, override=True) # Use override=True just in case
+    
     optimization_agent = UnifiedOptimizationAgent()
     results = optimization_agent.run_optimization_pipeline()
     

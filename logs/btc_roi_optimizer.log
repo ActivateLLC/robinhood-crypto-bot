@@ -1,0 +1,547 @@
+2025-04-11 21:12:56,761 - INFO - Error fetching market data: 'AltCryptoDataProvider' object has no attribute 'fetch_price_history'
+2025-04-11 21:12:57,005 - INFO - [W 2025-04-11 21:12:56,956] Trial 59 failed with parameters: {'learning_rate': 0.00026224971372431304} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,005 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,006 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,006 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,006 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,006 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,006 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,006 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,006 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,006 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,006 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,006 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,006 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,006 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,006 - INFO - )
+2025-04-11 21:12:57,006 - INFO - ^
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,006 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,006 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,006 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,006 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,006 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,006 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,006 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,006 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,006 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,006 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,007 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,007 - INFO - )
+2025-04-11 21:12:57,007 - INFO - ^
+2025-04-11 21:12:57,007 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,007 - INFO - raise ValueError(
+2025-04-11 21:12:57,007 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,007 - INFO - )
+2025-04-11 21:12:57,007 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,007 - INFO - [W 2025-04-11 21:12:56,957] Trial 60 failed with parameters: {'learning_rate': 4.5512363627559325e-05} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,007 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,007 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,007 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,007 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,007 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,007 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,007 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,007 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,007 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,007 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,007 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,007 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,007 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,007 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,007 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,008 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,008 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,008 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,008 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,008 - INFO - )
+2025-04-11 21:12:57,008 - INFO - ^
+2025-04-11 21:12:57,008 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,008 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,008 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,008 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,008 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,008 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,008 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,008 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,008 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,008 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,008 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,008 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,008 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,008 - INFO - )
+2025-04-11 21:12:57,008 - INFO - ^
+2025-04-11 21:12:57,008 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,008 - INFO - raise ValueError(
+2025-04-11 21:12:57,008 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,008 - INFO - )
+2025-04-11 21:12:57,008 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,008 - INFO - [W 2025-04-11 21:12:56,968] Trial 59 failed with value None.
+2025-04-11 21:12:57,009 - INFO - [W 2025-04-11 21:12:56,969] Trial 60 failed with value None.
+2025-04-11 21:12:57,009 - INFO - [W 2025-04-11 21:12:56,999] Trial 61 failed with parameters: {'learning_rate': 1.15896182481141e-05} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,009 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,009 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,009 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,009 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,009 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,009 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,009 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,009 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,009 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,009 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,009 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,009 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,009 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,009 - INFO - )
+2025-04-11 21:12:57,009 - INFO - ^
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,009 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,009 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,009 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,010 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,010 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,010 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,010 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,010 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,010 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,010 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,010 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,010 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,010 - INFO - )
+2025-04-11 21:12:57,010 - INFO - ^
+2025-04-11 21:12:57,010 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,010 - INFO - raise ValueError(
+2025-04-11 21:12:57,010 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,010 - INFO - )
+2025-04-11 21:12:57,021 - ERROR - Optimization failed: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,021 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,021 - INFO - [W 2025-04-11 21:12:56,999] Trial 63 failed with parameters: {'learning_rate': 0.0006496771171105247} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,021 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,021 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,021 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,021 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,021 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,021 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,021 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,021 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,021 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,021 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,021 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,021 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,021 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - )
+2025-04-11 21:12:57,021 - INFO - ^
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,021 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,021 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,021 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,021 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,021 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,021 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,021 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,021 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,021 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,021 - INFO - )
+2025-04-11 21:12:57,021 - INFO - ^
+2025-04-11 21:12:57,021 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,021 - INFO - raise ValueError(
+2025-04-11 21:12:57,021 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,021 - INFO - )
+2025-04-11 21:12:57,021 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,022 - INFO - [W 2025-04-11 21:12:56,999] Trial 64 failed with parameters: {'learning_rate': 0.0011763906670904669} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,022 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,022 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,022 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,022 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,022 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,022 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,022 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,022 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,022 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - )
+2025-04-11 21:12:57,022 - INFO - ^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,022 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,022 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,022 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,022 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,022 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,022 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - )
+2025-04-11 21:12:57,022 - INFO - ^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,022 - INFO - raise ValueError(
+2025-04-11 21:12:57,022 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,022 - INFO - )
+2025-04-11 21:12:57,022 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,022 - INFO - [W 2025-04-11 21:12:56,999] Trial 62 failed with parameters: {'learning_rate': 0.0004231648703298167} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,022 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,022 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,022 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,022 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,022 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,022 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,022 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,023 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,023 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,023 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,023 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,023 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,023 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,023 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,023 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,023 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,023 - INFO - )
+2025-04-11 21:12:57,023 - INFO - ^
+2025-04-11 21:12:57,023 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,023 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,023 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,023 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,023 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,023 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,023 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,023 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,023 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,023 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,023 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,023 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,023 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,023 - INFO - )
+2025-04-11 21:12:57,023 - INFO - ^
+2025-04-11 21:12:57,023 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,023 - INFO - raise ValueError(
+2025-04-11 21:12:57,023 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,023 - INFO - )
+2025-04-11 21:12:57,023 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,023 - INFO - [W 2025-04-11 21:12:57,001] Trial 61 failed with value None.
+2025-04-11 21:12:57,023 - INFO - [W 2025-04-11 21:12:57,003] Trial 63 failed with value None.
+2025-04-11 21:12:57,023 - INFO - [W 2025-04-11 21:12:57,004] Trial 64 failed with value None.
+2025-04-11 21:12:57,023 - INFO - [W 2025-04-11 21:12:57,006] Trial 62 failed with value None.
+2025-04-11 21:12:57,023 - INFO - [W 2025-04-11 21:12:57,015] Trial 66 failed with parameters: {'learning_rate': 0.0021540192528960865} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,023 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,024 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,024 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,024 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,024 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,024 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,024 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,024 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,024 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,024 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,024 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,024 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,024 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - )
+2025-04-11 21:12:57,024 - INFO - ^
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,024 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,024 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,024 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,024 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,024 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,024 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,024 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,024 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,024 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,024 - INFO - )
+2025-04-11 21:12:57,024 - INFO - ^
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,024 - INFO - raise ValueError(
+2025-04-11 21:12:57,024 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,024 - INFO - )
+2025-04-11 21:12:57,024 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,024 - INFO - [W 2025-04-11 21:12:57,016] Trial 66 failed with value None.
+2025-04-11 21:12:57,024 - INFO - [W 2025-04-11 21:12:57,019] Trial 65 failed with parameters: {'learning_rate': 1.150390981451886e-05} because of the following error: ValueError('CategoricalDistribution does not support dynamic value space.').
+2025-04-11 21:12:57,024 - INFO - Traceback (most recent call last):
+2025-04-11 21:12:57,024 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+2025-04-11 21:12:57,025 - INFO - value_or_values = func(trial)
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+2025-04-11 21:12:57,025 - INFO - batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+2025-04-11 21:12:57,025 - INFO - return self._suggest(name, CategoricalDistribution(choices=choices))
+2025-04-11 21:12:57,025 - INFO - ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+2025-04-11 21:12:57,025 - INFO - storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+2025-04-11 21:12:57,025 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+2025-04-11 21:12:57,025 - INFO - self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+2025-04-11 21:12:57,025 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+2025-04-11 21:12:57,025 - INFO - self._set_trial_param_without_commit(
+2025-04-11 21:12:57,025 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,025 - INFO - session, trial_id, param_name, param_value_internal, distribution
+2025-04-11 21:12:57,025 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - )
+2025-04-11 21:12:57,025 - INFO - ^
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+2025-04-11 21:12:57,025 - INFO - trial_param.check_and_add(session)
+2025-04-11 21:12:57,025 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+2025-04-11 21:12:57,025 - INFO - self._check_compatibility_with_previous_trial_param_distributions(session)
+2025-04-11 21:12:57,025 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+2025-04-11 21:12:57,025 - INFO - distributions.check_distribution_compatibility(
+2025-04-11 21:12:57,025 - INFO - ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+2025-04-11 21:12:57,025 - INFO - distributions.json_to_distribution(previous_record.distribution_json),
+2025-04-11 21:12:57,025 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - distributions.json_to_distribution(self.distribution_json),
+2025-04-11 21:12:57,025 - INFO - ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+2025-04-11 21:12:57,025 - INFO - )
+2025-04-11 21:12:57,025 - INFO - ^
+2025-04-11 21:12:57,025 - INFO - File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+2025-04-11 21:12:57,025 - INFO - raise ValueError(
+2025-04-11 21:12:57,025 - INFO - CategoricalDistribution.__name__ + " does not support dynamic value space."
+2025-04-11 21:12:57,025 - INFO - )
+2025-04-11 21:12:57,025 - INFO - ValueError: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,025 - INFO - [W 2025-04-11 21:12:57,020] Trial 65 failed with value None.
+2025-04-11 21:12:57,025 - INFO - 2025-04-11 21:12:57,021 - ERROR - Optimization failed: CategoricalDistribution does not support dynamic value space.
+2025-04-11 21:12:57,918 - ERROR - Subprocess error: [I 2025-04-11 21:12:56,745] Using an existing study with name 'BTC ROI Optimization' instead of creating a new one.
+
+  0%|          | 0/100 [00:00<?, ?it/s]/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py:251: FutureWarning: suggest_loguniform has been deprecated in v3.0.0. This feature will be removed in v6.0.0. See https://github.com/optuna/optuna/releases/tag/v3.0.0. Use suggest_float(..., log=True) instead.
+  learning_rate = trial.suggest_loguniform('learning_rate', 1e-5, 1e-2)
+
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+                                       
+
+  0%|          | 0/100 [00:00<?, ?it/s]
+  0%|          | 0/100 [00:00<?, ?it/s]
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 540, in main
+    study.optimize(
+    ~~~~~~~~~~~~~~^
+        roi_optimizer.objective,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        show_progress_bar=True
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/study.py", line 451, in optimize
+    _optimize(
+    ~~~~~~~~~^
+        study=self,
+        ^^^^^^^^^^^
+    ...<7 lines>...
+        show_progress_bar=show_progress_bar,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 103, in _optimize
+    f.result()
+    ~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 449, in result
+    return self.__get_result()
+           ~~~~~~~~~~~~~~~~~^^
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/opt/homebrew/Cellar/python@3.13/3.13.2/Frameworks/Python.framework/Versions/3.13/lib/python3.13/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 163, in _optimize_sequential
+    frozen_trial = _run_trial(study, func, catch)
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 251, in _run_trial
+    raise func_err
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/study/_optimize.py", line 200, in _run_trial
+    value_or_values = func(trial)
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 252, in objective
+    batch_size = trial.suggest_categorical('batch_size', [32, 64, 128, 256, 512])
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 410, in suggest_categorical
+    return self._suggest(name, CategoricalDistribution(choices=choices))
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/trial/_trial.py", line 641, in _suggest
+    storage.set_trial_param(trial_id, name, param_value_in_internal_repr, distribution)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 171, in set_trial_param
+    self._backend.set_trial_param(trial_id, param_name, param_value_internal, distribution)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 569, in set_trial_param
+    self._set_trial_param_without_commit(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        session, trial_id, param_name, param_value_internal, distribution
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 604, in _set_trial_param_without_commit
+    trial_param.check_and_add(session)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 360, in check_and_add
+    self._check_compatibility_with_previous_trial_param_distributions(session)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 376, in _check_compatibility_with_previous_trial_param_distributions
+    distributions.check_distribution_compatibility(
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^
+        distributions.json_to_distribution(previous_record.distribution_json),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        distributions.json_to_distribution(self.distribution_json),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/optuna/distributions.py", line 670, in check_distribution_compatibility
+    raise ValueError(
+        CategoricalDistribution.__name__ + " does not support dynamic value space."
+    )
+ValueError: CategoricalDistribution does not support dynamic value space.
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "<frozen runpy>", line 198, in _run_module_as_main
+  File "<frozen runpy>", line 88, in _run_code
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 568, in <module>
+    main()
+    ~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/btc_roi_optimizer.py", line 558, in main
+    logger.error(traceback.format_exc())
+                 ^^^^^^^^^
+NameError: name 'traceback' is not defined. Did you forget to import 'traceback'?
+
+2025-04-12 10:14:54,420 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by SSLError(SSLError(1, '[SSL: TLSV1_ALERT_DECODE_ERROR] tlsv1 alert decode error (_ssl.c:1028)')))
+2025-04-12 10:14:54,507 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ce350>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,518 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by SSLError(SSLError(1, '[SSL: TLSV1_ALERT_DECODE_ERROR] tlsv1 alert decode error (_ssl.c:1028)')))
+2025-04-12 10:14:54,546 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by SSLError(SSLError(1, '[SSL: TLSV1_ALERT_DECODE_ERROR] tlsv1 alert decode error (_ssl.c:1028)')))
+2025-04-12 10:14:54,548 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7110>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,548 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7250>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,555 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cdbd0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,555 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ce490>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,555 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ced50>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,555 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cde50>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,558 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cd950>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,558 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf750>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,558 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cfc50>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,559 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cfd90>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,559 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541b0190>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,559 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cfb10>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,561 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7250>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,561 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cfb10>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,561 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf9d0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,563 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7110>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,563 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf4d0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,563 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ce5d0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,564 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf250>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,590 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ce490>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,590 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cdf90>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,590 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541a0190>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,701 - WARNING - Sentiment analysis failed: [Errno 32] Broken pipe
+2025-04-12 10:14:54,727 - WARNING - Sentiment analysis failed: [Errno 32] Broken pipe
+2025-04-12 10:14:54,934 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541a0550>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,935 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541a0910>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,935 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cdbd0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,936 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7110>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf110>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7250>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ce710>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ce5d0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cfed0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cda90>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ced50>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf750>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cfc50>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541c0190>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cd950>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541c07d0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7110>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,938 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541c0910>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,939 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ced50>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,939 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x150fe7250>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,939 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cda90>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,955 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf750>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,956 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cf9d0>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,957 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540ce710>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,957 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cde50>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,957 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1540cdf90>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:54,957 - INFO - SentiCrypt API error: HTTPSConnectionPool(host='api.senticrypt.com', port=443): Max retries exceeded with url: /v2/all.json (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x1541c0b90>: Failed to resolve 'api.senticrypt.com' ([Errno 8] nodename nor servname provided, or not known)"))
+2025-04-12 10:14:55,134 - WARNING - Sentiment analysis failed: [Errno 32] Broken pipe
+2025-04-12 10:14:55,256 - WARNING - Sentiment analysis failed: [Errno 32] Broken pipe

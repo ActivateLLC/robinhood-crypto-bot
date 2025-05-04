@@ -1,0 +1,70 @@
+2025-04-11 18:19:10,671 - INFO - Market Data Analysis for BTC-USD
+2025-04-11 18:19:10,671 - INFO - Data Points: 8759
+2025-04-11 18:19:10,671 - INFO - Date Range: 2024-04-12 00:00:00+00:00 to 2025-04-11 23:00:00+00:00
+2025-04-11 18:19:10,676 - ERROR - Feature engineering failed: Data must be 1-dimensional, got ndarray of shape (8759, 1) instead
+2025-04-11 18:19:11,601 - INFO - Hyperparameter Tuning Completed
+2025-04-11 18:19:11,603 - ERROR - Hyperparameter tuning failed: Record does not exist.
+2025-04-11 18:19:11,603 - INFO - Risk Management Assessment
+2025-04-11 18:19:11,603 - INFO - Hyperparameters Risk Profile: {'max_drawdown_tolerance': 0.2, 'volatility_threshold': 0.3, 'risk_adjusted_score': None}
+2025-04-11 18:19:12,690 - ERROR - Model training failed: No module named 'gym'
+2025-04-11 18:19:12,707 - INFO - Crew Optimization Pipeline Completed Successfully
+2025-04-11 18:22:50,530 - INFO - Market Data Analysis for BTC-USD
+2025-04-11 18:22:50,530 - INFO - Data Points: 8759
+2025-04-11 18:22:50,530 - INFO - Date Range: 2024-04-12 00:00:00+00:00 to 2025-04-11 23:00:00+00:00
+2025-04-11 18:22:50,535 - ERROR - Feature engineering failed: Data must be 1-dimensional, got ndarray of shape (8759, 1) instead
+2025-04-11 18:22:50,538 - ERROR - Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/crew_optimization_manager.py", line 164, in engineer_features
+    market_data['RSI'] = ta.momentum.RSIIndicator(market_data['Close']).rsi()
+                         ~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/ta/momentum.py", line 34, in __init__
+    self._run()
+    ~~~~~~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/ta/momentum.py", line 48, in _run
+    self._rsi = pd.Series(
+                ~~~~~~~~~^
+        np.where(emadn == 0, 100, 100 - (100 / (1 + relative_strength))),
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+        index=self._close.index,
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/pandas/core/series.py", line 584, in __init__
+    data = sanitize_array(data, index, dtype, copy)
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/pandas/core/construction.py", line 659, in sanitize_array
+    subarr = _sanitize_ndim(subarr, data, dtype, index, allow_2d=allow_2d)
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/pandas/core/construction.py", line 718, in _sanitize_ndim
+    raise ValueError(
+        f"Data must be 1-dimensional, got ndarray of shape {data.shape} instead"
+    )
+ValueError: Data must be 1-dimensional, got ndarray of shape (8759, 1) instead
+
+2025-04-11 18:22:51,755 - INFO - Hyperparameter Tuning Completed
+2025-04-11 18:22:51,757 - ERROR - Hyperparameter tuning failed: Record does not exist.
+2025-04-11 18:22:51,760 - ERROR - Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/crew_optimization_manager.py", line 229, in tune_hyperparameters
+    logger.info(f"Best Trial Value: {study.best_trial.value}")
+                                     ^^^^^^^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/optuna/study/study.py", line 162, in best_trial
+    best_trial = self._storage.get_best_trial(self._study_id)
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/optuna/storages/_cached_storage.py", line 182, in get_best_trial
+    return self._backend.get_best_trial(study_id)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/optuna/storages/_rdb/storage.py", line 928, in get_best_trial
+    trial_id = models.TrialModel.find_max_value_trial_id(study_id, 0, session)
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/venv/lib/python3.13/site-packages/optuna/storages/_rdb/models.py", line 211, in find_max_value_trial_id
+    raise ValueError(NOT_FOUND_MSG)
+ValueError: Record does not exist.
+
+2025-04-11 18:22:51,760 - INFO - Risk Management Assessment
+2025-04-11 18:22:51,760 - INFO - Hyperparameters Risk Profile: {'max_drawdown_tolerance': 0.2, 'volatility_threshold': 0.3, 'risk_adjusted_score': None}
+2025-04-11 18:22:52,891 - ERROR - Model training failed: No module named 'pycoingecko'
+2025-04-11 18:22:52,892 - ERROR - Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/crew_optimization_manager.py", line 297, in train_model
+    from rl_environment import CryptoTradingEnv
+  File "/Users/activate/Dev/robinhood-crypto-bot/rl_environment.py", line 13, in <module>
+    from alt_crypto_data import AltCryptoDataProvider
+  File "/Users/activate/Dev/robinhood-crypto-bot/alt_crypto_data.py", line 20, in <module>
+    from pycoingecko import CoinGeckoAPI
+ModuleNotFoundError: No module named 'pycoingecko'
+
+2025-04-11 18:22:52,910 - INFO - Crew Optimization Pipeline Completed Successfully

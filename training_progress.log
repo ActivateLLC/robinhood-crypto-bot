@@ -1,0 +1,174 @@
+2025-04-11 16:29:17,873 - INFO - Starting RL agent training for BTC-USD...
+2025-04-11 16:29:17,874 - INFO - Fetching 180 days of historical data for BTC-USD...
+2025-04-11 16:29:17,874 - INFO - Initializing data provider...
+2025-04-11 16:29:18,391 - INFO - Initializing Crypto Trading Environment...
+2025-04-11 16:29:19,915 - INFO - Environment created successfully.
+2025-04-11 16:29:21,686 - ERROR - Training failed: 'DetailedTrainingCallback' object has no attribute '_n_calls'
+2025-04-11 16:29:21,688 - ERROR - Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/train_rl_agent.py", line 286, in train_agent
+    model.learn(
+    ~~~~~~~~~~~^
+        total_timesteps=TRAINING_TIMESTEPS,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+        reset_num_timesteps=True
+        ^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/stable_baselines3/ppo/ppo.py", line 311, in learn
+    return super().learn(
+           ~~~~~~~~~~~~~^
+        total_timesteps=total_timesteps,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+        progress_bar=progress_bar,
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 324, in learn
+    continue_training = self.collect_rollouts(self.env, callback, self.rollout_buffer, n_rollout_steps=self.n_steps)
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/stable_baselines3/common/on_policy_algorithm.py", line 224, in collect_rollouts
+    if not callback.on_step():
+           ~~~~~~~~~~~~~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/stable_baselines3/common/callbacks.py", line 114, in on_step
+    return self._on_step()
+           ~~~~~~~~~~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/stable_baselines3/common/callbacks.py", line 223, in _on_step
+    continue_training = callback.on_step() and continue_training
+                        ~~~~~~~~~~~~~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/venv/lib/python3.13/site-packages/stable_baselines3/common/callbacks.py", line 114, in on_step
+    return self._on_step()
+           ~~~~~~~~~~~~~^^
+  File "/Users/activate/Dev/robinhood-crypto-bot/train_rl_agent.py", line 257, in _on_step
+    if self._n_calls % 1000 == 0:
+       ^^^^^^^^^^^^^
+AttributeError: 'DetailedTrainingCallback' object has no attribute '_n_calls'. Did you mean: 'n_calls'?
+
+2025-04-11 16:29:21,688 - INFO - Training script finished.
+2025-04-11 16:42:23,833 - INFO - Starting RL agent training for BTC-USD...
+2025-04-11 16:42:23,834 - INFO - Fetching 180 days of historical data for BTC-USD...
+2025-04-11 16:42:23,834 - INFO - Initializing data provider...
+2025-04-11 16:42:24,458 - INFO - Initializing Crypto Trading Environment...
+2025-04-11 16:42:25,915 - INFO - Environment created successfully.
+2025-04-11 16:43:01,386 - INFO - Starting RL agent training for BTC-USD...
+2025-04-11 16:43:01,387 - INFO - Fetching 180 days of historical data for BTC-USD...
+2025-04-11 16:43:01,387 - INFO - Initializing data provider...
+2025-04-11 16:43:02,176 - INFO - Initializing Crypto Trading Environment...
+2025-04-11 16:43:03,613 - INFO - Environment created successfully.
+2025-04-11 16:43:04,402 - INFO - Training started
+2025-04-11 17:01:38,804 - INFO - Training Progress: Step 1000/50000
+2025-04-11 17:01:38,806 - INFO - Elapsed Time: 1152.24 seconds
+2025-04-11 17:01:38,806 - INFO - Steps per Second: 0.87
+2025-04-11 17:02:18,023 - INFO - Training Progress: 2.00%
+2025-04-11 17:02:18,024 - INFO - Step 1000/50000
+2025-04-11 17:02:18,024 - INFO - Elapsed Time: 1153.62 seconds
+2025-04-11 17:02:18,024 - INFO - Steps per Second: 0.87
+2025-04-11 17:20:51,609 - INFO - Training Progress: Step 2000/50000
+2025-04-11 17:20:51,611 - INFO - Elapsed Time: 2305.04 seconds
+2025-04-11 17:20:51,611 - INFO - Steps per Second: 0.87
+2025-04-11 17:21:25,606 - INFO - Training Progress: 4.00%
+2025-04-11 17:21:25,608 - INFO - Step 2000/50000
+2025-04-11 17:21:25,608 - INFO - Elapsed Time: 2301.20 seconds
+2025-04-11 17:21:25,608 - INFO - Steps per Second: 0.87
+2025-04-11 17:25:55,762 - INFO - Starting RL agent training for BTC-USD...
+2025-04-11 17:25:55,762 - INFO - Fetching 180 days of historical data for BTC-USD...
+2025-04-11 17:25:55,762 - INFO - Initializing data provider...
+2025-04-11 17:25:56,505 - INFO - Initializing Crypto Trading Environment...
+2025-04-11 17:25:57,974 - INFO - Environment created successfully.
+2025-04-11 17:25:58,559 - INFO - Training started
+2025-04-11 17:40:03,827 - INFO - Training Progress: Step 3000/50000
+2025-04-11 17:40:03,829 - INFO - Elapsed Time: 3457.26 seconds
+2025-04-11 17:40:03,829 - INFO - Steps per Second: 0.87
+2025-04-11 17:40:37,486 - INFO - Training Progress: 6.00%
+2025-04-11 17:40:37,489 - INFO - Step 3000/50000
+2025-04-11 17:40:37,490 - INFO - Elapsed Time: 3453.08 seconds
+2025-04-11 17:40:37,490 - INFO - Steps per Second: 0.87
+2025-04-11 17:45:06,327 - INFO - Training Progress: 2.00%
+2025-04-11 17:45:06,329 - INFO - Step 1000/50000
+2025-04-11 17:45:06,330 - INFO - Elapsed Time: 1147.77 seconds
+2025-04-11 17:45:06,330 - INFO - Steps per Second: 0.87
+2025-04-11 17:59:52,490 - INFO - Training Progress: Step 4000/50000
+2025-04-11 17:59:52,493 - INFO - Elapsed Time: 4645.92 seconds
+2025-04-11 17:59:52,493 - INFO - Steps per Second: 0.86
+2025-04-11 18:00:20,977 - INFO - Training Progress: 8.00%
+2025-04-11 18:00:20,978 - INFO - Step 4000/50000
+2025-04-11 18:00:20,978 - INFO - Elapsed Time: 4636.58 seconds
+2025-04-11 18:00:20,978 - INFO - Steps per Second: 0.86
+2025-04-11 18:04:54,929 - INFO - Training Progress: 4.00%
+2025-04-11 18:04:54,930 - INFO - Step 2000/50000
+2025-04-11 18:04:54,931 - INFO - Elapsed Time: 2336.37 seconds
+2025-04-11 18:04:54,931 - INFO - Steps per Second: 0.86
+2025-04-11 18:19:59,729 - INFO - Training Progress: Step 5000/50000
+2025-04-11 18:19:59,730 - INFO - Elapsed Time: 5853.16 seconds
+2025-04-11 18:19:59,730 - INFO - Steps per Second: 0.85
+2025-04-11 18:20:25,486 - INFO - Training Progress: 10.00%
+2025-04-11 18:20:25,487 - INFO - Step 5000/50000
+2025-04-11 18:20:25,487 - INFO - Elapsed Time: 5841.08 seconds
+2025-04-11 18:20:25,487 - INFO - Steps per Second: 0.86
+2025-04-11 18:25:01,762 - INFO - Training Progress: 6.00%
+2025-04-11 18:25:01,764 - INFO - Step 3000/50000
+2025-04-11 18:25:01,764 - INFO - Elapsed Time: 3543.20 seconds
+2025-04-11 18:25:01,764 - INFO - Steps per Second: 0.85
+2025-04-11 18:42:31,249 - INFO - Training Progress: Step 6000/50000
+2025-04-11 18:42:31,252 - INFO - Elapsed Time: 7204.68 seconds
+2025-04-11 18:42:31,252 - INFO - Steps per Second: 0.83
+2025-04-11 18:43:01,044 - INFO - Training Progress: 12.00%
+2025-04-11 18:43:01,045 - INFO - Step 6000/50000
+2025-04-11 18:43:01,045 - INFO - Elapsed Time: 7196.64 seconds
+2025-04-11 18:43:01,045 - INFO - Steps per Second: 0.83
+2025-04-11 18:48:49,255 - INFO - Training Progress: 8.00%
+2025-04-11 18:48:49,256 - INFO - Step 4000/50000
+2025-04-11 18:48:49,257 - INFO - Elapsed Time: 4970.70 seconds
+2025-04-11 18:48:49,257 - INFO - Steps per Second: 0.80
+2025-04-11 19:04:15,699 - INFO - Training Progress: Step 7000/50000
+2025-04-11 19:04:15,701 - INFO - Elapsed Time: 8509.13 seconds
+2025-04-11 19:04:15,701 - INFO - Steps per Second: 0.82
+2025-04-11 19:04:32,440 - INFO - Training Progress: 14.00%
+2025-04-11 19:04:32,441 - INFO - Step 7000/50000
+2025-04-11 19:04:32,443 - INFO - Elapsed Time: 8488.04 seconds
+2025-04-11 19:04:32,452 - INFO - Steps per Second: 0.82
+2025-04-11 19:09:40,335 - INFO - Training Progress: 10.00%
+2025-04-11 19:09:40,336 - INFO - Step 5000/50000
+2025-04-11 19:09:40,336 - INFO - Elapsed Time: 6221.78 seconds
+2025-04-11 19:09:40,336 - INFO - Steps per Second: 0.80
+2025-04-11 19:24:57,973 - INFO - Training Progress: 16.00%
+2025-04-11 19:24:57,974 - INFO - Step 8000/50000
+2025-04-11 19:24:57,974 - INFO - Elapsed Time: 9713.57 seconds
+2025-04-11 19:24:57,974 - INFO - Steps per Second: 0.82
+2025-04-11 19:25:05,520 - INFO - Training Progress: Step 8000/50000
+2025-04-11 19:25:05,521 - INFO - Elapsed Time: 9758.95 seconds
+2025-04-11 19:25:05,522 - INFO - Steps per Second: 0.82
+2025-04-11 19:30:13,389 - INFO - Training Progress: 12.00%
+2025-04-11 19:30:13,491 - INFO - Step 6000/50000
+2025-04-11 19:30:13,495 - INFO - Elapsed Time: 7454.56 seconds
+2025-04-11 19:30:13,496 - INFO - Steps per Second: 0.80
+2025-04-11 19:46:08,044 - INFO - Training Progress: Step 9000/50000
+2025-04-11 19:46:08,046 - INFO - Elapsed Time: 11021.48 seconds
+2025-04-11 19:46:08,046 - INFO - Steps per Second: 0.82
+2025-04-11 19:46:10,134 - INFO - Training Progress: 18.00%
+2025-04-11 19:46:10,135 - INFO - Step 9000/50000
+2025-04-11 19:46:10,135 - INFO - Elapsed Time: 10985.73 seconds
+2025-04-11 19:46:10,135 - INFO - Steps per Second: 0.82
+2025-04-11 19:51:26,119 - INFO - Training Progress: 14.00%
+2025-04-11 19:51:26,120 - INFO - Step 7000/50000
+2025-04-11 19:51:26,120 - INFO - Elapsed Time: 8727.56 seconds
+2025-04-11 19:51:26,120 - INFO - Steps per Second: 0.80
+2025-04-11 20:06:54,579 - INFO - Training Progress: 20.00%
+2025-04-11 20:06:54,580 - INFO - Step 10000/50000
+2025-04-11 20:06:54,581 - INFO - Elapsed Time: 12230.18 seconds
+2025-04-11 20:06:54,581 - INFO - Steps per Second: 0.82
+2025-04-11 20:06:59,011 - INFO - Training Progress: Step 10000/50000
+2025-04-11 20:06:59,012 - INFO - Elapsed Time: 12272.44 seconds
+2025-04-11 20:06:59,012 - INFO - Steps per Second: 0.81
+2025-04-11 20:11:51,511 - INFO - Training Progress: 16.00%
+2025-04-11 20:11:51,513 - INFO - Step 8000/50000
+2025-04-11 20:11:51,513 - INFO - Elapsed Time: 9952.95 seconds
+2025-04-11 20:11:51,513 - INFO - Steps per Second: 0.80
+2025-04-11 20:33:20,836 - INFO - Training Progress: 18.00%
+2025-04-11 20:33:20,838 - INFO - Step 9000/50000
+2025-04-11 20:33:20,838 - INFO - Elapsed Time: 11242.28 seconds
+2025-04-11 20:33:20,838 - INFO - Steps per Second: 0.80
+2025-04-11 20:57:21,135 - INFO - Training Progress: 20.00%
+2025-04-11 20:57:21,137 - INFO - Step 10000/50000
+2025-04-11 20:57:21,137 - INFO - Elapsed Time: 12682.58 seconds
+2025-04-11 20:57:21,137 - INFO - Steps per Second: 0.79

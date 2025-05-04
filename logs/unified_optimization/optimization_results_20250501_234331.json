@@ -1,0 +1,14 @@
+{
+  "BTC-USD": {
+    "error": "'TradingIntelligenceEngine' object has no attribute 'calculate_roi'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 305, in run_optimization_pipeline\n    roi_analysis = self.trading_intelligence.calculate_roi(market_data)\nAttributeError: 'TradingIntelligenceEngine' object has no attribute 'calculate_roi'\n"
+  },
+  "ETH-USD": {
+    "error": "'TradingIntelligenceEngine' object has no attribute 'calculate_roi'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 305, in run_optimization_pipeline\n    self.logger.info(f\"Generating trading insights for {symbol}...\")\nAttributeError: 'TradingIntelligenceEngine' object has no attribute 'calculate_roi'\n"
+  },
+  "BNB-USD": {
+    "error": "'TradingIntelligenceEngine' object has no attribute 'calculate_roi'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 305, in run_optimization_pipeline\n    self.logger.info(f\"Generating trading insights for {symbol}...\")\nAttributeError: 'TradingIntelligenceEngine' object has no attribute 'calculate_roi'\n"
+  }
+}

@@ -1,0 +1,14 @@
+{
+  "BTC-USD": {
+    "error": "'AltCryptoDataProvider' object has no attribute 'fetch_price_history'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 278, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_price_history(symbol=symbol)\nAttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_price_history'\n"
+  },
+  "ETH-USD": {
+    "error": "'AltCryptoDataProvider' object has no attribute 'fetch_price_history'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 278, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_price_history(symbol=symbol)\nAttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_price_history'\n"
+  },
+  "BNB-USD": {
+    "error": "'AltCryptoDataProvider' object has no attribute 'fetch_price_history'",
+    "traceback": "Traceback (most recent call last):\n  File \"/Users/activate/Dev/robinhood-crypto-bot/crew_agents/src/unified_optimization_agent.py\", line 278, in run_optimization_pipeline\n    market_data = self.data_provider.fetch_price_history(symbol=symbol)\nAttributeError: 'AltCryptoDataProvider' object has no attribute 'fetch_price_history'\n"
+  }
+}

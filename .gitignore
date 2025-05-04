@@ -1,10 +1,10 @@
 # Log files
-*.log
+# *.log
 *.log.*
 alt_crypto_data.log
 
 # Secrets and sensitive files
-.env
+#.env
 *.pem
 *.key
 *.secret

@@ -29,8 +29,17 @@ logging.basicConfig(
         logging.StreamHandler()
     ]
 )
-logger = logging.getLogger("alt_crypto_data")
+logger = logging.getLogger(__name__)
 
+# Map common symbols to their CoinGecko IDs for efficiency and accuracy
+# Add more as needed
+COMMON_COINGECKO_IDS = {
+    'btc': 'bitcoin',
+    'eth': 'ethereum',
+    'sol': 'solana',
+    'bnb': 'binancecoin', # Added BNB
+    # Add other frequently traded symbols here
+}
 
 class AltCryptoDataProvider:
     """
@@ -88,19 +97,36 @@ class AltCryptoDataProvider:
         return yf_symbol
 
     def _get_coin_id(self, symbol: str) -> Optional[str]:
-        """Helper to get CoinGecko coin ID from symbol (e.g., BTC -> bitcoin)."""
+        """Helper to get CoinGecko coin ID from symbol (e.g., BTC -> bitcoin).
+           Checks a predefined map first, then searches CoinGecko list as fallback.
+        """
         base_symbol = symbol.split('-')[0].lower()
+
+        # 1. Check predefined map first
+        if base_symbol in COMMON_COINGECKO_IDS:
+            coin_id = COMMON_COINGECKO_IDS[base_symbol]
+            logger.debug(f"Using predefined CoinGecko ID '{coin_id}' for symbol '{symbol}'")
+            return coin_id
+
+        # 2. Fallback: Search the full list (less efficient, prone to errors)
+        logger.warning(f"Symbol '{base_symbol}' not in predefined map. Falling back to full CoinGecko list search.")
         try:
-            # This is inefficient, ideally cache this list
+            # TODO: Consider caching this list to avoid frequent API calls
             coin_list = self.cg.get_coins_list()
             for coin in coin_list:
+                # Prioritize exact ID match if symbol is ambiguous
+                if coin['id'] == base_symbol:
+                     logger.debug(f"Found exact CoinGecko ID match '{coin['id']}' for symbol '{symbol}'")
+                     return coin['id']
+                # Fallback to symbol match (less reliable)
                 if coin['symbol'] == base_symbol:
-                    logger.debug(f"Found CoinGecko ID '{coin['id']}' for symbol '{symbol}'")
-                    return coin['id']
-            logger.warning(f"CoinGecko ID not found for symbol: {symbol}")
+                    logger.debug(f"Found CoinGecko ID '{coin['id']}' via symbol match for '{symbol}'")
+                    return coin['id'] # Return the first symbol match found
+
+            logger.warning(f"CoinGecko ID not found for symbol: {symbol} via list search.")
             return None
         except Exception as e:
-            logger.error(f"Error fetching CoinGecko coin list: {e}")
+            logger.error(f"Error during CoinGecko coin list search: {e}")
             return None
 
     def _fetch_with_yfinance(self, symbol: str, days: int, interval: str) -> Optional[pd.DataFrame]: # Keep days param, add interval

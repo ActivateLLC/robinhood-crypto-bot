@@ -6,12 +6,12 @@
     },
     "hyperparameters": {
         "learning_rates": {
-            "BTC-USD": 0.0008,
+            "BTC-USD": 0.0011398979077466161,
             "ETH-USD": 0.001,
             "BNB-USD": 0.0009
         },
         "batch_sizes": {
-            "BTC-USD": 128,
+            "BTC-USD": 32,
             "ETH-USD": 256,
             "BNB-USD": 192
         },
@@ -25,5 +25,8 @@
             "ETH-USD": 0.15,
             "BNB-USD": 0.12
         }
+    },
+    "data_settings": {
+        "lookback_days": 365
     }
 }

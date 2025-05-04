@@ -1,0 +1,36 @@
+{
+  "BTC-USD": {
+    "insights_analysis": {
+      "symbol": "BTC-USD",
+      "raw_insights": "Mock Crew Kickoff Result",
+      "market_trends": {
+        "bullish_indicators": false,
+        "bearish_indicators": false,
+        "volatility_expected": false
+      },
+      "technical_signals": {
+        "buy_signal": false,
+        "sell_signal": false,
+        "hold_signal": false
+      },
+      "historical_data_summary": {
+        "total_periods": 92,
+        "price_range": {
+          "min": 2.752e-05,
+          "max": 0.00090166,
+          "current": 3.514e-05
+        },
+        "volatility": 0.00015211263775061424
+      }
+    },
+    "best_hyperparameters": {
+      "learning_rate": 0.0011398979077466161,
+      "batch_size": 32,
+      "n_steps": 9074,
+      "gamma": 0.985762576774885,
+      "gae_lambda": 0.810001434716043,
+      "ent_coef": 0.0021744055223654243,
+      "clip_range": 0.2929392092750005
+    }
+  }
+}

@@ -3,6 +3,18 @@ import sys
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, Optional
+import logging
+from dotenv import load_dotenv
+import traceback
+
+# --- Load environment variables early ---
+print("DEBUG: Loading .env in trading_intelligence.py")
+load_dotenv(override=True) # Load environment variables from .env file
+# --- End environment variable loading ---
+
+# Configure logging
+logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+logger = logging.getLogger(__name__)
 
 # Dynamically add project root to path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -47,17 +59,25 @@ class MockCrew:
         return "Mock Crew Kickoff Result"
 
 # Attempt to import with fallback
+print("DEBUG: Attempting to import crewai...")
+try:
+    from crewai import Agent, Task, Crew
+    print("DEBUG: Successfully imported crewai.")
+except ImportError as e:
+    # --- Print full traceback for import error ---
+    print(f"DEBUG: Failed to import crewai. Error: {e}")
+    print("DEBUG: Traceback:")
+    traceback.print_exc()
+    # --- End traceback print ---
+    logger.warning("crewai package not found or import failed. Using mock implementations for Agent, Task, and Crew.")
+    Agent = MockAgent
+    Task = MockTask
+    Crew = MockCrew
+
 try:
     from langchain_openai import ChatOpenAI
 except ImportError:
     ChatOpenAI = MockChatOpenAI
-
-try:
-    from crewai import Agent, Task, Crew
-except ImportError:
-    Agent = MockAgent
-    Task = MockTask
-    Crew = MockCrew
 
 # Import local modules
 from alt_crypto_data import AltCryptoDataProvider
@@ -73,16 +93,31 @@ class TradingIntelligenceEngine:
         """
         self.symbol = symbol
         self.data_provider = data_provider or AltCryptoDataProvider()
-        
+
         # Initialize CrewAI components with error handling
         try:
+            # --- Debug print for API key before init ---
+            openai_api_key = os.getenv('OPENAI_API_KEY')
+            print(f"DEBUG: OPENAI_API_KEY inside TradingIntelligenceEngine.__init__: {openai_api_key is not None}")
+            # --- End debug print ---
+            print("DEBUG: Initializing ChatOpenAI...")
             self.llm = ChatOpenAI(
-                model="gpt-4-turbo",
+                model="gpt-4o",
                 temperature=0.7,
                 max_tokens=1000
             )
+            logger.info("Successfully initialized ChatOpenAI LLM.")
+            print("Successfully initialized ChatOpenAI LLM.") # Added print statement for confirmation
+
         except Exception as e:
             print(f"LLM Initialization Error: {e}")
+            print(f"Detailed Exception: {repr(e)}")
+            # Print traceback for detailed debugging
+            print("--- LLM Init Traceback Start ---")
+            traceback.print_exc() # Print the full traceback
+            print("--- LLM Init Traceback End ---")
+            logger.warning("Failed to initialize ChatOpenAI. Falling back to MockChatOpenAI.")
+            print("Warning: Using mock ChatOpenAI")
             self.llm = MockChatOpenAI()
 
     def generate_comprehensive_trading_insights(self, historical_data: pd.DataFrame = None) -> Dict[str, Any]:
@@ -103,9 +138,6 @@ class TradingIntelligenceEngine:
                     days=365, 
                     interval='1h'
                 )
-            
-            # Get market sentiment
-            sentiment = self.data_provider.get_market_sentiment(self.symbol)
             
             # Market Research Agent
             market_researcher = Agent(
@@ -153,15 +185,14 @@ class TradingIntelligenceEngine:
                 'raw_insights': insights,
                 'market_trends': self._extract_market_trends(insights),
                 'technical_signals': self._extract_technical_signals(insights),
-                'market_sentiment': sentiment,
                 'historical_data_summary': {
                     'total_periods': len(historical_data),
                     'price_range': {
-                        'min': historical_data['Close'].min(),
-                        'max': historical_data['Close'].max(),
-                        'current': historical_data['Close'].iloc[-1]
+                        'min': historical_data['close'].min(),
+                        'max': historical_data['close'].max(),
+                        'current': historical_data['close'].iloc[-1]
                     },
-                    'volatility': historical_data['Close'].std()
+                    'volatility': historical_data['close'].std()
                 }
             }
         
@@ -217,31 +248,18 @@ class TradingIntelligenceEngine:
             Dict[str, float]: Reward function design parameters
         """
         # Implement reward function design based on market insights
-        market_sentiment = insights.get('market_sentiment', {})
         historical_data = insights.get('historical_data_summary', {})
         
         # Dynamic reward function design
         stability_factor = 0.5
         volatility = historical_data.get('volatility', 0)
         
-        # Adjust drawdown penalty based on market sentiment
-        drawdown_penalty_multiplier = (
-            1.2 if market_sentiment.get('sentiment') == 'Bearish' else 
-            1.1 if market_sentiment.get('sentiment') == 'Neutral' else 
-            1.0
-        )
-        
         # Trading efficiency bonus based on market conditions
-        trading_efficiency_bonus = (
-            0.3 if market_sentiment.get('sentiment') == 'Bullish' else
-            0.2 if market_sentiment.get('sentiment') == 'Neutral' else
-            0.1
-        )
+        trading_efficiency_bonus = 0.2
         
         return {
             'stability_factor': stability_factor,
             'volatility': volatility,
-            'drawdown_penalty_multiplier': drawdown_penalty_multiplier,
             'trading_efficiency_bonus': trading_efficiency_bonus
         }
 
@@ -256,7 +274,6 @@ class TradingIntelligenceEngine:
             Dict[str, Any]: Trading strategy recommendations
         """
         # Implement strategy generation logic
-        market_sentiment = insights.get('market_sentiment', {})
         technical_signals = insights.get('technical_signals', {})
         
         # Determine recommended action
@@ -267,17 +284,8 @@ class TradingIntelligenceEngine:
         else:
             recommended_action = 'Hold'
         
-        # Determine risk level
-        risk_level = (
-            'High' if market_sentiment.get('sentiment') == 'Bearish' else
-            'Medium' if market_sentiment.get('sentiment') == 'Neutral' else
-            'Low'
-        )
-        
         return {
             'recommended_action': recommended_action,
-            'risk_level': risk_level,
-            'market_sentiment': market_sentiment.get('sentiment', 'Unknown'),
             'entry_conditions': insights.get('raw_insights', 'No specific entry conditions')
         }
 
@@ -285,45 +293,38 @@ def main():
     """
     Main function to demonstrate TradingIntelligenceEngine
     """
-    # Initialize data provider
-    data_provider = AltCryptoDataProvider()
-    
-    # Fetch historical data
-    historical_data = data_provider.fetch_price_history(symbol='BTC-USD', days=365, interval='1h')
-    
-    # Initialize trading intelligence engine
-    trading_intelligence = TradingIntelligenceEngine(symbol='BTC-USD', data_provider=data_provider)
-    
-    # Generate market insights
-    insights = trading_intelligence.generate_comprehensive_trading_insights(historical_data)
-    
-    # Extract reward function design
-    reward_design = trading_intelligence.extract_reward_function_design(insights)
-    
-    # Generate trading strategy recommendations
-    strategies = trading_intelligence.generate_trading_strategy_recommendations(insights)
+    engine = TradingIntelligenceEngine(symbol='BTC-USD')
+    insights = engine.generate_comprehensive_trading_insights()
     
     # Print results with formatting
     print("\n--- Market Insights for BTC-USD ---")
-    print(f"Market Sentiment: {insights.get('market_sentiment', {}).get('sentiment', 'Unknown')}")
-    print(f"Sentiment Score: {insights.get('market_sentiment', {}).get('sentiment_score', 'N/A')}")
-    print(f"Latest Price: ${insights.get('market_sentiment', {}).get('latest_price', 'N/A')}")
-    print(f"RSI: {insights.get('market_sentiment', {}).get('rsi', 'N/A')}")
-    print(f"MACD: {insights.get('market_sentiment', {}).get('macd', 'N/A')}")
+    # Use lowercase 'close' and handle potential missing keys gracefully
+    price_range = insights.get('historical_data_summary', {}).get('price_range', {})
+    print(f"Latest Price: ${price_range.get('current', 'N/A'):,.2f}")
+    print(f"Price Range (Min): ${price_range.get('min', 'N/A'):,.2f}")
+    print(f"Price Range (Max): ${price_range.get('max', 'N/A'):,.2f}")
     
     print("\n--- Historical Data Summary ---")
-    print(f"Total Periods: {insights.get('historical_data_summary', {}).get('total_periods', 'N/A')}")
-    print(f"Price Range: ${insights.get('historical_data_summary', {}).get('price_range', {}).get('min', 'N/A')} - ${insights.get('historical_data_summary', {}).get('price_range', {}).get('max', 'N/A')}")
-    print(f"Current Price: ${insights.get('historical_data_summary', {}).get('price_range', {}).get('current', 'N/A')}")
-    print(f"Volatility: {insights.get('historical_data_summary', {}).get('volatility', 'N/A')}")
-    
-    print("\n--- Reward Function Design ---")
-    for key, value in reward_design.items():
-        print(f"{key.replace('_', ' ').title()}: {value}")
-    
-    print("\n--- Trading Strategy Recommendations ---")
-    for key, value in strategies.items():
-        print(f"{key.replace('_', ' ').title()}: {value}")
+    hist_summary = insights.get('historical_data_summary', {})
+    print(f"Total Periods: {hist_summary.get('total_periods', 'N/A')}")
+    print(f"Volatility (Std Dev): {hist_summary.get('volatility', 'N/A'):,.4f}")
+
+    # Print raw insights if available
+    if 'raw_insights' in insights:
+        print("\n--- Raw CrewAI Insights ---")
+        print(insights['raw_insights'])
+    elif 'error' in insights:
+        print(f"\n--- Error --- ")
+        print(insights['error'])
+
+    # Example of using other methods (commented out by default)
+    # reward_params = engine.design_reward_function(insights)
+    # print("\n--- Reward Function Parameters ---")
+    # print(reward_params)
+
+    # strategy_rec = engine.generate_trading_strategy(insights)
+    # print("\n--- Trading Strategy Recommendation ---")
+    # print(strategy_rec)
 
 if __name__ == "__main__":
     main()

@@ -11,6 +11,14 @@ from datetime import datetime, timedelta
 from dotenv import load_dotenv
 from decimal import Decimal
 import importlib
+import json
+
+# Add project root to sys.path if necessary
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
+from alt_crypto_data import AltCryptoDataProvider # Import updated provider from root
 
 # Import Broker Interfaces/Implementations
 
@@ -43,6 +51,13 @@ except ImportError as e:
 # Initialize logger
 logging.basicConfig(level=logging.INFO)
 
+# Define the experience log file path relative to this script
+EXPERIENCE_LOG_DIR = os.path.join(os.path.dirname(__file__), 'logs')
+EXPERIENCE_LOG_FILE = os.path.join(EXPERIENCE_LOG_DIR, 'live_experience.jsonl')
+
+# Ensure the log directory exists
+os.makedirs(EXPERIENCE_LOG_DIR, exist_ok=True)
+
 class CryptoTradingEnvironment(gym.Env):
     """
     Cryptocurrency Trading Environment for Reinforcement Learning
@@ -50,8 +65,9 @@ class CryptoTradingEnvironment(gym.Env):
     """
     def __init__(
         self, 
+        data_provider: AltCryptoDataProvider, # Expecting the updated provider
         symbol: str = 'BTC-USD',
-        initial_capital: float = 10000,
+        initial_capital: float = 10000.0,  # Default set here
         lookback_window: int = 24,  # 24 hours of history
         trading_fee: float = 0.0005,  # Reduced fee for more frequent trading
         df: Optional[pd.DataFrame] = None,
@@ -70,6 +86,7 @@ class CryptoTradingEnvironment(gym.Env):
 
         # Core Parameters
         self.symbol = symbol
+        self.data_provider = data_provider
         self.initial_capital = initial_capital
         self.lookback_window = lookback_window
         self.trading_fee = trading_fee 
@@ -109,12 +126,13 @@ class CryptoTradingEnvironment(gym.Env):
         self.action_space = gym.spaces.Discrete(7)
         
         # Observation space: Includes market indicators + portfolio state (capital, holdings)
-        # Shape needs to accommodate the 11 original indicators + 2 portfolio features
+        # Shape needs to accommodate the 11 original indicators + 2 portfolio features + 1 sentiment
         # TODO: Potentially adjust shape/content based on live data availability
+        observation_shape = (14,) # Correct shape accounting for sentiment
         self.observation_space = gym.spaces.Box(
             low=-np.inf, 
             high=np.inf, 
-            shape=(13,), 
+            shape=(observation_shape,), 
             dtype=np.float32
         )
         
@@ -152,6 +170,8 @@ class CryptoTradingEnvironment(gym.Env):
         self._initial_observation = np.zeros(self.observation_space.shape, dtype=self.observation_space.dtype)
         # Ensure initial state is set correctly in reset()
         # self.reset() 
+
+        self.experience_log_file = EXPERIENCE_LOG_FILE
 
     def _fetch_historical_data(self) -> pd.DataFrame:
         """
@@ -597,7 +617,7 @@ class CryptoTradingEnvironment(gym.Env):
     
     def _generate_observation(self, data: pd.DataFrame) -> np.ndarray:
         """
-        Generate advanced observation vector including portfolio state
+        Generate advanced observation vector including portfolio state, mid momentum, volatility, and Heikin-Ashi trend
         
         Args:
             data (pd.DataFrame): Historical price data
@@ -608,28 +628,48 @@ class CryptoTradingEnvironment(gym.Env):
         # Select most recent data point
         latest_data = data.iloc[-1]
         
-        # Convert to dict to handle both Series and scalar values
-        latest_dict = latest_data.to_dict() if hasattr(latest_data, 'to_dict') else latest_data
+        # Calculate mid momentum: (close - open)/(high - low) for the last bar
+        try:
+            mid_momentum = (latest_data['close'] - latest_data['open']) / (latest_data['high'] - latest_data['low']) if (latest_data['high'] - latest_data['low']) != 0 else 0.0
+        except Exception:
+            mid_momentum = 0.0
         
-        # Handle potential missing columns with safe defaults
+        # Volatility: standard deviation of close over last 20 bars
+        try:
+            volatility = data['close'].iloc[-20:].std()
+        except Exception:
+            volatility = 0.0
+        
+        # Heikin-Ashi trend (simple encoding: 1 = bullish, -1 = bearish, 0 = neutral)
+        try:
+            ha_close = (latest_data['open'] + latest_data['high'] + latest_data['low'] + latest_data['close']) / 4
+            prev_data = data.iloc[-2] if len(data) > 1 else latest_data
+            ha_open = (prev_data['open'] + prev_data['close']) / 2
+            ha_trend = 1 if ha_close > ha_open else (-1 if ha_close < ha_open else 0)
+        except Exception:
+            ha_trend = 0
+        
+        # Existing market indicators (add more as needed)
         market_indicators = np.array([
-            float(latest_dict.get('close', 0)),
-            float(latest_dict.get('returns', 0)),
-            float(latest_dict.get('log_returns', 0)),
-            float(latest_dict.get('MA_20', latest_dict.get('close', 0))),
-            float(latest_dict.get('MA_50', latest_dict.get('close', 0))),
-            float(latest_dict.get('MA_200', latest_dict.get('close', 0))),
-            float(latest_dict.get('RSI', 50)),
-            float(latest_dict.get('MACD', 0)),
-            float(latest_dict.get('Signal_Line', 0)),
-            float(latest_dict.get('BB_Upper', latest_dict.get('close', 0))),
-            float(latest_dict.get('BB_Lower', latest_dict.get('close', 0)))
+            latest_data.get('close', 0.0),
+            latest_data.get('volume', 0.0),
+            latest_data.get('rsi', 0.0),
+            latest_data.get('macd', 0.0),
+            latest_data.get('macd_signal', 0.0),
+            latest_data.get('returns', 0.0),
+            latest_data.get('log_returns', 0.0),
+            latest_data.get('bb_middle', 0.0),
+            latest_data.get('bb_upper', 0.0),
+            latest_data.get('bb_lower', 0.0),
+            mid_momentum,
+            volatility,
+            ha_trend,
+            # --- Fetch and add Sentiment Score --- Start
+            self.data_provider.get_current_sentiment_score(self.symbol) # Fetch sentiment score
         ], dtype=np.float32)
 
         # Add portfolio state (consider normalization/scaling)
-        # Normalizing capital relative to initial capital
         normalized_capital = self.current_capital / self.initial_capital
-        # Holdings could also be scaled if needed, but using raw value for now
         portfolio_state = np.array([
             normalized_capital, 
             self.crypto_holdings
@@ -642,8 +682,13 @@ class CryptoTradingEnvironment(gym.Env):
     
     def _calculate_reward(self, action: int, current_price: float) -> float:
         """
-        Calculate reward based on the change in Sharpe Ratio (Differential Sharpe Ratio).
+        Calculate reward based on the selected mode:
+        - 'sharpe': Differential Sharpe Ratio (risk-adjusted)
+        - 'exponential_return': Exponential/quadratic return scaling (aggressive ROI)
+        - 'hybrid': Combination of both
         """
+        reward_mode = getattr(self, 'reward_mode', 'sharpe')  # Default to 'sharpe' if not set
+
         # 1. Calculate current portfolio value
         current_portfolio_value = float(self.current_capital + (self.crypto_holdings * current_price))
         self.portfolio_history.append(current_portfolio_value)
@@ -655,38 +700,50 @@ class CryptoTradingEnvironment(gym.Env):
 
         # 3. Calculate step-wise returns for the window
         relevant_history = np.array(self.portfolio_history[-self.sharpe_window:], dtype=np.float32)
-        # Calculate percentage change between consecutive steps
         step_returns = (relevant_history[1:] - relevant_history[:-1]) / relevant_history[:-1]
-        
-        # Replace potential NaNs or infs resulting from division by zero (if portfolio value hit 0)
         step_returns = np.nan_to_num(step_returns, nan=0.0, posinf=0.0, neginf=0.0)
 
-        # 4. Calculate standard deviation of returns
         std_dev = np.std(step_returns)
-
-        # Avoid division by zero if returns are flat
+        mean_return = np.mean(step_returns)
         if std_dev == 0:
             current_sharpe_ratio = 0.0
         else:
-            # 5. Calculate mean of returns
-            mean_return = np.mean(step_returns)
-            # 6. Calculate current Sharpe Ratio (annualized is complex here, using step-wise)
             current_sharpe_ratio = (mean_return - self.risk_free_rate) / std_dev
 
-        # 7. Calculate Differential Sharpe Ratio (the reward)
-        reward = current_sharpe_ratio - self.previous_sharpe_ratio
+        # --- Exponential/Quadratic Return Reward ---
+        final_return = (current_portfolio_value / self.initial_capital) - 1.0
+        if final_return >= 0:
+            exp_reward = np.log1p(final_return) ** 2  # Quadratic scaling for positive returns
+        else:
+            exp_reward = -abs(np.log1p(abs(final_return))) ** 3  # Cubic penalty for negative returns
+        exp_reward = float(np.clip(exp_reward, -2.0, 2.0))
 
-        # 8. Update previous Sharpe ratio for the next step
+        # --- Differential Sharpe Reward ---
+        sharpe_reward = current_sharpe_ratio - self.previous_sharpe_ratio
         self.previous_sharpe_ratio = current_sharpe_ratio
+        sharpe_reward = float(np.clip(sharpe_reward, -1.0, 1.0))
 
-        # Optional: Logging for debugging reward calculation
+        # --- Hybrid Reward ---
+        if reward_mode == 'exponential_return':
+            reward = exp_reward
+        elif reward_mode == 'hybrid':
+            reward = sharpe_reward + exp_reward
+        else:  # Default/risk-adjusted
+            reward = sharpe_reward
+
+        # Logging for debugging
         if self.current_step % 100 == 0:
-             self.logger.info(f"Step {self.current_step}: Portfolio=${current_portfolio_value:.2f}, Sharpe={current_sharpe_ratio:.4f}, Reward={reward:.6f}")
+            self.logger.info(f"Step {self.current_step}: Portfolio=${current_portfolio_value:.2f}, Sharpe={current_sharpe_ratio:.4f}, SharpeReward={sharpe_reward:.6f}, ExpReward={exp_reward:.6f}, Mode={reward_mode}, Reward={reward:.6f}")
 
-        # Clip extreme reward values to prevent destabilization
-        reward = np.clip(reward, -1.0, 1.0)
-
-        return float(reward)
+        return reward
+    
+    def set_reward_mode(self, mode: str):
+        """
+        Set reward calculation mode.
+        mode: 'sharpe', 'exponential_return', or 'hybrid'
+        """
+        assert mode in ['sharpe', 'exponential_return', 'hybrid'], "Invalid reward mode."
+        self.reward_mode = mode
 
     def _get_action_mask(self) -> np.ndarray:
         """
@@ -880,45 +937,68 @@ class CryptoTradingEnvironment(gym.Env):
             msg = "Broker not initialized for live trading step."
             self.logger.error(msg)
             raise ConnectionError(msg)
-        
-        info = {}
-        reward = 0.0
-        terminated = False # Live trading usually doesn't terminate based on steps
-        truncated = False 
-        
+
+        # --- Capture state BEFORE action ---
         try:
-            # 1. Get Current Market Price
-            current_price_decimal = self.broker.get_current_price(self.symbol)
-            if current_price_decimal is None:
-                self.logger.error("Failed to get current price from broker. Skipping step.")
-                # How to get observation if price fetch fails? Return last known?
-                # Need robust handling here. For now, return last observation and 0 reward.
-                # TODO: Improve error handling for price fetch failure.
-                return self._initial_observation, 0, False, False, {"error": "price_fetch_failed"}
-            current_price = float(current_price_decimal)
+            # Fetch data needed for the current observation
+            # Assuming get_historical_data can fetch the needed lookback window
+            current_data_df = self.broker.get_historical_data(self.symbol, periods=self.lookback_window + 1, interval='1h') # +1 to have current point
+            if current_data_df is None or current_data_df.empty or len(current_data_df) < self.lookback_window:
+                 self.logger.error("Failed to get sufficient historical data for current observation.")
+                 # Return last known observation? Needs robust handling.
+                 # For logging purposes, we might need to skip this step if we can't form a state.
+                 # Returning previous observation might make the log inconsistent.
+                 # Let's return the initial observation for now, indicating an issue.
+                 # TODO: Improve error handling here.
+                 return self._initial_observation, 0, False, False, {"error": "current_data_fetch_failed"}
+            
+            # Generate observation based on data BEFORE action
+            current_observation = self._generate_observation(current_data_df.iloc[:-1]) # Use data up to the point before this step
+        except Exception as e:
+            self.logger.exception("Error generating current observation in live step.")
+            # If observation fails, we can't reliably log state. Return initial observation.
+            return self._initial_observation, 0, False, False, {"error": "current_observation_generation_failed"}
+        # -----------------------------------
+
+        info = {}
+        reward = 0.0 # Reward in live trading is complex; log 0 for now, calculate later during training if needed.
+        terminated = False # Live trading usually doesn't terminate based on steps
+        truncated = False
+
+        try:
+            # 1. Get Current Market Price (might be redundant if already in current_data_df)
+            # current_price_decimal = self.broker.get_current_price(self.symbol)
+            # Use the latest close price from the fetched data instead
+            if not current_data_df.empty:
+                current_price = current_data_df['close'].iloc[-1]
+            else:
+                 # Fallback if data fetch failed earlier but somehow we got here
+                 self.logger.error("Cannot determine current price from data. Using last close from fetched data.")
+                 current_price = float(current_data_df['close'].iloc[-1]) if not current_data_df.empty else 0.0
 
             self.logger.debug(f"Live Step: {self.current_step}, Price: {current_price}, Action: {action}")
 
-            # 2. Fetch Current State (optional, could rely on internal state if updated reliably)
-            # account_summary = self.broker.get_account_summary() 
-            # self.current_capital = account_summary.get('cash', self.current_capital)
-            # self.crypto_holdings = account_summary.get(self.symbol, self.crypto_holdings)
+            # 2. Fetch Current State (e.g., balance, holdings - update internal state)
+            # This should ideally happen *after* an order fills, or periodically
+            # Let's assume self.current_capital and self.crypto_holdings are reasonably up-to-date
+            # Consider adding a periodic refresh call here.
 
             # 3. Execute Trade Logic
             order_result = None
+            action_taken = False # Flag if an order was attempted
             if action == 0: # Hold
                 pass
             elif action in [1, 2, 3]: # Buy
                 buy_percentage = [0.25, 0.5, 1.0][action-1]
                 investment_amount = buy_percentage * self.current_capital
-                if investment_amount > 1: # Minimum investment threshold (e.g., $1)
+                if investment_amount > 1: # Minimum investment threshold
                     self.logger.info(f"Placing BUY order: {self.symbol}, Amount=${investment_amount:.2f}")
-                    # Broker needs to handle calculation of quantity based on amount and market price
+                    action_taken = True
                     order_result = self.broker.place_order(
-                        symbol=self.symbol, 
-                        side='buy', 
-                        order_type='market', 
-                        amount_usd=investment_amount # Assuming broker supports amount-based market orders
+                        symbol=self.symbol,
+                        side='buy',
+                        order_type='market',
+                        amount=investment_amount # Use 'amount' for USD value
                     )
                 else:
                     info['buy_failure_reason'] = 'investment_too_small'
@@ -926,69 +1006,96 @@ class CryptoTradingEnvironment(gym.Env):
             elif action in [4, 5, 6]: # Sell
                 sell_percentage = [0.25, 0.5, 1.0][action-4]
                 sell_quantity = sell_percentage * self.crypto_holdings
-                if sell_quantity * current_price > 1: # Minimum sell value threshold (e.g., $1)
+                if sell_quantity * current_price > 1: # Minimum sell value threshold
                     self.logger.info(f"Placing SELL order: {self.symbol}, Quantity={sell_quantity:.8f}")
+                    action_taken = True
                     order_result = self.broker.place_order(
-                        symbol=self.symbol, 
-                        side='sell', 
-                        order_type='market', 
+                        symbol=self.symbol,
+                        side='sell',
+                        order_type='market',
                         quantity=sell_quantity
                     )
                 else:
                     info['sell_failure_reason'] = 'quantity_too_small'
                     self.logger.warning(f"Skipping sell: Sell quantity {sell_quantity:.8f} too small.")
 
-            # 4. Update State Based on Order Result (if any)
-            if order_result and order_result.get('status') == 'filled': # Assuming broker returns status
-                filled_quantity = order_result.get('filled_quantity', 0.0)
-                filled_price = order_result.get('filled_price', current_price) # Use actual fill price
-                fee = order_result.get('fee', 0.0)
-                side = order_result.get('side')
-                
-                self.logger.info(f"Order Filled: Side={side}, Qty={filled_quantity}, Price={filled_price}, Fee={fee}")
-                
-                if side == 'buy':
-                    cost = (filled_quantity * filled_price) + fee
-                    self.current_capital -= cost
-                    self.crypto_holdings += filled_quantity
-                elif side == 'sell':
-                    revenue = (filled_quantity * filled_price) - fee
-                    self.current_capital += revenue
-                    self.crypto_holdings -= filled_quantity
-                
-                info['order_fill'] = order_result # Include fill details in info
-            elif order_result:
-                 self.logger.warning(f"Order placement result: {order_result}")
-                 info['order_status'] = order_result # Include non-fill status
+            # 4. Update Internal State Based on Order Result (if any)
+            # This part might need refinement based on how the broker API confirms fills
+            # For simplicity, assume immediate fill for logging, but real system needs polling/callbacks
+            if order_result: # Simplified update, assumes market orders fill quickly
+                # In a real system, we'd wait for confirmation before updating state and logging experience
+                self.logger.info(f"Order Placed (assuming fill for logging): {order_result}")
+                info['order_attempted'] = order_result
+                # TODO: Implement robust order status checking and update state accurately based on fills
+                # The following state update is PRELIMINARY and might be inaccurate until fill is confirmed
+                temp_filled_quantity = order_result.get('filled_quantity', 0.0) # Placeholder
+                temp_filled_price = order_result.get('filled_price', current_price) # Placeholder
+                temp_fee = order_result.get('fee', 0.0) # Placeholder
+                temp_side = order_result.get('side') # Placeholder
 
-            # 5. Fetch Data for Next Observation
-            # Needs a way to get the data needed by _generate_observation from live source
-            # Example: Fetch last N candles again or specific indicators
-            live_data_df = self.broker.get_historical_data(self.symbol, periods=self.lookback_window, interval='1h') # Example signature
-            if live_data_df is None or live_data_df.empty or len(live_data_df) < self.lookback_window:
-                self.logger.error("Failed to fetch sufficient live data for next observation. Using last observation.")
-                # Keep _initial_observation or maybe update partially?
-                observation = self._initial_observation # Fallback to last known good observation
-                info['error'] = 'observation_data_fetch_failed'
-            else:
-                 observation = self._generate_observation(live_data_df)
-                 self._initial_observation = observation # Update the fallback observation
+                if temp_side == 'buy':
+                    cost = (temp_filled_quantity * temp_filled_price) + temp_fee
+                    # self.current_capital -= cost # Don't update until confirmed
+                    # self.crypto_holdings += temp_filled_quantity
+                elif temp_side == 'sell':
+                    revenue = (temp_filled_quantity * temp_filled_price) - temp_fee
+                    # self.current_capital += revenue # Don't update until confirmed
+                    # self.crypto_holdings -= temp_filled_quantity
+            elif action_taken:
+                 self.logger.warning(f"Order placement failed or returned no result.")
+                 info['order_status'] = 'placement_failed_or_no_result'
 
-            # 6. Calculate Reward (using updated live state)
-            # Ensure _calculate_reward is adapted for live data/state
-            reward = self._calculate_reward(action, current_price) # Pass live price 
+            # --- Generate next state AFTER action ---
+            try:
+                # Fetch data again to represent the state AFTER the action potentially occurred
+                next_data_df = self.broker.get_historical_data(self.symbol, periods=self.lookback_window + 1, interval='1h')
+                if next_data_df is None or next_data_df.empty or len(next_data_df) < self.lookback_window:
+                    self.logger.error("Failed to get sufficient historical data for next observation.")
+                    # If we can't get next state, use current observation? Log will be less useful.
+                    next_observation = current_observation # Fallback
+                    info['error'] = info.get('error', '') + ' next_data_fetch_failed'
+                else:
+                    next_observation = self._generate_observation(next_data_df.iloc[:-1])
+            except Exception as e:
+                self.logger.exception("Error generating next observation in live step.")
+                next_observation = current_observation # Fallback
+                info['error'] = info.get('error', '') + ' next_observation_generation_failed'
+            # ---------------------------------------
 
-            # 7. Termination Check (optional for live)
-            # terminated = self._check_live_termination_conditions() 
+            # --- Log Experience --- TODO: Refine state updates based on actual fills before logging
+            experience = {
+                'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                'symbol': self.symbol,
+                'state': current_observation.tolist(), # Convert numpy array to list for JSON
+                'action': action,
+                'reward': reward, # Logged as 0, calculate actual reward during training if needed
+                'next_state': next_observation.tolist(),
+                'terminated': terminated,
+                'truncated': truncated,
+                'info': info
+            }
+            try:
+                with open(self.experience_log_file, 'a') as f:
+                    f.write(json.dumps(experience) + '\n')
+            except Exception as e:
+                self.logger.exception(f"Failed to write experience to {self.experience_log_file}")
+            # ----------------------
 
-            info['action_mask'] = self._get_action_mask()
+            self.current_step += 1
+            # TODO: Need robust way to check if simulation should end in live mode (e.g., external signal)
 
-            return observation, reward, terminated, truncated, info
+            return next_observation, reward, terminated, truncated, info
 
+        except ConnectionError as e:
+             self.logger.error(f"Broker connection error during live step: {e}")
+             # Attempt to return last valid state? Or raise?
+             # Returning current observation allows loop to continue, but indicates failure.
+             return current_observation, 0, False, False, {"error": "broker_connection_error"}
         except Exception as e:
-            self.logger.error(f"Critical error in live trading step: {e}", exc_info=True)
-            # Return last known good observation and indicate error
-            return self._initial_observation, 0, True, False, {"error": str(e)}
+            self.logger.exception("Unhandled exception during live trading step.")
+            # Critical error, might need to halt or return error state
+            # Returning current observation allows loop to continue, but indicates failure.
+            return current_observation, 0, False, False, {"error": "unhandled_live_step_exception"}
     
     def reset(self, seed=None, options=None) -> Tuple[np.ndarray, Dict[str, Any]]:
         """

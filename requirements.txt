@@ -71,3 +71,7 @@ psutil>=5.9.0
 
 gymnasium # Added for RL environment
 ib_insync>=0.9 # For Interactive Brokers API integration
+
+# Sentiment Analysis
+nltk
+newsapi-python

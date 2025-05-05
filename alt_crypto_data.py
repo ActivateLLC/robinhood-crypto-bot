@@ -4,6 +4,7 @@ Alternative Cryptocurrency Data Provider
 
 This module provides price data for cryptocurrencies not available on Robinhood.
 It uses yfinance as the primary source and CoinGecko's API as a fallback to fetch historical price data for various tokens.
+Also provides sentiment analysis based on news headlines.
 """
 
 import os
@@ -13,12 +14,34 @@ import json
 import requests
 import pandas as pd
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, Any, Optional, List
 import sys
 import yfinance as yf
 from pycoingecko import CoinGeckoAPI
 from config import YFINANCE_PERIOD, YFINANCE_INTERVAL
+
+# Imports for Sentiment Analysis
+import nltk
+from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from newsapi import NewsApiClient
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Download VADER lexicon if not already present (run once)
+try:
+    nltk.data.find('sentiment/vader_lexicon.zip')
+except nltk.downloader.DownloadError:
+    logger.info("Downloading VADER lexicon for sentiment analysis...")
+    nltk.download('vader_lexicon', quiet=True)
+except LookupError:
+    logger.info("VADER lexicon lookup failed, attempting download...")
+    try:
+        nltk.download('vader_lexicon', quiet=True)
+    except Exception as download_exc:
+        logger.error(f"Failed to download VADER lexicon: {download_exc}")
 
 # Configure logging
 logging.basicConfig(
@@ -45,6 +68,7 @@ class AltCryptoDataProvider:
     """
     A provider for cryptocurrency data not available on Robinhood.
     Uses yfinance as the primary source and CoinGecko API as a fallback to fetch historical price data.
+    Also provides sentiment analysis based on news headlines.
     """
     
     def __init__(self, retries=3, delay=5):
@@ -54,6 +78,21 @@ class AltCryptoDataProvider:
         self.delay = delay
         logger.info("AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko")
         self.base_url = "https://api.coingecko.com/api/v3"
+
+        # Sentiment Analysis Initialization
+        self.sentiment_analyzer = SentimentIntensityAnalyzer()
+        self.news_api_key = os.getenv('NEWS_API_KEY')
+        if not self.news_api_key:
+            logger.warning("NEWS_API_KEY not found in .env file. Sentiment analysis will be disabled.")
+            self.newsapi = None
+        else:
+            try:
+                self.newsapi = NewsApiClient(api_key=self.news_api_key)
+                logger.info("NewsApiClient initialized for sentiment analysis.")
+            except Exception as e:
+                logger.error(f"Failed to initialize NewsApiClient: {e}")
+                self.newsapi = None
+
         self.coin_ids = {
             # Meme coins
             "POPCAT": "popcat",
@@ -392,6 +431,63 @@ class AltCryptoDataProvider:
             holding["profit_loss_percent"] = (holding["profit_loss"] / (holding["quantity"] * holding["cost_basis"])) * 100
         
         return holdings
+
+    def get_current_sentiment_score(self, symbol: str) -> float:
+        """Fetches recent news for the symbol and calculates an average sentiment score.
+
+        Args:
+            symbol (str): The cryptocurrency symbol (e.g., 'BTC-USD', 'ETH').
+
+        Returns:
+            float: Average VADER compound sentiment score (-1.0 to +1.0), or 0.0 if unavailable.
+        """
+        if not self.newsapi:
+            logger.debug("Sentiment analysis disabled (NewsAPI client not initialized).")
+            return 0.0
+
+        base_symbol = symbol.split('-')[0].upper()
+        coin_name = COMMON_COINGECKO_IDS.get(base_symbol.lower(), base_symbol) # Get full name if possible
+        query = f'{coin_name} OR {base_symbol} crypto OR cryptocurrency {base_symbol}'
+        logger.debug(f"Fetching news for sentiment query: '{query}'")
+
+        try:
+            # Fetch news from the last 24 hours
+            from_date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            all_articles = self.newsapi.get_everything(
+                q=query,
+                language='en',
+                sort_by='publishedAt', # Focus on recent news
+                from_param=from_date,
+                page_size=50 # Get a decent number of recent articles
+            )
+
+            if not all_articles or all_articles.get('status') != 'ok' or all_articles.get('totalResults', 0) == 0:
+                logger.warning(f"No recent news found for query: '{query}'")
+                return 0.0
+
+            scores = []
+            for article in all_articles.get('articles', []):
+                title = article.get('title')
+                description = article.get('description')
+                text_to_analyze = f"{title}. {description}" if title and description else title or description
+
+                if text_to_analyze:
+                    vs = self.sentiment_analyzer.polarity_scores(text_to_analyze)
+                    scores.append(vs['compound'])
+
+            if not scores:
+                logger.debug(f"No analyzable headlines found for query: '{query}'")
+                return 0.0
+
+            average_score = np.mean(scores)
+            logger.info(f"Calculated average sentiment for {symbol}: {average_score:.4f} from {len(scores)} articles.")
+            # Clip score to be strictly between -1 and 1
+            return float(np.clip(average_score, -1.0, 1.0))
+
+        except Exception as e:
+            # Handle potential NewsAPI errors (rate limits, invalid key, etc.)
+            logger.error(f"Error fetching or analyzing news sentiment for {symbol}: {e}")
+            return 0.0 # Return neutral sentiment on error
 
     def generate_placeholder_data(self, symbol: str = 'BTC-USD', days: int = 30, interval: str = '1h') -> pd.DataFrame:
         """

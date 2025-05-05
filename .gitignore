@@ -10,6 +10,7 @@ alt_crypto_data.log
 *.secret
 *credentials*
 *secret*
+*.env
 
 # Model and data files
 *.pkl

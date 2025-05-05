@@ -2,6 +2,8 @@
 *.log
 *.log.*
 alt_crypto_data.log
+# Ignore specific tracked log file
+logs/unified_optimization/unified_optimization.log
 
 # Secrets and sensitive files
 #.env
@@ -29,6 +31,9 @@ tensorboard_logs/
 
 # Large image files
 *_price_history.png
+
+# Agent results
+crew_agents/results/
 
 # Miscellaneous
 .DS_Store

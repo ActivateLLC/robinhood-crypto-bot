@@ -41,6 +41,17 @@ def run_optimization():
     # --- Backtrader Setup ---
     cerebro = bt.Cerebro()
 
+    # --- RL Environment Reward Mode Patch ---
+    # If using RL environment, set aggressive reward mode for backtest head start
+    try:
+        from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment
+        # Patch global reward mode for all envs (if used by strategy)
+        CryptoTradingEnvironment.set_reward_mode = classmethod(lambda cls, mode: setattr(cls, 'reward_mode', mode))
+        CryptoTradingEnvironment.set_reward_mode('exponential_return')
+        print("[INFO] Set CryptoTradingEnvironment reward mode to 'exponential_return' for aggressive ROI backtest.")
+    except Exception as e:
+        print(f"[WARN] Could not set RL reward mode: {e}")
+
     # Add strategy - Use optstrategy for optimization
     strats = cerebro.optstrategy(
         SmaCrossOverStrategy,

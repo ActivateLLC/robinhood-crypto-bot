@@ -31,3 +31,6 @@ tensorboard_logs/
 
 # Miscellaneous
 .DS_Store
+
+# Virtual environment
+venv/

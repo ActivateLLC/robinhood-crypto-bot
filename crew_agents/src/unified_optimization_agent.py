@@ -18,9 +18,6 @@ from stable_baselines3.common.evaluation import evaluate_policy
 from trading_intelligence import TradingIntelligenceEngine
 from crypto_trading_env import CryptoTradingEnvironment
 
-# Data provider is likely outside this sub-package, keep its import as is
-import alt_crypto_data
-
 import logging
 import logging.handlers
 import json
@@ -69,7 +66,6 @@ class UnifiedOptimizationAgent:
             self.broker_type = 'simulation' # Force simulation if LIVE_TRADING is false
 
         # Initialize data and intelligence providers
-        self.data_provider = alt_crypto_data.AltCryptoDataProvider()
         self.trading_intelligence = TradingIntelligenceEngine()
         
         # Setup logging
@@ -84,6 +80,7 @@ class UnifiedOptimizationAgent:
         
         # Performance tracking
         self.performance_history = {symbol: [] for symbol in symbols}
+        self.optimization_count = 0
     
     def _setup_logging(self) -> logging.Logger:
         """
@@ -291,28 +288,17 @@ class UnifiedOptimizationAgent:
             try:
                 # Fetch market data
                 self.logger.info(f"Fetching market data for {symbol}...")
-                # Pass the lookback_days argument
-                market_data = self.data_provider.fetch_price_history(symbol=symbol, days=self.lookback_days)
+                # Removed: market_data = self.data_provider.fetch_price_history(symbol=symbol, days=self.lookback_days)
 
-                if market_data is None or market_data.empty:
-                    self.logger.error(f"Failed to fetch market data for {symbol}")
-                    continue
-                
                 # Perform analysis using Trading Intelligence Engine
                 self.logger.info(f"Generating trading insights for {symbol}...")
-                # Call the correct method, passing the fetched market_data
-                insights_analysis = self.trading_intelligence.generate_comprehensive_trading_insights(historical_data=market_data)
+                # Removed: insights_analysis = self.trading_intelligence.generate_comprehensive_trading_insights(historical_data=market_data)
 
-                if not insights_analysis or 'error' in insights_analysis:
-                    self.logger.error(f"Failed to generate insights for {symbol}: {insights_analysis.get('error', 'Unknown error')}")
-                    continue
-                
                 # Optimize hyperparameters
                 best_hyperparams = self.optimize_hyperparameters(symbol)
                 
                 # Combine results
                 results[symbol] = {
-                    'insights_analysis': insights_analysis,
                     'best_hyperparameters': best_hyperparams
                 }
                 

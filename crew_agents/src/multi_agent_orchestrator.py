@@ -17,7 +17,6 @@ from crew_agents.src.crew_optimization_manager import CrewOptimizationAgent
 from crew_agents.src.continuous_optimization_agent import ContinuousOptimizationAgent
 from crew_agents.src.unified_optimization_agent import UnifiedOptimizationAgent
 from crew_agents.src.btc_popcat_research_agent import BTCPopCatResearchAgent
-from crew_agents.src.alt_crypto_data import AltCryptoDataProvider
 from crew_agents.src.agent_communication_hub import communication_hub
 
 # Configure comprehensive logging
@@ -114,8 +113,6 @@ class MultiAgentOrchestrator:
             primary_symbol='BTC-USD',
             social_sentiment_sources=['twitter', 'reddit', 'telegram']
         )
-        
-        self.alt_crypto_data_provider = AltCryptoDataProvider()
         
         # Tracking flags
         self.is_running = False
@@ -276,7 +273,6 @@ class MultiAgentOrchestrator:
             threading.Thread(target=self._continuous_trading_job, daemon=True),
             threading.Thread(target=self._unified_optimization_job, daemon=True),
             threading.Thread(target=self._popcat_research_job, daemon=True),
-            threading.Thread(target=self._data_provider_job, daemon=True),
             threading.Thread(target=self._periodic_insight_aggregation, daemon=True)
         ]
         

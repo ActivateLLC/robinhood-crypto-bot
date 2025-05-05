@@ -203,3 +203,6 @@
 2025-05-03 18:58:53,024 - UnifiedOptimizationAgent - INFO - Creating environment for BTC-USD | Live: False, Broker: simulation
 2025-05-03 18:59:40,270 - UnifiedOptimizationAgent - INFO - Creating environment for BTC-USD | Live: False, Broker: simulation
 2025-05-03 19:00:20,906 - UnifiedOptimizationAgent - INFO - Creating environment for BTC-USD | Live: False, Broker: simulation
+2025-05-04 23:16:22,537 - UnifiedOptimizationAgent - INFO - Using lookback period: 365 days
+2025-05-04 23:19:08,973 - UnifiedOptimizationAgent - INFO - Using lookback period: 365 days
+2025-05-05 01:22:53,284 - UnifiedOptimizationAgent - INFO - Using lookback period: 365 days

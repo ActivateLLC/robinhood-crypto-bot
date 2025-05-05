@@ -1,0 +1,12 @@
+# Run this code to generate a new Ed25519 keypair for Robinhood Crypto API
+import nacl.signing
+import base64
+
+private_key = nacl.signing.SigningKey.generate()
+public_key = private_key.verify_key
+
+private_key_base64 = base64.b64encode(private_key.encode()).decode()
+public_key_base64 = base64.b64encode(public_key.encode()).decode()
+
+print("PRIVATE KEY (base64):", private_key_base64)
+print("PUBLIC KEY (base64):", public_key_base64)

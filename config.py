@@ -9,7 +9,6 @@ load_dotenv(override=True)
 # IMPORTANT: Store your actual keys securely in the .env file
 # DO NOT commit your keys to version control.
 ROBINHOOD_API_KEY = os.getenv("ROBINHOOD_API_KEY", None)
-ROBINHOOD_PRIVATE_KEY = os.getenv("ROBINHOOD_PRIVATE_KEY", None)
 
 # --- Trading Parameters ---
 # Comma-separated list of crypto trading pairs (e.g., "BTC,ETH-USD")
@@ -81,9 +80,9 @@ PLOT_OUTPUT_DIR = os.getenv("PLOT_OUTPUT_DIR", "plots") # Directory to save plot
 # --- Validation ---
 if not SYMBOLS:
     raise ValueError("SYMBOLS environment variable cannot be empty.")
-if ENABLE_TRADING and (not ROBINHOOD_API_KEY or not ROBINHOOD_PRIVATE_KEY):
-    print("WARNING: ENABLE_TRADING is True, but Robinhood API keys are missing in .env file. Trading will be disabled.")
-    ENABLE_TRADING = False # Force disable if keys are missing
+if ENABLE_TRADING and not ROBINHOOD_API_KEY:
+    print("WARNING: ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.")
+    ENABLE_TRADING = False # Force disable if key is missing
 
 print("--- Configuration Loaded ---")
 print(f"Symbols: {SYMBOLS}")

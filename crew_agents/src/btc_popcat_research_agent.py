@@ -26,7 +26,6 @@ sys.path.insert(0, project_root)
 sys.path.insert(0, os.path.join(project_root, 'crew_agents', 'src'))
 
 # Import local modules
-from alt_crypto_data import AltCryptoDataProvider
 from rl_environment import CryptoTradingEnv
 from agent_communication_hub import communication_hub
 
@@ -75,7 +74,7 @@ class BTCPopCatResearchAgent:
         }
         
         # Initialize data providers and models
-        self.data_provider = AltCryptoDataProvider()
+        self.data_provider = None
         self.market_data = {}
         self.sentiment_data = {}
         self.trading_models = {}
@@ -189,11 +188,7 @@ class BTCPopCatResearchAgent:
         for symbol in self.symbols:
             try:
                 # Fetch historical price data
-                historical_data = self.data_provider.fetch_price_history(
-                    symbol=symbol, 
-                    days=365,  # 1 year of data
-                    interval='1h'
-                )
+                historical_data = yf.download(symbol, period='1y', interval='1h')
                 
                 # Compute advanced features
                 historical_data['log_returns'] = np.log(historical_data['Close'] / historical_data['Close'].shift(1))
@@ -206,7 +201,7 @@ class BTCPopCatResearchAgent:
                 self.market_data[symbol] = historical_data
                 
                 # Get market sentiment
-                self.sentiment_data[symbol] = self.data_provider.get_market_sentiment(symbol)
+                self.sentiment_data[symbol] = None
             
             except Exception as e:
                 print(f"Error fetching data for {symbol}: {e}")

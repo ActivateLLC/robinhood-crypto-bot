@@ -10,10 +10,9 @@ print("Attempting to fetch Robinhood account balance...")
 
 # Get API credentials from environment
 api_key = os.getenv("ROBINHOOD_API_KEY")
-private_key = os.getenv("ROBINHOOD_PRIVATE_KEY")
 
-if not api_key or not private_key:
-    print("Error: ROBINHOOD_API_KEY or ROBINHOOD_PRIVATE_KEY not found in .env file.", file=sys.stderr)
+if not api_key:
+    print("Error: ROBINHOOD_API_KEY not found in .env file.", file=sys.stderr)
     sys.exit(1)
 
 try:

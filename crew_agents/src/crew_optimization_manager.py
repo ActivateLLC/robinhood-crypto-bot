@@ -15,7 +15,7 @@ from sklearn.preprocessing import StandardScaler
 
 import multiprocessing
 import subprocess
-import gym
+import gymnasium
 from stable_baselines3 import PPO
 import torch
 import optuna
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 def install_dependencies():
     """Install missing Python dependencies"""
     dependencies = [
-        'gym', 'optuna', 'stable-baselines3', 
+        'gymnasium', 'optuna', 'stable-baselines3', 
         'ta-lib', 'torch', 'numpy', 'pandas'
     ]
     for dep in dependencies:
@@ -759,7 +759,7 @@ class ModelTrainingAgent:
             Trained model
         """
         try:
-            import gym
+            import gymnasium
             from stable_baselines3 import PPO
             import torch
             

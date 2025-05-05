@@ -1,5 +1,5 @@
 # Log files
-# *.log
+*.log
 *.log.*
 alt_crypto_data.log
 

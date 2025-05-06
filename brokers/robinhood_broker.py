@@ -80,37 +80,60 @@ class RobinhoodBroker(BaseBroker):
 
         self.logger.debug(f"Raw response from _make_api_request in get_account_info: {response}")
 
-        # Expect a dict with a 'results' list
-        if response and isinstance(response, dict) and 'results' in response and isinstance(response['results'], list) and len(response['results']) > 0:
-            # Assuming the first USD account entry is the relevant one
-            account_data = None
-            for entry in response['results']:
-                if entry.get("asset_code") == "USD":
-                    account_data = entry
-                    break
-
-            if account_data:
-                # Standardize the output slightly (adjust keys based on actual response if needed)
-                # Note: Robinhood API might not directly provide 'buying_power', 'cash_balance', etc. in this endpoint
-                # We might need separate calls or adjustments based on available fields.
-                # Using 'total_quantity' for USD as a proxy for cash/buying power for now.
-                cash_str = account_data.get("total_quantity", "0")
+        if response and isinstance(response, dict):
+            # Check for direct account info structure first (common for single account details)
+            if "account_number" in response and "buying_power" in response:
+                account_data = response
+                cash_str = account_data.get("buying_power", "0") # Use 'buying_power' directly
+                currency = account_data.get("buying_power_currency", "USD")
+                if currency != "USD":
+                    self.logger.warning(f"Account buying power is in {currency}, not USD. Further conversion might be needed.")
+                
                 return {
                     "broker": "robinhood",
                     "account_id": account_data.get("account_number"),
-                    "buying_power_usd": Decimal(cash_str), # Placeholder
-                    "cash_usd": Decimal(cash_str),
-                    "portfolio_value_usd": Decimal("0.0"), # Placeholder, likely needs separate calc/call
+                    "buying_power_usd": Decimal(cash_str),
+                    "cash_usd": Decimal(cash_str), # Assuming buying_power is cash for crypto
+                    "portfolio_value_usd": Decimal(cash_str), # Placeholder, update if portfolio value is different
+                    "status": account_data.get("status"),
                     "raw_data": account_data
                 }
-            else:
-                self.logger.warning("Could not find USD account details in the response.")
+            # Fallback: Check for 'results' list structure (for paginated-like responses, though not typical for this endpoint)
+            elif 'results' in response and isinstance(response['results'], list) and len(response['results']) > 0:
+                # Assuming the first USD account entry is the relevant one (this logic might be less relevant now)
+                account_data_from_list = None
+                for entry in response['results']:
+                    # This part of the logic was looking for an 'asset_code' == 'USD' which is not present in the direct account info endpoint
+                    # If this path is ever hit for a different endpoint that *does* have results, it might need adjustment.
+                    # For the '/trading/accounts/' endpoint, this block should ideally not be reached if direct parsing works.
+                    if entry.get("account_number"): # A generic check if it's account-like data
+                        account_data_from_list = entry 
+                        break
+
+                if account_data_from_list:
+                    # This parsing assumes fields like 'total_quantity' for USD, which may not align with the direct endpoint.
+                    # It's kept for theoretical compatibility but might need review if an API call *actually* hits this.
+                    cash_str = account_data_from_list.get("total_quantity", "0") # Original logic for results list
+                    self.logger.info("Parsing account info from 'results' list. This is unexpected for /api/v1/crypto/trading/accounts/")
+                    return {
+                        "broker": "robinhood",
+                        "account_id": account_data_from_list.get("account_number"),
+                        "buying_power_usd": Decimal(cash_str),
+                        "cash_usd": Decimal(cash_str),
+                        "portfolio_value_usd": Decimal("0.0"),
+                        "raw_data": account_data_from_list
+                    }
+                else:
+                    self.logger.warning("Could not find suitable account details in the 'results' list.")
+                    return None
+            elif 'error' in response:
+                self.logger.error(f"Failed to get Robinhood account info: {response.get('error')}")
                 return None
-        elif response and isinstance(response, dict) and 'error' in response:
-            self.logger.error(f"Failed to get Robinhood account info: {response.get('error')}")
-            return None
+            else:
+                self.logger.warning(f"Received unexpected structure or empty response when fetching account info (after attempting direct and results list parsing): {response}")
+                return None
         else:
-            self.logger.warning(f"Received unexpected structure or empty response when fetching account info: {response}")
+            self.logger.error(f"No response or invalid response type from _make_api_request for account info: {response}")
             return None
 
     def get_holdings(self) -> Optional[Dict[str, Decimal]]:

@@ -707,8 +707,17 @@ class CryptoTradingEnvironment(gym.Env):
             # If TTM Squeeze uses HA internally, that's handled by `ta.squeeze`.
 
             # Price relative to EMAs (trend direction)
-            data['Price_vs_EMA50'] = data['Close'] / ta.ema(data['Close'], length=50) - 1
-            data['Price_vs_EMA200'] = data['Close'] / ta.ema(data['Close'], length=200) - 1
+            ema50 = ta.ema(data['Close'], length=50)
+            if ema50 is not None and not ema50.isnull().all():
+                data['Price_vs_EMA50'] = data['Close'] / ema50 - 1
+            else:
+                data['Price_vs_EMA50'] = np.nan # Or 0.0, depending on how you want to handle insufficient data
+
+            ema200 = ta.ema(data['Close'], length=200)
+            if ema200 is not None and not ema200.isnull().all():
+                data['Price_vs_EMA200'] = data['Close'] / ema200 - 1
+            else:
+                data['Price_vs_EMA200'] = np.nan # Or 0.0
 
         except Exception as e:
             self.logger.error(f"Error calculating advanced features: {e}", exc_info=True)

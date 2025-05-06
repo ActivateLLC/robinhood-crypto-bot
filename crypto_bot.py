@@ -46,6 +46,7 @@ class RobinhoodCryptoBot:
         # --- CRITICAL: Setup Logging FIRST --- #
         # Load config first to pass to logging setup
         self.config = load_config()
+        
         setup_logging(self.config) # Call setup_logging IMMEDIATELY after loading config
         # ------------------------------------ #
 

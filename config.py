@@ -56,7 +56,8 @@ RL_LOOKBACK_WINDOW = int(os.getenv('RL_LOOKBACK_WINDOW', '30'))
 # Load directly in the script or secure config manager, not hardcoded here
 BROKER_TYPE = os.getenv('BROKER_TYPE', 'robinhood') # Example: 'robinhood' or 'ibkr'
 ROBINHOOD_API_KEY = os.getenv('ROBINHOOD_API_KEY')
-ROBINHOOD_BASE64_PRIVATE_KEY = os.getenv('BASE64_PRIVATE_KEY') # Corrected env var name
+# Use a distinct name for the module-level variable and use correct .env key
+ROBINHOOD_PRIVATE_KEY_MODULE_CHECK = os.getenv('ROBINHOOD_PRIVATE_KEY') 
 
 # --- Data Provider Settings ---
 # Preference order for data providers ("yfinance", "coingecko")
@@ -84,13 +85,13 @@ PLOT_OUTPUT_DIR = os.getenv("PLOT_OUTPUT_DIR", "plots") # Directory to save plot
 if not SYMBOLS:
     raise ValueError("SYMBOLS environment variable cannot be empty.")
 if ENABLE_TRADING and not ROBINHOOD_API_KEY:
-    print("WARNING: ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.")
+    print("WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.")
     ENABLE_TRADING = False # Force disable if key is missing
-if ENABLE_TRADING and not ROBINHOOD_BASE64_PRIVATE_KEY:
-    print("WARNING: ENABLE_TRADING is True, but Robinhood Base64 Private Key is missing in .env file. Trading will be disabled.")
+if ENABLE_TRADING and not ROBINHOOD_PRIVATE_KEY_MODULE_CHECK: # Use the corrected module-level variable
+    print("WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood Private Key is missing in .env file. Trading will be disabled.")
     ENABLE_TRADING = False # Force disable if private key is missing
 
-print("--- Configuration Loaded ---")
+print("--- Configuration Loaded (Module Level) ---")
 print(f"Symbols: {SYMBOLS}")
 print(f"Interval: {INTERVAL_MINUTES} minutes")
 print(f"Enable Trading: {ENABLE_TRADING}")
@@ -100,7 +101,7 @@ print(f"Log Level: {LOG_LEVEL}")
 print(f"Data Provider: {DATA_PROVIDER_PREFERENCE}")
 print(f"Broker Type: {BROKER_TYPE}")
 print(f"Robinhood API Key: {ROBINHOOD_API_KEY}")
-print(f"Robinhood Base64 Private Key: {ROBINHOOD_BASE64_PRIVATE_KEY}")
+print(f"Robinhood Private Key (Module Check): {ROBINHOOD_PRIVATE_KEY_MODULE_CHECK}") # Updated print statement
 print("--------------------------")
 
 # --- Configuration Class --- Ensures type safety and central access
@@ -152,15 +153,15 @@ def load_config() -> Config:
         'LOG_LEVEL': LOG_LEVEL, # Use constant
         'LOG_FILE': LOG_FILE,   # Use constant
         'EXPERIENCE_LOG_FILE': EXPERIENCE_LOG_FILE, # Added config value
-        'ENABLE_TRADING': ENABLE_TRADING,
-        'TRADE_AMOUNT_USD': Decimal(os.getenv('TRADE_AMOUNT_USD', '10.00')),
+        'ENABLE_TRADING': os.getenv('ENABLE_TRADING', 'False').lower() == 'true',
+        'TRADE_AMOUNT_USD': Decimal(os.getenv("TRADE_AMOUNT_USD", "50.0").split('#')[0].strip()),
         'SYMBOLS_TO_TRADE': [symbol.strip() for symbol in os.getenv('SYMBOLS_TO_TRADE', 'BTC-USD').split(',')].copy(),
         'TRADING_STRATEGY': os.getenv('TRADING_STRATEGY', 'rl').lower(), # Default to 'rl'
 
         # Broker Config
         'BROKER_TYPE': os.getenv('BROKER_TYPE', 'robinhood').lower(),
         'ROBINHOOD_API_KEY': os.getenv('ROBINHOOD_API_KEY'), # Load keys into config
-        'ROBINHOOD_BASE64_PRIVATE_KEY': os.getenv('BASE64_PRIVATE_KEY'), # Correct env name
+        'ROBINHOOD_BASE64_PRIVATE_KEY': os.getenv('ROBINHOOD_PRIVATE_KEY'), # Correct env name
 
         # Data Fetching
         'LOOKBACK_DAYS': int(os.getenv('LOOKBACK_DAYS', '90')),
@@ -178,6 +179,18 @@ def load_config() -> Config:
         'DATA_PROVIDER_PREFERENCE': os.getenv('DATA_PROVIDER_PREFERENCE', 'yfinance').lower(),
         'ENABLE_RL_MODEL': os.getenv('ENABLE_RL_MODEL', 'True').lower() == 'true',
     }
+
+    # CRITICAL DEBUG PRINTING:
+    print(f"[load_config DEBUG] Value of ENABLE_TRADING from .env: {config_data['ENABLE_TRADING']}")
+    retrieved_api_key = os.getenv('ROBINHOOD_API_KEY')
+    retrieved_private_key = os.getenv('ROBINHOOD_PRIVATE_KEY')
+    print(f"[load_config DEBUG] ROBINHOOD_API_KEY retrieved: {'Yes' if retrieved_api_key else 'No'}")
+    print(f"[load_config DEBUG] ROBINHOOD_PRIVATE_KEY retrieved: {'Yes' if retrieved_private_key else 'No'}")
+
+    if config_data['ENABLE_TRADING']:
+        if not retrieved_api_key or not retrieved_private_key:
+            print("WARNING (load_config): ENABLE_TRADING was true but API/Private key missing in environment. Forcing to False.")
+            config_data['ENABLE_TRADING'] = False
 
     # Basic validation (Example: Check if keys exist if trading enabled)
     if config_data['ENABLE_TRADING']:

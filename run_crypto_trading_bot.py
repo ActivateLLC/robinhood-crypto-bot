@@ -16,28 +16,23 @@ from stable_baselines3.common.evaluation import evaluate_policy
 project_root = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, project_root)
 
+from config import Config, load_config, setup_logging
+# Temporarily comment out brokers that are not ready or causing issues
+from brokers import RobinhoodBroker, BaseBroker #, IBRKBroker, AlpacaBroker
+from rl_environment import CryptoTradingEnv
+from utils import load_api_keys
 from crew_agents.src.multi_agent_orchestrator import MultiAgentOrchestrator
-from crew_agents.src.alt_crypto_data import AltCryptoDataProvider
-from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment as CryptoTradingEnv
+from crew_agents.src.error_monitoring_agent import ErrorMonitoringAgent
+from alt_crypto_data import AltCryptoDataProvider 
 
 # Create logs directory if it doesn't exist
 log_dir = os.path.join(project_root, 'logs')
 os.makedirs(log_dir, exist_ok=True)
 
-# Configure comprehensive logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(sys.stdout),  # Console output
-        logging.FileHandler(os.path.join(log_dir, 'crypto_trading_bot.log'), mode='w')  # Use final log file path
-    ]
-)
-
-# Set specific loggers to different levels
-logging.getLogger('CryptoTradingEnvironment').setLevel(logging.DEBUG)
-logging.getLogger('stable_baselines3').setLevel(logging.INFO)
-logging.getLogger('gymnasium').setLevel(logging.WARNING)
+# Initialize logging
+config_path = 'config.json' # Or determine dynamically
+config = load_config(config_path)
+setup_logging(config)
 
 logger = logging.getLogger(__name__) # Get root logger
 logger.info("--- Crypto Trading Bot Script Started ---")

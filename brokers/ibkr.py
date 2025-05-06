@@ -6,11 +6,11 @@ from ib_insync import IB, Contract, Order as IBOrder, Trade, util, OrderStatus, 
 import re
 import datetime
 
-from .base_broker import BrokerInterface, Order, Holding, MarketData
+from .base_broker import BaseBroker, Order, Holding, MarketData
 
 logger = logging.getLogger(__name__)
 
-class IBKRBroker(BrokerInterface):
+class IBKRBroker(BaseBroker):
     """Interactive Brokers implementation using ib_insync."""
 
     def __init__(self, host: str = '127.0.0.1', port: int = 7497, client_id: int = 1):
@@ -497,21 +497,20 @@ class IBKRBroker(BrokerInterface):
 
         # --- New Order of Checks --- 
 
-        # 1. Future (Root + Month + Optional Space + Year pattern)
-        # Regex allows optional space between month code and year digits
-        fut_pattern = r'^([A-Z]{2,4})([FGHJKMNQUVXZ])\s?(\d{1,2})$'
-        fut_match = re.fullmatch(fut_pattern, symbol_upper_stripped)
+        # 1. Future (Root + Month + Year pattern, spaces removed)
+        # First, create a version of the symbol with all internal spaces removed for future parsing
+        symbol_no_spaces_for_future = symbol_upper_stripped.replace(' ', '')
+        # Regex for format like NQH4 or ESZ23 (no internal spaces)
+        fut_pattern = r'^([A-Z]{2,4})([FGHJKMNQUVXZ])(\d{1,2})$'
+        fut_match = re.fullmatch(fut_pattern, symbol_no_spaces_for_future) # Match against the no-space version
         if fut_match:
-            logger.debug(f"_symbol_to_contract: Future pattern matched for '{symbol_upper_stripped}'. Match object: {fut_match}")
-            # Pass the symbol *without* the space to the helper
-            root, month_code, year_digits = fut_match.groups()
-            symbol_for_helper = f"{root}{month_code}{year_digits}"
-            logger.debug(f"_symbol_to_contract: Calling _parse_future_symbol with '{symbol_for_helper}'")
-            contract = self._parse_future_symbol(symbol_for_helper)
+            logger.debug(f"_symbol_to_contract: Future pattern matched for '{symbol_no_spaces_for_future}' (original '{symbol_upper_stripped}'). Match object: {fut_match}")
+            # Pass the matched no-space symbol directly to the helper
+            contract = self._parse_future_symbol(symbol_no_spaces_for_future)
             logger.debug(f"_symbol_to_contract: _parse_future_symbol returned: {contract}")
             if contract: return contract
         else:
-            logger.debug(f"_symbol_to_contract: Future pattern did NOT match for '{symbol_upper_stripped}'")
+            logger.debug(f"_symbol_to_contract: Future pattern did NOT match for '{symbol_no_spaces_for_future}' (original '{symbol_upper_stripped}')")
 
         # 2. Option (Check only if it wasn't identified as a future)
         # OCC format requires a space
@@ -742,4 +741,3 @@ class IBKRBroker(BrokerInterface):
         self.connection_status = 'disconnected'
         # TODO: Implement reconnection logic or notify application
         # Note: ib_insync might handle some reconnection automatically depending on setup
-        

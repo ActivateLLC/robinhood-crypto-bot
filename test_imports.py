@@ -59,13 +59,13 @@ try:
     from config import (
         LOG_LEVEL, LOG_FILE, RL_MODEL_PATH, SYMBOLS, ENABLE_TRADING,
         TRADE_AMOUNT_USD, LOOKBACK_DAYS, INTERVAL_MINUTES, TRADING_STRATEGY,
-        ROBINHOOD_API_KEY, ROBINHOOD_PRIVATE_KEY # Also check key loading
+        ROBINHOOD_API_KEY, ROBINHOOD_BASE64_PRIVATE_KEY # Also check key loading
     )
     print("OK")
     print(f"  Symbols type: {type(SYMBOLS)}")
     print(f"  Symbols value: {SYMBOLS}")
     print(f"  API Key Loaded: {bool(ROBINHOOD_API_KEY)}")
-    print(f"  Private Key Loaded: {bool(ROBINHOOD_PRIVATE_KEY)}")
+    print(f"  Private Key Loaded: {bool(ROBINHOOD_BASE64_PRIVATE_KEY)}")
 
 except Exception as e:
     print(f"Failed: {e}")

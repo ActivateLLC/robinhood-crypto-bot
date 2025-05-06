@@ -15,6 +15,31 @@ DEFAULT_PORTFOLIO = {'cash': 10000.0, 'holdings': {}} # Example starting cash
 # logger = setup_logging()
 
 
+def load_api_keys() -> dict:
+    """Loads API keys from environment variables."""
+    api_key = os.getenv("ROBINHOOD_API_KEY")
+    private_key = os.getenv("BASE64_PRIVATE_KEY") # Align with config.py
+
+    keys = {}
+    if api_key:
+        keys['ROBINHOOD_API_KEY'] = api_key
+        logging.info("Robinhood API key loaded from environment.")
+    else:
+        logging.warning("ROBINHOOD_API_KEY not found in environment variables.")
+
+    if private_key:
+        keys['ROBINHOOD_BASE64_PRIVATE_KEY'] = private_key # Align key name
+        logging.info("Robinhood Base64 Private key loaded from environment.")
+    else:
+        logging.warning("ROBINHOOD_BASE64_PRIVATE_KEY not found in environment variables (expected as BASE64_PRIVATE_KEY).")
+    
+    # You can add more key loading (e.g., for other brokers or services) here
+    
+    if not keys:
+        logging.error("No API keys were loaded. Live trading will likely fail.")
+        
+    return keys
+
 def load_portfolio() -> dict:
     """Loads the portfolio from a JSON file, returning defaults if not found or invalid."""
     if os.path.exists(PORTFOLIO_FILE):

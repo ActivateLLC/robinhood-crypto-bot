@@ -1,10 +1,14 @@
 import pytest
 from ib_insync import Contract
 import datetime
+from typing import List, Optional, Dict, Any
+from decimal import Decimal
+import pandas as pd
 
 # Assuming IBKRBroker is accessible for testing
 # If not, adjust the import path as necessary
 from brokers.ibkr import IBKRBroker
+from brokers.base_broker import Holding, MarketData, Order
 
 # Mock logger or configure basic logging for tests if needed
 import logging
@@ -12,16 +16,54 @@ logging.basicConfig(level=logging.DEBUG)
 
 # --- Create a concrete class for testing parsing --- 
 class ConcreteTestIBKRBroker(IBKRBroker):
-    # Implement abstract methods with dummy bodies for testing parsing
-    def connect(self): pass
-    def disconnect(self): pass
-    def get_account_summary(self) -> dict: return {}
-    def get_positions(self) -> list: return []
-    def get_open_orders(self) -> list: return []
-    def get_order_status(self, order_id: str) -> object: return None
-    # Add dummy implementations for any other abstract methods if needed
-    def get_current_price(self, symbol: str) -> float: return None
-    def get_historical_data(self, symbol: str, interval: str, lookback: str) -> list: return []
+    # --- Stubs for BaseBroker abstract methods ---
+    def connect(self) -> bool:
+        return True
+
+    def disconnect(self) -> None:
+        pass
+
+    def get_account_info(self) -> Optional[Dict[str, Any]]:
+        return None
+
+    def get_holdings(self) -> Optional[Dict[str, Decimal]]:
+        return None
+
+    def get_latest_price(self, symbol: str) -> Optional[Decimal]:
+        return None
+
+    def place_market_order(self, symbol: str, side: str, quantity: Decimal, client_order_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        return {"order_id": "dummy_market_order", "status": "Submitted"}
+
+    def cancel_order(self, order_id: str) -> bool:
+        return True
+
+    def get_order_status(self, order_id: str) -> Optional[Dict[str, Any]]:
+        return None
+
+    def get_order_history(self, limit: int = 100) -> List[Order]:
+        return []
+
+    def get_market_data(self, symbol: str) -> Optional[MarketData]:
+        return None
+
+    def get_historical_candles(self, symbol: str, interval: str, lookback_period: str) -> List[pd.DataFrame]:
+        return []
+
+    def get_account_summary(self) -> dict: 
+        return {}
+
+    def get_positions(self) -> list: 
+        return []
+
+    def get_open_orders(self) -> list: 
+        return []
+
+    def get_current_price(self, symbol: str) -> float: 
+        return None
+
+    def get_historical_data(self, symbol: str, interval: str, lookback: str) -> list: 
+        return []
 
 @pytest.fixture
 def broker():

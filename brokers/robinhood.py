@@ -21,8 +21,9 @@ logger = logging.getLogger(__name__)
 class RobinhoodBroker(BaseBroker):
     """Broker implementation for Robinhood Crypto API."""
 
-    def __init__(self):
+    def __init__(self, config: Dict[str, Any] = None):
         """Initialize the Robinhood broker, loading keys and setting up."""
+        super().__init__(config if config is not None else {})
         logger.info("Initializing RobinhoodBroker...")
         self.api_key = os.getenv("ROBINHOOD_API_KEY")
         base64_private_key_env = os.getenv("BASE64_PRIVATE_KEY")
@@ -127,19 +128,20 @@ class RobinhoodBroker(BaseBroker):
         return False
 
     def disconnect(self) -> None:
-        """Close the underlying session."""
-        self._session.close()
-        logger.info("RobinhoodBroker disconnected (session closed).")
+        """Close the underlying requests session."""
+        if self._session:
+            self._session.close()
+            logger.info("RobinhoodBroker disconnected (session closed).")
 
-    def get_account_summary(self) -> Dict[str, Any]:
-        """Fetch crypto trading account details."""
+    # Renamed from get_account_summary to match BaseBroker
+    def get_account_info(self) -> Optional[Dict[str, Any]]:
+        """Fetch crypto trading account details. Implements BaseBroker.get_account_info."""
         path = "/api/v1/crypto/trading/accounts/"
-        logger.info(f"Fetching account summary from {path}")
         return self._make_api_request("GET", path)
 
     def get_available_capital(self) -> Optional[Decimal]:
         """Retrieve the available trading capital."""
-        account_data = self.get_account_summary()
+        account_data = self.get_account_info()
         logger.debug(f"Raw account summary response received: {account_data}") 
 
         if account_data and isinstance(account_data, dict):
@@ -160,45 +162,56 @@ class RobinhoodBroker(BaseBroker):
             logger.error(f"Failed to fetch or parse account summary for capital. Invalid structure or empty results received: {account_data}")
             return None
 
-    def get_holdings(self, asset: Optional[str] = None) -> List[Holding]:
-        """Fetch crypto holdings, optionally filtered by asset."""
-        asset_code = self._convert_symbol_for_trading(asset) if asset else None
-        query_params = self._get_query_params("asset_code", asset_code)
+    # Renamed from get_holdings, and modified to return Dict[str, Decimal]
+    def _get_holdings_internal(self, asset_code: Optional[str] = None) -> Optional[Dict[str, Decimal]]:
+        """Fetch crypto holdings, optionally filtered by asset_code (e.g., 'BTC'), returns a dict of asset_code to Decimal quantity."""
+        query_params = self._get_query_params("asset_code", asset_code) if asset_code else ""
         path = f"/api/v1/crypto/trading/holdings/{query_params}"
-        logger.info(f"Fetching holdings from {path}")
-        response_data = self._make_api_request("GET", path)
+        response = self._make_api_request("GET", path)
 
-        holdings_list = []
-        if response_data and 'results' in response_data:
-            for item in response_data['results']:
+        if response and isinstance(response, dict) and 'results' in response:
+            holdings_dict = {}
+            for item in response['results']:
                 try:
-                    holding = Holding(
-                        asset=item.get('asset_code'),
-                        quantity=Decimal(item.get('quantity', '0')),
-                        average_cost=Decimal(item.get('cost_basis', '0')) / Decimal(item.get('quantity', '1')) if Decimal(item.get('quantity', '0')) > 0 else Decimal('0'), 
-                        market_value=Decimal(item.get('market_value', '0')) 
-                    )
-                    holdings_list.append(holding)
+                    code = item.get('asset_code')
+                    quantity_str = item.get('quantity')
+                    if code and quantity_str is not None:
+                        holdings_dict[code] = Decimal(quantity_str)
+                    elif code:
+                        holdings_dict[code] = Decimal('0') # Assume 0 if quantity is None but code exists
+                except InvalidOperation:
+                    logger.error(f"Invalid quantity format for asset {code}: {item.get('quantity')}")
                 except Exception as e:
-                    logger.error(f"Error parsing holding item: {item}. Error: {e}", exc_info=True)
-                    # Skip this item if parsing fails
-        return holdings_list
+                    logger.error(f"Error processing holding item {item}: {e}")
+            
+            if asset_code and asset_code in holdings_dict: # If a specific asset was requested
+                return {asset_code: holdings_dict[asset_code]}
+            elif not asset_code: # If all assets were requested
+                return holdings_dict
+            else: # Specific asset requested but not found
+                return {}
+        elif response is not None: # Non-error response but not the expected format or empty
+            logger.info(f"No holdings found or unexpected response format for asset_code '{asset_code}'. Response: {response}")
+            return {}
+        return None # API request failed
+
+    # Implements BaseBroker.get_holdings
+    def get_holdings(self) -> Optional[Dict[str, Decimal]]:
+        """Retrieve current portfolio holdings (all assets)."""
+        return self._get_holdings_internal(asset_code=None)
 
     def get_holding_quantity(self, asset: str) -> Optional[Decimal]:
         """Fetch the quantity of a specific crypto asset held."""
-        try:
-            holdings = self.get_holdings(asset=asset)
-            if holdings: 
-                return holdings[0].quantity
-            else:
-                 logger.info(f"No holdings found for asset: {asset}")
-                 return Decimal('0.0') 
-        except Exception as e:
-            logger.error(f"Error fetching holding quantity for {asset}: {e}", exc_info=True)
-            return None
+        # This method now relies on _get_holdings_internal returning the correct format
+        holdings = self._get_holdings_internal(asset_code=asset)
+        if holdings and asset in holdings:
+            return holdings[asset]
+        elif holdings is not None: # holdings is an empty dict if asset not found
+            return Decimal('0')
+        return None # Error fetching holdings
 
-    def get_market_data(self, symbol: str) -> Optional[MarketData]:
-        """Fetch the best bid/ask price for a specific symbol."""
+    def get_market_data(self, symbol: str) -> Optional[Dict[str, Decimal]]:
+        """Fetch the best bid/ask price for a specific symbol (e.g., 'BTC-USD')."""
         if not symbol or '-' not in symbol:
              logger.error(f"Invalid symbol format for get_market_data: '{symbol}'. Expected 'BASE-QUOTE' (e.g., 'BTC-USD').")
              return None
@@ -236,12 +249,12 @@ class RobinhoodBroker(BaseBroker):
                     logger.warning(f"Could not parse timestamp '{timestamp_str}': {ts_err}")
                     timestamp_dt = datetime.datetime.now(datetime.timezone.utc) 
 
-                market_data_obj = MarketData(
-                    symbol=self._convert_symbol_for_analysis(market_info.get('symbol')),
-                    bid=float(bid_price), 
-                    ask=float(ask_price),
-                    timestamp=timestamp_dt
-                )
+                market_data_obj = {
+                    "symbol": self._convert_symbol_for_analysis(market_info.get('symbol')),
+                    "bid_price": float(bid_price), 
+                    "ask_price": float(ask_price),
+                    "timestamp": timestamp_dt
+                }
                 self.latest_market_data[symbol] = market_data_obj 
                 return market_data_obj 
             except (InvalidOperation, KeyError, TypeError) as e:
@@ -251,111 +264,127 @@ class RobinhoodBroker(BaseBroker):
             logger.warning(f"No market data found for symbol: {symbol}")
             return None
 
-    def get_current_price(self, symbol: str) -> Optional[Decimal]:
-        """Fetch the current market price (mid-price) for a symbol."""
+    # Renamed from get_current_price to match BaseBroker
+    def get_latest_price(self, symbol: str) -> Optional[Decimal]:
+        """Fetch the current market price (mid-price) for a symbol. Implements BaseBroker.get_latest_price."""
         market_data = self.get_market_data(symbol)
-        if market_data and market_data.bid is not None and market_data.ask is not None:
+        if market_data and 'bid_price' in market_data and 'ask_price' in market_data:
             try:
-                mid_price = (Decimal(str(market_data.bid)) + Decimal(str(market_data.ask))) / Decimal(2)
-                logger.debug(f"Calculated mid-price for {symbol}: {mid_price:.8f} (Bid: {market_data.bid}, Ask: {market_data.ask})")
-                return mid_price
-            except (TypeError, InvalidOperation) as e:
-                 logger.warning(f"Error calculating mid-price for {symbol} from Bid={market_data.bid}, Ask={market_data.ask}: {e}")
-                 return None
-        else:
-            logger.warning(f"Could not determine mid-price for {symbol} from market data: {market_data}")
-            return None
+                bid_price = Decimal(market_data['bid_price'])
+                ask_price = Decimal(market_data['ask_price'])
+                return (bid_price + ask_price) / 2
+            except InvalidOperation:
+                logger.error(f"Could not convert bid/ask to Decimal for {symbol}: {market_data}")
+                return None
+        return None
 
-    def place_order(self, symbol: str, side: str, order_type: str, quantity: Optional[Decimal] = None, amount: Optional[Decimal] = None, time_in_force: str = 'gtc', limit_price: Optional[Decimal] = None, stop_price: Optional[Decimal] = None) -> Optional[Order]:
+    # Modified to include client_order_id
+    def place_order(self, symbol: str, side: str, order_type: str, quantity: Optional[Decimal] = None, amount: Optional[Decimal] = None, time_in_force: str = 'gtc', limit_price: Optional[Decimal] = None, stop_price: Optional[Decimal] = None, client_order_id: Optional[str] = None) -> Optional[Order]:
         """Place a trading order."""
         trading_symbol = self._convert_symbol_for_trading(symbol)
-        client_order_id = str(uuid.uuid4())
-        path = "/api/v1/crypto/trading/orders/"
+        if not trading_symbol:
+            logger.error(f"Invalid symbol for trading: {symbol}. Expected format 'BASE-QUOTE' (e.g., BTC-USD)")
+            return None
+
+        client_order_id_to_use = client_order_id or str(uuid.uuid4())
+        logger.info(f"Placing {order_type} order: Side={side}, Symbol={trading_symbol}, Quantity={quantity}, Amount={amount}, ClientOrderID={client_order_id_to_use}")
 
         order_config = {}
-        if order_type == 'limit':
-            if limit_price is None:
-                logger.error("Limit price is required for limit orders.")
-                return None
-            order_config['limit_price'] = str(limit_price.quantize(Decimal('0.00000001')))
-            if quantity is None:
-                logger.error("Quantity is required for limit orders.")
-                return None
-            order_config['quantity'] = str(quantity.quantize(Decimal('0.00000001'))) 
-        elif order_type == 'market':
-            if quantity is not None:
-                 order_config['quantity'] = str(quantity.quantize(Decimal('0.00000001'))) 
-            elif amount is not None:
-                 order_config['amount'] = str(amount.quantize(Decimal('0.01'))) 
+        if order_type.lower() == "market":
+            if quantity:
+                # Robinhood API expects quantity as string for market orders based on quantity
+                order_config['quantity'] = str(quantity.quantize(Decimal('1e-8'))) 
+            elif amount:
+                # Robinhood API expects amount as string for market orders based on amount (e.g. $100 of BTC)
+                order_config['amount'] = str(amount.quantize(Decimal('1e-2'))) # Typically 2 decimal places for currency
             else:
-                 logger.error("Either quantity or amount is required for market orders.")
-                 return None
+                logger.error("Market order requires either quantity or amount.")
+                return None
+        elif order_type.lower() == "limit":
+            if not quantity or not limit_price:
+                logger.error("Limit order requires quantity and limit_price.")
+                return None
+            order_config['quantity'] = str(quantity.quantize(Decimal('1e-8')))
+            order_config['limit_price'] = str(limit_price.quantize(Decimal('1e-2'))) # Price usually 2 decimal places
+            order_config['time_in_force'] = time_in_force
+        # Add other order types like stop_loss, stop_limit, take_profit if supported and needed
         else:
             logger.error(f"Unsupported order type: {order_type}")
             return None
 
         body = {
-            "client_order_id": client_order_id,
-            "side": side,
-            "type": order_type,
+            "client_order_id": client_order_id_to_use,
+            "side": side.upper(), # Ensure side is uppercase (BUY/SELL)
+            "type": order_type.upper(), # Ensure type is uppercase (MARKET/LIMIT)
             "symbol": trading_symbol,
-            "time_in_force": time_in_force,
-            f"{order_type}_order_config": order_config,
+            f"{order_type.lower()}_order_config": order_config,
         }
 
-        logger.info(f"Placing order: {body}")
-        try:
-            response_data = self._make_api_request("POST", path, json.dumps(body))
-            if response_data and isinstance(response_data, dict):
-                logger.info(f"Order placement response: {response_data}")
-                return self._parse_order_response(response_data)
-            else:
-                logger.error(f"Failed to place order. Response: {response_data}")
-                return None
-        except Exception as e:
-            logger.error(f"Exception during order placement: {e}", exc_info=True)
+        path = "/api/v1/crypto/trading/orders/"
+        logger.debug(f"Placing order with body: {json.dumps(body)}")
+        response_data = self._make_api_request("POST", path, json.dumps(body))
+
+        if response_data:
+            logger.info(f"Order placement attempt response: {response_data}")
+            # Check for immediate error in response, e.g. if 'id' is not present or 'state' indicates failure
+            if 'id' not in response_data or response_data.get('state') == 'failed':
+                 logger.error(f"Order placement failed or 'id' missing in response: {response_data}")
+                 # Consider if an Order object should still be created with error status
+                 # For now, returning None if critical info like 'id' is missing or explicit failure.
+                 return None 
+            return self._parse_order_response(response_data)
+        else:
+            logger.error("Failed to place order: No response from API.")
             return None
 
-    def cancel_order(self, order_id: str) -> bool:
-        """Cancel an existing order."""
-        path = f"/api/v1/crypto/trading/orders/{order_id}/cancel/"
-        logger.info(f"Attempting to cancel order {order_id} at {path}")
-        response_data = self._make_api_request("POST", path)
-        if response_data is None or response_data.get('order_id') == order_id:
-            logger.info(f"Successfully requested cancellation for order {order_id}")
-            return True
-        else:
-            logger.warning(f"Cancellation request for order {order_id} might have failed or status unclear. Response: {response_data}")
-            return False
+    # Implements BaseBroker.place_market_order
+    def place_market_order(self, symbol: str, side: str, quantity: Decimal, client_order_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+        """Place a market order."""
+        order_object = self.place_order(
+            symbol=symbol, 
+            side=side, 
+            order_type="market", 
+            quantity=quantity, 
+            client_order_id=client_order_id
+        )
+        if order_object:
+            return order_object.__dict__
+        return None
 
-    def get_order_status(self, order_id: str) -> Optional[Order]:
-        """Fetch details of a specific order by its Robinhood Order ID."""
+    # Modified to return Optional[Dict[str, Any]] to match BaseBroker
+    def get_order_status(self, order_id: str) -> Optional[Dict[str, Any]]:
+        """Fetch the status of a specific order by its ID."""
         path = f"/api/v1/crypto/trading/orders/{order_id}/"
         logger.info(f"Fetching order details for {order_id} from {path}")
         response_data = self._make_api_request("GET", path)
 
-        if response_data and 'order_id' in response_data:
-            try:
-                avg_price = Decimal(response_data.get('average_price') if response_data.get('average_price') else '0')
-                order = Order(
-                    id=response_data.get('id'),
-                    client_order_id=response_data.get('client_order_id'),
-                    symbol=self._convert_symbol_for_analysis(response_data.get('symbol')),
-                    side=response_data.get('side'),
-                    order_type=response_data.get('type'),
-                    quantity=Decimal(response_data.get('quantity', '0')),
-                    avg_fill_price=avg_price,
-                    status=response_data.get('state'),
-                    created_at=response_data.get('created_at')
-                )
-                logger.info(f"Order placed successfully: {order}")
-                return order
-            except Exception as e:
-                logger.error(f"Could not parse order data for {order_id}: {response_data}. Error: {e}")
-                return None
+        if response_data and isinstance(response_data, dict):
+            logger.info(f"Order status response: {response_data}")
+            order_obj = self._parse_order_response(response_data)
+            if order_obj:
+                return order_obj.__dict__
+            else:
+                logger.error(f"Failed to parse order status response for order {order_id}: {response_data}")
+                return None # Parsing failed
         else:
-            logger.warning(f"Could not retrieve status for order {order_id}. Response: {response_data}")
-            return None
+            logger.warning(f"No data or non-dict response received for order status {order_id}. Response: {response_data}")
+            return None # API request failed or bad response
+
+    # Implements BaseBroker.cancel_order
+    def cancel_order(self, order_id: str) -> bool:
+        """Cancel an existing order. Returns True on success, False otherwise."""
+        path = f"/api/v1/crypto/trading/orders/{order_id}/cancel/"
+        logger.info(f"Attempting to cancel order {order_id} at {path}")
+        # The cancel API returns an empty body (200 OK) on success.
+        # _make_api_request returns {} for successful empty JSON responses, or None on error.
+        response_data = self._make_api_request("POST", path) 
+        
+        if response_data is not None: # Could be an empty dict {} for success
+            logger.info(f"Successfully requested cancellation for order {order_id}. API Response: {response_data}")
+            return True
+        else:
+            logger.warning(f"Cancellation request for order {order_id} failed or status unclear. API did not return a successful response.")
+            return False
 
     def get_order_history(self, symbol: Optional[str] = None, limit: int = 100) -> List[Order]:
         """Get historical order data."""
@@ -386,7 +415,7 @@ class RobinhoodBroker(BaseBroker):
     def is_connected(self) -> bool:
         """Check if the broker connection is active by making a simple API call."""
         try:
-            account_info = self.get_account_summary()
+            account_info = self.get_account_info()
             if account_info and isinstance(account_info, dict):
                 logger.info("Robinhood connection test successful.")
                 return True

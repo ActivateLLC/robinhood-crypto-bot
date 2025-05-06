@@ -7,6 +7,7 @@ from datetime import datetime
 # Add project root to path
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
+from alt_crypto_data import AltCryptoDataProvider
 from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment
 from crew_agents.src.error_monitoring_agent import AutoRemediationAgent, SystemReliabilityAuditor
 from crew_agents.src.infinite_returns_agent import InfiniteReturnsAgent
@@ -23,7 +24,8 @@ class ComprehensiveSystemTest(unittest.TestCase):
     def test_1_rl_environment(self):
         """Test Reinforcement Learning Trading Environment"""
         logger.info("Testing Crypto Trading Environment...")
-        env = CryptoTradingEnvironment()
+        data_provider = AltCryptoDataProvider()
+        env = CryptoTradingEnvironment(data_provider=data_provider)
         
         # Test environment reset
         initial_state = env.reset()
@@ -31,11 +33,12 @@ class ComprehensiveSystemTest(unittest.TestCase):
         
         # Test step function
         action = env.action_space.sample()  # Random action
-        next_state, reward, done, info = env.step(action)
+        next_state, reward, terminated, truncated, info = env.step(action)
         
         self.assertIsNotNone(next_state, "Environment step failed")
         self.assertTrue(isinstance(reward, float), "Reward must be a float")
-        self.assertTrue(isinstance(done, bool), "Done flag must be a boolean")
+        self.assertTrue(isinstance(terminated, bool), "Terminated flag must be a boolean")
+        self.assertTrue(isinstance(truncated, bool), "Truncated flag must be a boolean")
         
         logger.info("Crypto Trading Environment test completed successfully")
 

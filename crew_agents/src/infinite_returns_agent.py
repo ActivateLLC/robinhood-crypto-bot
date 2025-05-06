@@ -6,6 +6,7 @@ import time
 import warnings
 import numpy as np
 import pandas as pd
+import logging
 
 # Suppress warnings
 warnings.filterwarnings('ignore')
@@ -81,6 +82,8 @@ try:
     from alt_crypto_data import AltCryptoDataProvider
 except ImportError:
     AltCryptoDataProvider = FallbackDataProvider
+
+logger = logging.getLogger(__name__)
 
 class InfiniteReturnsAgent:
     def __init__(
@@ -179,15 +182,28 @@ class InfiniteReturnsAgent:
         cost_penalty = 0.5
         drawdown_penalty = 2.0
         
-        reward = (
+        reward_intermediate = (
             (pnl_factor * realized_pnl) -
             (cost_penalty * transaction_costs) -
             (drawdown_penalty * current_drawdown)
         )
         
         # Clip extreme values
-        return max(min(reward, 10), -10)
-    
+        final_reward = max(min(reward_intermediate, 10.0), -10.0)
+        return final_reward
+
+    def _calculate_sharpe_ratio(self, log_returns: pd.Series) -> float:
+        """
+        Calculate Sharpe ratio for a given series of log returns
+        
+        Args:
+            log_returns (pd.Series): Log returns
+        
+        Returns:
+            float: Sharpe ratio
+        """
+        return log_returns.mean() / log_returns.std()
+
     def run_infinite_returns_strategy(self):
         """
         Execute comprehensive trading strategy

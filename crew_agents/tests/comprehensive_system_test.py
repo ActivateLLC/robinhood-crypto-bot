@@ -72,7 +72,9 @@ class ComprehensiveSystemTest(unittest.TestCase):
         
         for scenario in test_scenarios:
             reward = agent.calculate_hybrid_reward(**scenario)
-            self.assertTrue(isinstance(reward, float), "Reward must be a float")
+            # print(f"TEST_3_REWARD_DEBUG: value={reward}, type={type(reward)}") 
+            self.assertTrue(isinstance(reward, float), "Reward must be a float") # Reverted assertion
+            # assert type(reward) is float, f"Reward type is {type(reward)}, not float" 
         
         logger.info("Reward Methodology test completed successfully")
 

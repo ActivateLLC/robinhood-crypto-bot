@@ -2,6 +2,7 @@ import os
 import json
 import logging
 from typing import List, Dict, Any
+from datetime import datetime
 
 from crewai import Agent, Task, Crew, Process
 from crewai_tools import FileReadTool
@@ -18,6 +19,7 @@ load_dotenv() # Load environment variables like OPENAI_API_KEY
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
+LOG_FILE_PATH = "../logs/live_experience.log" # Assuming the script is run from the agents directory
 
 class ExperienceProcessorAgent:
     """Agent responsible for reading, processing, and potentially acting on logged trading experiences."""
@@ -140,7 +142,34 @@ class ExperienceProcessorAgent:
             logger.error(f"Error during CrewAI kickoff or processing: {e}", exc_info=True)
             return [] # Return empty list on error
 
-# Example Usage (for testing)
+def count_trades_for_date(log_file_path, target_date_str):
+    trade_count = 0
+    try:
+        with open(log_file_path, 'r') as f:
+            for line in f:
+                try:
+                    log_entry = json.loads(line.strip())
+                    if 'timestamp' in log_entry and 'action' in log_entry:
+                        # Extract the date part from the timestamp
+                        timestamp_dt = datetime.fromisoformat(log_entry['timestamp'])
+                        log_date_str = timestamp_dt.strftime('%Y-%m-%d')
+                        
+                        if log_date_str == target_date_str:
+                            action = log_entry['action'].upper()
+                            if action == "BUY" or action == "SELL":
+                                trade_count += 1
+                except json.JSONDecodeError:
+                    print(f"Skipping malformed JSON line: {line.strip()}")
+                except Exception as e:
+                    print(f"Error processing log entry: {log_entry} - {e}")
+    except FileNotFoundError:
+        print(f"Error: Log file not found at {log_file_path}")
+        return -1 # Indicate error
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return -1 # Indicate error
+    return trade_count
+
 if __name__ == "__main__":
     print("Running Experience Processor Agent standalone test...")
     processor = ExperienceProcessorAgent()
@@ -153,3 +182,13 @@ if __name__ == "__main__":
             print("Last entry:", all_data[-1])
     else:
         print("No experiences found in the log or an error occurred.")
+
+    target_date = "2025-05-05"
+    trades = count_trades_for_date(LOG_FILE_PATH, target_date)
+    
+    if trades != -1:
+        print(f"Number of trades (BUY/SELL) on {target_date}: {trades}")
+        if trades > 10:
+            print(f"The number of trades on {target_date} ({trades}) is greater than 10.")
+        else:
+            print(f"The number of trades on {target_date} ({trades}) is not greater than 10.")

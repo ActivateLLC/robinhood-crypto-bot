@@ -109,22 +109,54 @@ class MarketIntelligenceAgent:
                 ohlcv = client.fetch_ohlcv(symbol, '1h', limit=24)
                 df = pd.DataFrame(ohlcv, columns=['timestamp', 'open', 'high', 'low', 'close', 'volume'])
                 
-                # Calculate technical indicators
-                df['returns'] = df['close'].pct_change()
-                df['volatility'] = df['returns'].rolling(window=12).std()
+                current_price = None
+                price_change_24h = None
+                total_volume = None
+                avg_volume = None
+                volatility = None
+
+                if not df.empty and len(df) >= 1:
+                    current_price = df['close'].iloc[-1]
+
+                if not df.empty and len(df) >= 2:
+                    # Calculate returns if we have at least 2 data points
+                    df['returns'] = df['close'].pct_change()
+                    price_change_24h = ((df['close'].iloc[-1] / df['close'].iloc[0]) - 1) * 100
+                    
+                    # Calculate volatility if we have enough data for the rolling window
+                    # Needs window size + 1 data points in original df for pct_change() and then rolling()
+                    rolling_window = 12
+                    if len(df) >= rolling_window + 1: 
+                        df['volatility'] = df['returns'].rolling(window=rolling_window).std()
+                        if not df['volatility'].empty and pd.notna(df['volatility'].iloc[-1]):
+                            volatility = df['volatility'].iloc[-1]
+                        else:
+                            volatility = 0.0 # Or None, if preferred when calculation results in NaN
+                    else:
+                        volatility = 0.0 # Or None
+                else:
+                    price_change_24h = 0.0 # Or None
+                    volatility = 0.0 # Or None
+
+                if not df.empty and 'volume' in df.columns and not df['volume'].isnull().all():
+                    total_volume = df['volume'].sum()
+                    avg_volume = df['volume'].mean()
+                else:
+                    total_volume = 0.0 # Or None
+                    avg_volume = 0.0 # Or None
                 
                 # Store insights
                 symbol_insights['price_trends'][exchange_id] = {
-                    'current_price': df['close'].iloc[-1],
-                    'price_change_24h': ((df['close'].iloc[-1] / df['close'].iloc[0]) - 1) * 100
+                    'current_price': current_price,
+                    'price_change_24h': price_change_24h
                 }
                 
                 symbol_insights['volume_analysis'][exchange_id] = {
-                    'total_volume': df['volume'].sum(),
-                    'avg_volume': df['volume'].mean()
+                    'total_volume': total_volume,
+                    'avg_volume': avg_volume
                 }
                 
-                symbol_insights['volatility'][exchange_id] = df['volatility'].iloc[-1]
+                symbol_insights['volatility'][exchange_id] = volatility
             
             except Exception as e:
                 self.logger.error(f"Failed to analyze {symbol} on {exchange_id}: {e}")
@@ -166,7 +198,11 @@ class MarketIntelligenceAgent:
             symbol_data['price_trends'][exchange]['price_change_24h']
             for symbol_data in market_insights['symbols'].values()
             for exchange in symbol_data['price_trends']
+            if symbol_data['price_trends'][exchange].get('price_change_24h') is not None # Ensure value exists
         ]
+        
+        if not price_changes: # Check if list is empty
+            return 'Neutral' # Default if no price change data
         
         avg_change = np.mean(price_changes)
         
@@ -197,28 +233,46 @@ class MarketIntelligenceAgent:
         volatilities = [
             vol
             for symbol_data in market_insights['symbols'].values()
-            for vol_dict in symbol_data['volatility'].values()
-            for vol in [vol_dict]
+            for vol_dict_outer in symbol_data.get('volatility', {}).values() # Added .get with default
+            for vol in [vol_dict_outer] # Iterate over the value itself if it's a direct float/int
+            if vol is not None # Ensure value is not None
         ]
-        risk_indicators['market_volatility'] = np.mean(volatilities)
+        risk_indicators['market_volatility'] = np.mean(volatilities) if volatilities else 0.0 # Check if list is empty
         
         # Calculate correlation risk
         returns = [
             symbol_data['price_trends'][exchange]['price_change_24h']
             for symbol_data in market_insights['symbols'].values()
             for exchange in symbol_data['price_trends']
+            if symbol_data['price_trends'][exchange].get('price_change_24h') is not None # Ensure value exists
         ]
-        correlation_matrix = np.corrcoef(returns)
-        risk_indicators['correlation_risk'] = np.mean(np.abs(correlation_matrix))
         
+        if len(returns) > 1: # np.corrcoef needs at least 2 data points
+            correlation_matrix = np.corrcoef(returns)
+            # Check for NaN in correlation_matrix, often from zero variance data
+            if np.isnan(correlation_matrix).all():
+                risk_indicators['correlation_risk'] = 0.0 # Or 1.0, depending on desired default for no correlation
+            else:
+                risk_indicators['correlation_risk'] = np.nanmean(np.abs(correlation_matrix)) # Use nanmean to ignore NaNs
+        else:
+            risk_indicators['correlation_risk'] = 0.0 # Default if not enough data
+
         # Calculate liquidity risk
         volumes = [
-            vol
+            vol_dict.get('total_volume') # Use .get for safety
             for symbol_data in market_insights['symbols'].values()
-            for vol_dict in symbol_data['volume_analysis'].values()
-            for vol in [vol_dict['total_volume']]
+            for vol_dict in symbol_data.get('volume_analysis', {}).values() # Added .get with default
+            if vol_dict.get('total_volume') is not None # Ensure value exists
         ]
-        risk_indicators['liquidity_risk'] = 1 - (np.std(volumes) / np.mean(volumes))
+
+        if len(volumes) > 1: # np.std and np.mean need data
+            mean_volume = np.mean(volumes)
+            if mean_volume != 0: # Avoid division by zero
+                risk_indicators['liquidity_risk'] = 1 - (np.std(volumes) / mean_volume)
+            else:
+                risk_indicators['liquidity_risk'] = 0.0 # Or 1.0 if mean_volume is 0 (perfectly illiquid or no volume)
+        else:
+            risk_indicators['liquidity_risk'] = 0.0 # Default if not enough data
         
         return risk_indicators
     

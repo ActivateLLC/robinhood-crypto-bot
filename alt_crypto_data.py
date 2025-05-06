@@ -475,7 +475,7 @@ class AltCryptoDataProvider:
 
         try:
             # Fetch news from the last 24 hours
-            from_date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%SZ')
+            from_date = (datetime.now(timezone.utc) - timedelta(days=1)).strftime('%Y-%m-%dT%H:%M:%S') # Removed 'Z'
             all_articles = self.newsapi.get_everything(
                 q=query,
                 language='en',

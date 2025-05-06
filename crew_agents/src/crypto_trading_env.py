@@ -12,6 +12,7 @@ from dotenv import load_dotenv
 from decimal import Decimal
 import importlib
 import json
+import pandas_ta as ta
 
 # Add project root to sys.path if necessary
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -124,10 +125,10 @@ class CryptoTradingEnvironment(gym.Env):
         
         # Observation space: Includes market indicators + portfolio state (capital, holdings)
         # Needs to match the shape the model was trained with.
-        observation_shape = (31,) # Match the shape from the error message
+        observation_shape = (31,) # Corrected: Match the shape from the error message
         self.observation_space = gym.spaces.Box(
-            low=-1.0, # Match the bounds from the error message
-            high=1.0, # Match the bounds from the error message
+            low=-1.0, # Reverted to match model expectation
+            high=1.0, # Reverted to match model expectation
             shape=observation_shape, # Pass the tuple directly
             dtype=np.float32
         )
@@ -428,197 +429,235 @@ class CryptoTradingEnvironment(gym.Env):
         
         return True
     
-    def _advanced_data_preprocessing(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Advanced data preprocessing with multiple technical indicators
-        
-        Args:
-            data (pd.DataFrame): Raw historical price data
-        
-        Returns:
-            pd.DataFrame: Preprocessed data with technical indicators
-        """
-        # Ensure required columns
-        required_columns = ['open', 'high', 'low', 'close', 'volume']
-        if not all(col in data.columns for col in required_columns):
-            raise ValueError("Missing required price columns")
-        
-        # Technical indicators
-        def _calculate_rsi(prices, periods=14):
-            delta = prices.diff()
-            gain = (delta.where(delta > 0, 0)).rolling(window=periods).mean()
-            loss = (-delta.where(delta < 0, 0)).rolling(window=periods).mean()
+        def _advanced_data_preprocessing(self, data: pd.DataFrame) -> pd.DataFrame:
+            # Ensure 'High', 'Low', 'Close', 'Volume' columns exist and are correctly named by pandas_ta
+            # pandas_ta might rename them (e.g., to 'high', 'low', 'close', 'volume')
+            # We'll try to use the capitalized versions first, then fall back to lowercase if necessary
+            # For TTM Squeeze and other indicators, ensure consistency in column naming
+            required_cols_capital = ['High', 'Low', 'Close', 'Volume', 'Open']
+            required_cols_lower = [col.lower() for col in required_cols_capital]
             
-            rs = gain / loss
-            rsi = 100 - (100 / (1 + rs))
-            return rsi
-        
-        def _calculate_macd(prices, fast_period=12, slow_period=26, signal_period=9):
-            exp1 = prices.ewm(span=fast_period, adjust=False).mean()
-            exp2 = prices.ewm(span=slow_period, adjust=False).mean()
-            macd = exp1 - exp2
-            signal = macd.ewm(span=signal_period, adjust=False).mean()
-            return macd, signal
-        
-        # Add technical indicators
-        data['returns'] = data['close'].pct_change()
-        data['log_returns'] = np.log(1 + data['returns'])
-        data['rsi'] = _calculate_rsi(data['close'])
-        data['macd'], data['macd_signal'] = _calculate_macd(data['close'])
-        
-        # Volatility indicators
-        data['volatility'] = data['close'].rolling(window=20).std()
-        
-        # Normalize volume
-        data['normalized_volume'] = (data['volume'] - data['volume'].mean()) / data['volume'].std()
-        
-        # Drop initial NaN rows from indicator calculations
-        data.dropna(inplace=True)
-        
+            # Create a mapping for potential renames if pandas_ta standardizes to lowercase
+            rename_map = {}
+            for cap_col, low_col in zip(required_cols_capital, required_cols_lower):
+                if low_col in data.columns and cap_col not in data.columns:
+                    rename_map[low_col] = cap_col # Rename 'close' to 'Close' for internal consistency
+            
+            if rename_map:
+                data.rename(columns=rename_map, inplace=True)
+                logger.debug(f"Renamed columns for consistency: {rename_map}")
+    
+            # Ensure all required columns are present after potential rename
+            missing_cols = [col for col in required_cols_capital if col not in data.columns]
+            if missing_cols:
+                logger.error(f"Missing critical columns after potential rename: {missing_cols}. DataFrame columns: {data.columns.tolist()}")
+                # Fill missing essential columns with 0 or raise an error, depending on strategy
+                for col in missing_cols:
+                    data[col] = 0.0 # Or handle more gracefully
+                # return data # Or raise error
+    
+            # Original calculations (RSI, MACD already capitalized for 'Close')
+            data['rsi'] = ta.rsi(data['Close'])
+            
+            # MACD (Moving Average Convergence Divergence)
+            macd_df = data.ta.macd(close='Close')
+            if macd_df is not None and not macd_df.empty:
+                macd_line_col = next((col for col in macd_df.columns if 'MACD' in col and 'MACDh' not in col and 'MACDs' not in col), None)
+                macd_signal_col = next((col for col in macd_df.columns if 'MACDs' in col), None)
+                macd_hist_col = next((col for col in macd_df.columns if 'MACDh' in col), None)
+    
+                data['macd_line'] = macd_df[macd_line_col] if macd_line_col else 0.0
+                data['macd_signal_line'] = macd_df[macd_signal_col] if macd_signal_col else 0.0
+                data['macd_hist'] = macd_df[macd_hist_col] if macd_hist_col else 0.0
+                if not macd_line_col: logger.warning("Could not find MACD line column in macd_df.")
+                if not macd_signal_col: logger.warning("Could not find MACD signal line column in macd_df.")
+                if not macd_hist_col: logger.warning("Could not find MACD histogram column in macd_df.")
+            else:
+                data['macd_line'] = 0.0
+                data['macd_signal_line'] = 0.0
+                data['macd_hist'] = 0.0
+                logger.warning("ta.macd() returned None or empty DataFrame.")
+    
+            # Bollinger Bands (still needed for Squeeze calculation)
+            bbands = data.ta.bbands(length=20, std=2, mamode='sma', close='Close')
+            if bbands is not None and not bbands.empty:
+                bb_upper_col = next((col for col in bbands.columns if 'BBU' in col), None)
+                bb_middle_col = next((col for col in bbands.columns if 'BBM' in col), None)
+                bb_lower_col = next((col for col in bbands.columns if 'BBL' in col), None)
+    
+                data['bb_upper'] = bbands[bb_upper_col] if bb_upper_col else 0.0
+                data['bb_middle'] = bbands[bb_middle_col] if bb_middle_col else 0.0
+                data['bb_lower'] = bbands[bb_lower_col] if bb_lower_col else 0.0
+            else:
+                data['bb_upper'] = 0.0
+                data['bb_middle'] = 0.0
+                data['bb_lower'] = 0.0
+                logger.warning("ta.bbands() returned None or empty DataFrame.")
+            
+            # ATR for TTM Squeeze and as a feature. Ensure 'High', 'Low', 'Close' are available.
+            # Using mamode='ema' as it's often preferred for smoothness with TTM Squeeze components.
+            atr_series = data.ta.atr(length=20, mamode='ema', high='High', low='Low', close='Close')
+            if atr_series is not None and not atr_series.empty:
+                data['ttm_atr'] = atr_series
+            else:
+                data['ttm_atr'] = 0.0
+                logger.warning("ta.atr() returned None or empty Series for ttm_atr.")
+    
+            # Keltner Channels (still needed for Squeeze calculation)
+            kc = data.ta.kc(length=20, scalar=1.5, mamode='ema', atr_length=20, close='Close', high='High', low='Low', truerange='tr')
+            if kc is not None and not kc.empty:
+                logger.debug(f"Keltner Channel (kc) columns: {kc.columns.tolist()}")
+                kc_upper_col = next((col for col in kc.columns if 'KCU' in col), None)
+                kc_lower_col = next((col for col in kc.columns if 'KCL' in col), None)
+                kc_middle_col = next((col for col in kc.columns if 'KCM' in col), None)
+                logger.debug(f"Found KC cols: Upper='{kc_upper_col}', Lower='{kc_lower_col}', Middle='{kc_middle_col}'")
+    
+                data['kc_upper'] = kc[kc_upper_col] if kc_upper_col else 0.0
+                data['kc_lower'] = kc[kc_lower_col] if kc_lower_col else 0.0
+                data['kc_middle'] = kc[kc_middle_col] if kc_middle_col else 0.0
+                if not kc_upper_col: logger.warning("Could not find Keltner Channel Upper band column in kc_df.")
+                if not kc_lower_col: logger.warning("Could not find Keltner Channel Lower band column in kc_df.")
+                if not kc_middle_col: logger.warning("Could not find Keltner Channel Middle band column in kc_df.")
+            else:
+                data['kc_upper'] = 0.0
+                data['kc_lower'] = 0.0
+                data['kc_middle'] = 0.0
+                logger.warning("ta.kc() returned None or empty DataFrame for Keltner Channels.")
+    
+            # TTM Squeeze calculation (using Bollinger Bands and Keltner Channels)
+            if 'bb_upper' in data.columns and 'bb_lower' in data.columns and \
+               'kc_upper' in data.columns and 'kc_lower' in data.columns:
+                squeeze_on = (data['bb_lower'] > data['kc_lower']) & (data['bb_upper'] < data['kc_upper'])
+                data['ttm_squeeze_on'] = squeeze_on.astype(int)
+            else:
+                data['ttm_squeeze_on'] = 0 
+                logger.warning("Could not calculate TTM Squeeze On/Off due to missing BB/KC components.")
+            
+            # TTM Squeeze Momentum
+            length = 20 
+            if 'High' in data.columns and 'Low' in data.columns and 'Close' in data.columns:
+                highest_high = data['High'].rolling(window=length).max()
+                lowest_low = data['Low'].rolling(window=length).min()
+                avg_high_low = (highest_high + lowest_low) / 2
+                price_minus_avg = data['Close'] - avg_high_low
+                linreg_series = data.ta.linreg(close=price_minus_avg, length=length, offset=0) 
+                data['ttm_momentum'] = linreg_series if linreg_series is not None and not linreg_series.empty else 0.0
+                if linreg_series is None or linreg_series.empty : logger.warning("ta.linreg for TTM Momentum returned None or empty.")
+            else:
+                data['ttm_momentum'] = 0.0
+                logger.warning("Missing High, Low, or Close for TTM Momentum calculation.")
+    
+            # Mid-Point Momentum
+            mid_point_period = 14
+            data['mid_momentum'] = data.ta.mom(close=data['Close'], length=mid_point_period) if 'Close' in data.columns else 0.0
+    
+            # Volatility
+            volatility_window = 20
+            data['volatility'] = data['log_returns'].rolling(window=volatility_window).std() if 'log_returns' in data.columns else 0.0
+    
+            # Heikin Ashi Trend
+            ha_df = data.ta.ha(open='Open', high='High', low='Low', close='Close')
+            if ha_df is not None and not ha_df.empty and 'HA_close' in ha_df.columns and 'HA_open' in ha_df.columns:
+                data['ha_trend'] = (ha_df['HA_close'] > ha_df['HA_open']).astype(int) * 2 - 1
+            else:
+                data['ha_trend'] = 0
+                logger.warning("Could not calculate Heikin Ashi trend.")
+    
+            # Stochastic Oscillator (%K and %D)
+            stoch = data.ta.stoch(high='High', low='Low', close='Close', k=14, d=3, smooth_k=3)
+            if stoch is not None and not stoch.empty:
+                stoch_k_col = next((col for col in stoch.columns if 'STOCHk' in col), None)
+                stoch_d_col = next((col for col in stoch.columns if 'STOCHd' in col), None)
+                data['stoch_k'] = stoch[stoch_k_col] if stoch_k_col else 0.0
+                data['stoch_d'] = stoch[stoch_d_col] if stoch_d_col else 0.0
+            else:
+                data['stoch_k'] = 0.0
+                data['stoch_d'] = 0.0
+    
+            # ADX
+            adx_series = data.ta.adx(length=14, high='High', low='Low', close='Close')
+            if adx_series is not None and not adx_series.empty:
+                adx_col_name = next((col for col in adx_series.columns if 'ADX' in col), None)
+                data['adx'] = adx_series[adx_col_name] if adx_col_name else 0.0
+                if not adx_col_name: logger.warning("Could not find ADX column in adx_series output. Setting ADX to 0.")
+            else:
+                data['adx'] = 0.0
+    
+            # Williams %R
+            data['willr'] = data.ta.willr(length=14, high='High', low='Low', close='Close')
+            if data['willr'] is None: data['willr'] = 0.0
+    
+            # EMAs
+            data['ema_50'] = data.ta.ema(length=50, close='Close')
+    
+            # PROC
+            data['proc'] = data.ta.roc(length=10, close='Close')
+            if data['proc'] is None: data['proc'] = 0.0
+    
+            # OBV
+            data['obv'] = data.ta.obv(close='Close', volume='Volume')
+            if data['obv'] is None: data['obv'] = 0.0
+    
+            # Lagged Close Prices
+            lags = [1, 2, 3, 5]
+            for lag in lags:
+                data[f'close_lag_{lag}'] = data['Close'].shift(lag)
+    
+            # TTM Wave
+            ttm_trend_data = data.ta.ttm_trend(high='High', low='Low', close='Close')
+            if ttm_trend_data is not None and not ttm_trend_data.empty:
+                trend_col = next((col for col in ttm_trend_data.columns if 'TTM_TRND' in col), None)
+                cross_col = next((col for col in ttm_trend_data.columns if 'TTM_Cross' in col), None)
+                data['ttm_wave_trend'] = ttm_trend_data[trend_col] if trend_col else 0.0
+                data['ttm_wave_cross'] = ttm_trend_data[cross_col] if cross_col else 0.0
+            else:
+                data['ttm_wave_trend'] = 0.0
+                data['ttm_wave_cross'] = 0.0
+    
+            # TTM Scalper Alert
+            open_col = 'open' if 'open' in data.columns else 'Open'
+            close_col = 'close' if 'close' in data.columns else 'Close'
+            if 'ema_50' in data.columns and open_col in data.columns and close_col in data.columns:
+                buy_condition = (data[close_col] > data['ema_50']) & (data[close_col] > data[open_col])
+                sell_condition = (data[close_col] < data['ema_50']) & (data[close_col] < data[open_col])
+                data['ttm_scalper_alert'] = np.select([buy_condition, sell_condition], [1.0, -1.0], default=0.0)
+            else:
+                data['ttm_scalper_alert'] = 0.0
+                logger.warning("Could not calculate TTM Scalper Alert.")
+    
+            # Returns and Log Returns
+            data['returns'] = data['Close'].pct_change()
+            data['log_returns'] = np.log(1 + data['returns'])
+    
+            cols_to_fill_na = [
+                'rsi', 'macd_line', 'macd_signal_line', 'macd_hist',
+                'bb_upper', 'bb_middle', 'bb_lower', 'ttm_atr',
+                'kc_upper', 'kc_middle', 'kc_lower', 
+                'ttm_squeeze_on', 'ttm_momentum', 
+                'mid_momentum', 'volatility', 'ha_trend',
+                'stoch_k', 'stoch_d', 'adx', 'willr', 
+                'ema_50', 'proc', 'obv',
+                'close_lag_1', 'close_lag_2', 'close_lag_3', 'close_lag_5',
+                'ttm_wave_trend', 'ttm_wave_cross', 'ttm_scalper_alert',
+                'returns', 'log_returns'
+            ]
+            for col in cols_to_fill_na:
+                if col in data.columns:
+                    data[col].fillna(0.0, inplace=True)
+                else:
+                    logger.warning(f"Attempted to fillna on non-existent column: {col}")
+                    data[col] = 0.0 
+            return data
+
+    def _get_initial_market_data(self, length: int = 200) -> pd.DataFrame:
+        """Fetches initial market data for the environment."""
+        # Fetch data from the data provider
+        data = self.data_provider.fetch_price_history(self.symbol, days=length, interval='1h')
+        if data is None or data.empty:
+            self.logger.error("Failed to fetch initial market data.")
+            raise ValueError("Initial market data could not be loaded.")
         return data
-    
-    def _generate_simulated_data(self, days=365) -> pd.DataFrame:
-        """
-        Generate advanced simulated market data with realistic characteristics
-        
-        Args:
-            days (int): Number of days of simulated data
-        
-        Returns:
-            pd.DataFrame: Simulated market data
-        """
-        import numpy as np
-        import pandas as pd
-        
-        # Set random seed for reproducibility
-        np.random.seed(42)
-        
-        # Generate timestamps
-        timestamps = pd.date_range(end=pd.Timestamp.now(), periods=days*24, freq='H')
-        
-        # Simulate price movement with more realistic characteristics
-        initial_price = 30000  # Starting price
-        daily_volatility = 0.03  # 3% daily volatility
-        trend_strength = 0.001  # Slight upward trend
-        
-        # Generate price series with mean-reverting random walk
-        prices = [initial_price]
-        for _ in range(len(timestamps) - 1):
-            # Mean-reverting component
-            mean_reversion = (initial_price - prices[-1]) * 0.01
-            
-            # Random walk with trend and volatility
-            random_change = np.random.normal(trend_strength, daily_volatility) * prices[-1]
-            
-            # Combine components
-            price_change = mean_reversion + random_change
-            prices.append(prices[-1] + price_change)
-        
-        # Create DataFrame with realistic price ranges
-        data = pd.DataFrame({
-            'timestamp': timestamps,
-            'open': prices,
-            'high': [p * (1 + np.random.uniform(0.001, 0.01)) for p in prices],
-            'low': [p * (1 - np.random.uniform(0.001, 0.01)) for p in prices],
-            'close': prices,
-            'volume': np.random.lognormal(mean=np.log(500), sigma=1, size=len(timestamps))
-        })
-        
-        data.set_index('timestamp', inplace=True)
-        
-        return data
-    
-    def _calculate_advanced_indicators(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Calculate advanced technical indicators for more nuanced trading decisions
-        
-        Args:
-            data (pd.DataFrame): Historical price data
-        
-        Returns:
-            pd.DataFrame: Enhanced dataset with advanced indicators
-        """
-        # Existing indicators
-        data['returns'] = data['close'].pct_change()
-        data['log_returns'] = np.log(1 + data['returns'])
-        
-        # Moving Averages
-        data['MA20'] = data['close'].rolling(window=20).mean()
-        data['MA50'] = data['close'].rolling(window=50).mean()
-        data['MA200'] = data['close'].rolling(window=200).mean()
-        
-        # Relative Strength Index (RSI)
-        delta = data['close'].diff()
-        gain = delta.clip(lower=0)
-        loss = -delta.clip(upper=0)
-        
-        avg_gain = gain.rolling(window=14).mean()
-        avg_loss = loss.rolling(window=14).mean()
-        relative_strength = avg_gain / avg_loss
-        data['RSI'] = 100.0 - (100.0 / (1.0 + relative_strength))
-        
-        # Bollinger Bands
-        data['BB_Middle'] = data['close'].rolling(window=20).mean()
-        data['BB_Upper'] = data['BB_Middle'] + 2 * data['close'].rolling(window=20).std()
-        data['BB_Lower'] = data['BB_Middle'] - 2 * data['close'].rolling(window=20).std()
-        
-        # MACD - Moving Average Convergence Divergence
-        exp1 = data['close'].ewm(span=12, adjust=False).mean()
-        exp2 = data['close'].ewm(span=26, adjust=False).mean()
-        data['MACD'] = exp1 - exp2
-        data['Signal_Line'] = data['MACD'].ewm(span=9, adjust=False).mean()
-        
-        # Stochastic Oscillator
-        low_14 = data['low'].rolling(window=14).min()
-        high_14 = data['high'].rolling(window=14).max()
-        data['%K'] = 100 * (data['close'] - low_14) / (high_14 - low_14)
-        data['%D'] = data['%K'].rolling(window=3).mean()
-        
-        return data.dropna()
-    
-    def _advanced_action_selection(self, observation: np.ndarray) -> int:
-        """
-        Advanced action selection using multiple technical indicators
-        
-        Args:
-            observation (np.ndarray): Current market state observation
-        
-        Returns:
-            int: Selected trading action
-        """
-        # Unpack observation features
-        close_price, rsi, macd, signal_line, stoch_k, stoch_d = observation[-6:]
-        
-        # Complex trading logic
-        buy_signals = 0
-        sell_signals = 0
-        
-        # RSI-based signal
-        if rsi < 30:  # Oversold condition
-            buy_signals += 1
-        elif rsi > 70:  # Overbought condition
-            sell_signals += 1
-        
-        # MACD signal
-        if macd > signal_line:  # Bullish crossover
-            buy_signals += 1
-        elif macd < signal_line:  # Bearish crossover
-            sell_signals += 1
-        
-        # Stochastic Oscillator
-        if stoch_k < 20 and stoch_d < 20:  # Oversold
-            buy_signals += 1
-        elif stoch_k > 80 and stoch_d > 80:  # Overbought
-            sell_signals += 1
-        
-        # Decision logic
-        if buy_signals > sell_signals:
-            return 1  # Buy
-        elif sell_signals > buy_signals:
-            return 2  # Sell
-        else:
-            return 0  # Hold
-    
+
     def _generate_observation(self, data: pd.DataFrame) -> np.ndarray:
         """
         Generate advanced observation vector including portfolio state, mid momentum, volatility, and Heikin-Ashi trend
@@ -638,11 +677,12 @@ class CryptoTradingEnvironment(gym.Env):
         except Exception:
             mid_momentum = 0.0
         
+        # Use pre-calculated volatility from _advanced_data_preprocessing
         # Volatility: standard deviation of close over last 20 bars
-        try:
-            volatility = data['close'].iloc[-20:].std()
-        except Exception:
-            volatility = 0.0
+        # try:
+        #     volatility = data['close'].iloc[-20:].std()
+        # except Exception:
+        #     volatility = 0.0
         
         # Heikin-Ashi trend (simple encoding: 1 = bullish, -1 = bearish, 0 = neutral)
         try:
@@ -654,29 +694,63 @@ class CryptoTradingEnvironment(gym.Env):
             ha_trend = 0
         
         # Existing market indicators (add more as needed)
-        market_indicators = np.array([
+        market_indicators_list = [
             latest_data.get('close', 0.0),
             latest_data.get('volume', 0.0),
             latest_data.get('rsi', 0.0),
-            latest_data.get('macd', 0.0),
-            latest_data.get('macd_signal', 0.0),
+            latest_data.get('macd_line', 0.0),
+            latest_data.get('macd_signal_line', 0.0),
+            latest_data.get('macd_hist', 0.0),
             latest_data.get('returns', 0.0),
             latest_data.get('log_returns', 0.0),
-            latest_data.get('bb_middle', 0.0),
-            latest_data.get('bb_upper', 0.0),
-            latest_data.get('bb_lower', 0.0),
-            mid_momentum,
-            volatility,
+            latest_data.get('ttm_squeeze_on', 0.0),
+            latest_data.get('ttm_momentum', 0.0),
+            latest_data.get('ttm_atr', 0.0),
+            mid_momentum, 
+            latest_data.get('volatility', 0.0), 
             ha_trend,
-            # --- Fetch and add Sentiment Score --- Start
-            self.data_provider.get_current_sentiment_score(self.symbol) # Fetch sentiment score
-        ], dtype=np.float32)
+            self.data_provider.get_current_sentiment_score(self.symbol),
+            latest_data.get('stoch_k', 0.0),
+            latest_data.get('stoch_d', 0.0),
+            latest_data.get('adx', 0.0),
+            latest_data.get('willr', 0.0),
+            # CCI removed
+            latest_data.get('ema_50', 0.0),
+            # EMA200 removed
+            latest_data.get('proc', 0.0),
+            latest_data.get('obv', 0.0),
+            latest_data.get('close_lag_1', 0.0),
+            latest_data.get('close_lag_2', 0.0),
+            latest_data.get('close_lag_3', 0.0),
+            latest_data.get('close_lag_5', 0.0),
+            # close_lag_10 removed
+            # New TTM Features
+            latest_data.get('ttm_wave_trend', 0.0),
+            latest_data.get('ttm_wave_cross', 0.0),
+            latest_data.get('ttm_scalper_alert', 0.0)
+        ]
+        # self.logger.debug(f"Market indicators list length: {len(market_indicators_list)}")
+        # self.logger.debug(f"Market indicators before clip: {market_indicators_list}")
 
-        # Add portfolio state (consider normalization/scaling)
-        normalized_capital = self.current_capital / self.initial_capital
+        market_indicators = np.array(market_indicators_list, dtype=np.float32)
+        # Clip market indicators to be within [-1, 1] if necessary, though proper scaling is better
+        # This is a temporary measure if the model strictly expects [-1, 1] and normalization isn't fully implemented
+        market_indicators = np.clip(market_indicators, -1.0, 1.0)
+
+        # Portfolio state: current capital and crypto holdings (normalized)
+        normalized_capital = self.current_capital / self.initial_capital if self.initial_capital > 0 else 0.0
+        # Max holding could be estimated based on initial capital and some leverage or typical position size
+        # For simplicity, let's assume max_crypto_to_hold is related to initial capital / some reference price, or a fixed large number
+        # This normalization needs to be consistent with training
+        max_possible_holding_value_estimate = self.initial_capital # Simplistic: can hold up to initial capital value in crypto
+        current_price = latest_data.get('close', self.initial_price_guess)
+        max_crypto_units = max_possible_holding_value_estimate / current_price if current_price > 0 else 1.0 # Avoid div by zero
+        
+        normalized_holdings = self.crypto_holdings / max_crypto_units if max_crypto_units > 0 else 0.0
+        
         portfolio_state = np.array([
-            normalized_capital, 
-            self.crypto_holdings
+            np.clip(normalized_capital, -1.0, 1.0), 
+            np.clip(normalized_holdings, -1.0, 1.0)
         ], dtype=np.float32)
 
         # Concatenate market indicators and portfolio state
@@ -880,7 +954,7 @@ class CryptoTradingEnvironment(gym.Env):
                 buy_percentage = [0.25, 0.5, 1.0][action-1]
                 investment_amount = buy_percentage * self.current_capital
                 
-                self.logger.debug(f"Attempting Buy: Percentage={buy_percentage*100}%, Investment=${investment_amount:.4f}")
+                self.logger.debug(f"Attempting Buy: Percentage={buy_percentage*100}%, Investment=${investment_amount:.2f}")
                 self.logger.debug(f"Capital Before Buy: ${self.current_capital:.4f}")
 
                 if investment_amount > 1e-8: # Avoid tiny buys
@@ -1125,8 +1199,16 @@ class CryptoTradingEnvironment(gym.Env):
             try:
                 # --- Fetch Live State --- 
                 self.logger.info("Fetching live account state from broker...")
-                self.current_capital = float(self.broker.get_available_capital() or 0.0) # Use new method, convert Decimal
-                self.crypto_holdings = float(self.broker.get_holding_quantity(self.symbol) or 0.0) # Use new method, convert Decimal
+                self.current_capital = float(self.broker.get_available_capital() or Decimal('0.0')) # Ensure Decimal for or
+                
+                # Correctly fetch all holdings and then get the specific one
+                all_holdings = self.broker.get_holdings() # Returns Optional[Dict[str, Decimal]]
+                base_symbol = self.symbol.split('-')[0] # e.g., 'BTC' from 'BTC-USD'
+                if all_holdings and base_symbol in all_holdings:
+                    self.crypto_holdings = float(all_holdings[base_symbol])
+                else:
+                    self.crypto_holdings = 0.0
+                
                 self.initial_capital = self.current_capital # Reset initial capital to current live capital
                 self.logger.info(f"Live state fetched: Capital={self.current_capital:.2f}, Holdings={self.crypto_holdings:.6f}")
 
@@ -1150,8 +1232,8 @@ class CryptoTradingEnvironment(gym.Env):
 
                 # --- Reset Portfolio Tracking for Live --- 
                 # Calculate initial portfolio value based on live data
-                # Use get_current_price to get the initial valuation price
-                current_price_decimal = self.broker.get_current_price(self.symbol)
+                # Use get_latest_price to get the initial valuation price
+                current_price_decimal = self.broker.get_latest_price(self.symbol)
                 if current_price_decimal is None:
                     self.logger.error("Could not fetch current price during live reset. Using last close from fetched data.")
                     current_price = float(live_data_df['close'].iloc[-1]) if not live_data_df.empty else 0.0

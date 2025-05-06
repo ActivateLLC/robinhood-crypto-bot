@@ -24,11 +24,10 @@ from alt_crypto_data import AltCryptoDataProvider # Import updated provider from
 
 try:
     brokers_base = importlib.import_module("brokers.base_broker")
-    Broker = brokers_base.BrokerInterface # Use BrokerInterface
-    MarketData = brokers_base.MarketData # Also import MarketData if needed
+    Broker = brokers_base.BaseBroker # Use BaseBroker, not BrokerInterface
+    # MarketData = brokers_base.MarketData # Also import MarketData if needed
 except ImportError as e:
     print(f"ERROR: Failed to import brokers.base_broker: {e}")
-    raise
 except AttributeError as e:
     print(f"ERROR: Attribute not found in brokers.base_broker: {e}") # Add specific error handling
     raise

@@ -11,14 +11,14 @@ import pandas as pd
 import logging
 import time
 from decimal import Decimal, InvalidOperation
-from .base_broker import BrokerInterface, Order, Holding, MarketData
+from .base_broker import BaseBroker, Order, Holding, MarketData
 
 # Load environment variables
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-class RobinhoodBroker(BrokerInterface):
+class RobinhoodBroker(BaseBroker):
     """Broker implementation for Robinhood Crypto API."""
 
     def __init__(self):

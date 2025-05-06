@@ -2958,115 +2958,126 @@ Datetime                                         ...
 2025-05-06 01:46:04,011 - robinhood_api_client - ERROR - Error details: {'type': 'validation_error', 'errors': [{'detail': 'Trading pair with the specified symbol could not be found.', 'attr': 'symbol'}]}
 2025-05-06 01:46:04,013 - root - ERROR - Order placement API call returned an error for BTC. Result: {'error': 'API request failed', 'status_code': 400, 'details': {'type': 'validation_error', 'errors': [{'detail': 'Trading pair with the specified symbol could not be found.', 'attr': 'symbol'}]}}
 2025-05-06 01:46:04,013 - root - INFO - Trading cycle finished. Signals: {'BTC': 'buy_all'}
-ookie_and_crumb_basic()
-2025-05-06 01:46:04,162 - yfinance - DEBUG - reusing crumb
-2025-05-06 01:46:04,162 - yfinance - DEBUG -      Exiting _get_cookie_and_crumb_basic()
-2025-05-06 01:46:04,162 - yfinance - DEBUG -     Exiting _get_cookie_and_crumb()
-2025-05-06 01:46:04,461 - yfinance - DEBUG - response code=200
-2025-05-06 01:46:04,461 - yfinance - DEBUG -    Exiting _make_request()
-2025-05-06 01:46:04,462 - yfinance - DEBUG -   Exiting get()
-2025-05-06 01:46:04,467 - yfinance - DEBUG - BTC-USD: yfinance received OHLC data: 2025-03-02 06:00:00 -> 2025-05-06 06:44:00
-2025-05-06 01:46:04,473 - yfinance - DEBUG - BTC-USD: OHLC after cleaning: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:44:00+00:00
-2025-05-06 01:46:04,475 - yfinance - DEBUG - BTC-USD: OHLC after combining events: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:44:00+00:00
-2025-05-06 01:46:04,478 - yfinance - DEBUG - BTC-USD: yfinance returning OHLC: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:00:00+00:00
-2025-05-06 01:46:04,478 - yfinance - DEBUG -  Exiting history()
-2025-05-06 01:46:04,478 - yfinance - DEBUG - Exiting history()
-2025-05-06 01:46:04,481 - alt_crypto_data - INFO - Successfully fetched 1561 data points for BTC-USD from yfinance.
-2025-05-06 01:46:04,481 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
-2025-05-06 01:46:04,481 - root - DEBUG - Shape of df_indicator_input for BTC-USD: (65, 5)
-2025-05-06 01:46:04,481 - root - DEBUG - Calculating indicators on 65 rows for BTC-USD...
-2025-05-06 01:46:04,486 - root - DEBUG - Indicators calculated. Shape after indicators: (65, 14)
-2025-05-06 01:46:04,493 - root - DEBUG - Tail of df_indicator_input after indicators:
+2025-05-06 01:51:04,851 - schedule - DEBUG - Running job Job(interval=5, unit=minutes, do=run_trading_cycle, args=(), kwargs={})
+2025-05-06 01:51:04,851 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:04,851 - root - INFO - Fetching current holdings via API client...
+2025-05-06 01:51:04,853 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): trading.robinhood.com:443
+2025-05-06 01:51:04,991 - urllib3.connectionpool - DEBUG - https://trading.robinhood.com:443 "GET /api/v1/crypto/trading/holdings/ HTTP/1.1" 200 190
+2025-05-06 01:51:04,991 - robinhood_api_client - DEBUG - Response (200): {'next': None, 'previous': None, 'results': [{'account_number': '311081964512', 'asset_code': 'BTC', 'total_quantity': '0.000212380000000000', 'quantity_available_for_trading': '0.000212380000000000'}]}
+2025-05-06 01:51:04,992 - root - INFO - Successfully retrieved 0 holdings: []
+2025-05-06 01:51:04,992 - root - DEBUG - Fetching data for analysis for BTC...
+2025-05-06 01:51:04,992 - alt_crypto_data - INFO - Attempting to fetch data for BTC via yfinance...
+2025-05-06 01:51:04,992 - alt_crypto_data - DEBUG - Formatting symbol 'BTC' to 'BTC-USD' for yfinance.
+2025-05-06 01:51:04,992 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-03-02, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:04,993 - yfinance - DEBUG - Entering history()
+2025-05-06 01:51:04,993 - peewee - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-05-06 01:51:04,994 - yfinance - DEBUG -  Entering history()
+2025-05-06 01:51:04,994 - yfinance - DEBUG - BTC-USD: Yahoo GET parameters: {'period1': '2025-03-02 06:51:04+00:00', 'period2': '2025-05-06 06:51:04+00:00', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-06 01:51:04,994 - yfinance - DEBUG -   Entering get()
+2025-05-06 01:51:04,994 - yfinance - DEBUG -    Entering _make_request()
+2025-05-06 01:51:04,994 - yfinance - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-05-06 01:51:04,994 - yfinance - DEBUG - params={'period1': 1740898264, 'period2': 1746514264, 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-06 01:51:04,994 - yfinance - DEBUG -     Entering _get_cookie_and_crumb()
+2025-05-06 01:51:04,994 - yfinance - DEBUG - cookie_mode = 'basic'
+2025-05-06 01:51:04,994 - yfinance - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-05-06 01:51:05,088 - yfinance - DEBUG - reusing crumb
+2025-05-06 01:51:05,088 - yfinance - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-05-06 01:51:05,088 - yfinance - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-05-06 01:51:05,275 - yfinance - DEBUG - response code=200
+2025-05-06 01:51:05,275 - yfinance - DEBUG -    Exiting _make_request()
+2025-05-06 01:51:05,275 - yfinance - DEBUG -   Exiting get()
+2025-05-06 01:51:05,280 - yfinance - DEBUG - BTC-USD: yfinance received OHLC data: 2025-03-02 06:00:00 -> 2025-05-06 06:49:00
+2025-05-06 01:51:05,286 - yfinance - DEBUG - BTC-USD: OHLC after cleaning: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:49:00+00:00
+2025-05-06 01:51:05,287 - yfinance - DEBUG - BTC-USD: OHLC after combining events: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:49:00+00:00
+2025-05-06 01:51:05,291 - yfinance - DEBUG - BTC-USD: yfinance returning OHLC: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:00:00+00:00
+2025-05-06 01:51:05,291 - yfinance - DEBUG -  Exiting history()
+2025-05-06 01:51:05,291 - yfinance - DEBUG - Exiting history()
+2025-05-06 01:51:05,293 - alt_crypto_data - INFO - Successfully fetched 1561 data points for BTC-USD from yfinance.
+2025-05-06 01:51:05,293 - alt_crypto_data - INFO - Successfully fetched data for BTC via yfinance.
+2025-05-06 01:51:05,293 - root - DEBUG - Shape of df_indicator_input for BTC: (65, 5)
+2025-05-06 01:51:05,293 - root - DEBUG - Calculating indicators on 65 rows for BTC...
+2025-05-06 01:51:05,297 - root - DEBUG - Indicators calculated. Shape after indicators: (65, 14)
+2025-05-06 01:51:05,306 - root - DEBUG - Tail of df_indicator_input after indicators:
                              open          high  ...  BBB_20_2.0  BBP_20_2.0
 Datetime                                         ...                        
 2025-05-06 02:00:00  94334.875000  94385.757812  ...    1.339396    0.422581
 2025-05-06 03:00:00  94298.562500  94493.421875  ...    1.300904    0.563830
 2025-05-06 04:00:00  94448.992188  94574.085938  ...    1.299760    0.640020
 2025-05-06 05:00:00  94586.890625  94589.593750  ...    1.287362    0.461563
-2025-05-06 06:00:00  94348.109375  94462.273438  ...    1.269023    0.558994
+2025-05-06 06:00:00  94348.109375  94462.273438  ...    1.268888    0.556782
 
 [5 rows x 14 columns]
-2025-05-06 01:46:04,493 - root - DEBUG - Shape of final slice for normalization: (30, 14)
-2025-05-06 01:46:04,493 - root - DEBUG - Selecting FEATURE_COLS: ['open', 'high', 'low', 'close', 'volume', 'RSI_14', 'MACD_12_26_9', 'BBM_20_2.0']
-2025-05-06 01:46:04,493 - root - DEBUG - Shape of df_final_slice after selecting features: (30, 8)
-2025-05-06 01:46:04,493 - root - DEBUG - Columns of df_final_slice after selecting features: ['open', 'high', 'low', 'close', 'volume', 'RSI_14', 'MACD_12_26_9', 'BBM_20_2.0']
-2025-05-06 01:46:04,495 - root - DEBUG - Shape of normalized data BEFORE RETURN for BTC-USD: (30, 8)
-2025-05-06 01:46:04,495 - root - DEBUG - Shape of FLATTENED normalized data for BTC-USD: (240,)
-2025-05-06 01:46:04,495 - root - DEBUG - Shape after appending state features for BTC-USD: (242,)
-2025-05-06 01:46:04,496 - root - DEBUG - RL Agent prediction for BTC-USD: Action=0, Signal='buy_all'
-2025-05-06 01:46:04,496 - root - INFO - Signal for BTC-USD: buy_all. Attempting to execute trade...
-2025-05-06 01:46:04,497 - root - DEBUG - [run_trading_cycle] Passing symbol to _execute_trade: 'BTC-USD'
-2025-05-06 01:46:04,497 - root - DEBUG - [_execute_trade] Received symbol: 'BTC-USD'
-2025-05-06 01:46:04,497 - root - INFO - Placing market order: buy 0.00021174 BTC-USD (ID: 745501c6-0aa4-44ff-97dc-0cc642e99cf4)
-2025-05-06 01:46:04,497 - robinhood_api_client - DEBUG - [place_order] Received symbol for API call: 'BTC-USD'
-2025-05-06 01:46:04,498 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): trading.robinhood.com:443
-2025-05-06 01:46:04,992 - urllib3.connectionpool - DEBUG - https://trading.robinhood.com:443 "POST /api/v1/crypto/trading/orders/ HTTP/1.1" 400 159
-2025-05-06 01:46:04,993 - robinhood_api_client - ERROR - Error making API request to https://trading.robinhood.com/api/v1/crypto/trading/orders/: 400 Client Error: Bad Request for url: https://trading.robinhood.com/api/v1/crypto/trading/orders/
-2025-05-06 01:46:04,993 - robinhood_api_client - ERROR - Response status: 400
-2025-05-06 01:46:04,993 - robinhood_api_client - ERROR - Error details: {'type': 'validation_error', 'errors': [{'detail': 'Not enough buying power: You do not have enough buying power to place this order.', 'attr': 'non_field_errors'}]}
-2025-05-06 01:46:04,996 - root - ERROR - Order placement API call returned an error for BTC-USD. Result: {'error': 'API request failed', 'status_code': 400, 'details': {'type': 'validation_error', 'errors': [{'detail': 'Not enough buying power: You do not have enough buying power to place this order.', 'attr': 'non_field_errors'}]}}
-2025-05-06 01:46:04,996 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'buy_all'}
-(Start: 2025-01-30, End: 2025-05-05, Interval: 1h)...
-2025-05-05 13:51:07,764 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
-2025-05-05 13:51:07,765 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
-2025-05-05 13:51:07,801 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
-2025-05-05 13:51:07,802 - root - INFO - Trading is disabled. Skipping trade execution.
-2025-05-05 13:51:07,802 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
-2025-05-05 13:51:21,336 - root - INFO - Starting new trading cycle...
-2025-05-05 13:51:21,338 - root - INFO - Fetching current holdings via broker client...
-2025-05-05 13:51:21,525 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
-2025-05-05 13:51:21,525 - root - WARNING - Received no data or empty response when fetching holdings.
-2025-05-05 13:51:21,525 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
-2025-05-05 13:51:21,526 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-30, End: 2025-05-05, Interval: 1h)...
-2025-05-05 13:51:21,742 - root - INFO - Logging setup complete. Root logger level: INFO, File: crypto_bot.log
-2025-05-05 13:51:21,743 - root - INFO - Experience logger setup complete. File: /Users/activate/Dev/robinhood-crypto-bot/logs/live_experience.log
-2025-05-05 13:51:21,743 - root - INFO - Set 'brokers.robinhood_broker' level. Effective level now: 10
-2025-05-05 13:51:21,743 - root - INFO - Configuration loaded: Symbols=['BTC-USD'], Strategy=rl, Trading Enabled=True
-2025-05-05 13:51:21,743 - root - INFO - RL strategy selected. Attempting to load model from: trained_models/BTC_USD_PPO_100000steps.zip
-2025-05-05 13:51:21,979 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
-2025-05-05 13:51:21,979 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
-2025-05-05 13:51:21,995 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
-2025-05-05 13:51:21,995 - root - INFO - Trading is disabled. Skipping trade execution.
-2025-05-05 13:51:21,995 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
-2025-05-05 13:51:22,872 - root - INFO - RL Agent loaded successfully.
-2025-05-05 13:51:22,872 - root - INFO - Initializing broker (Type: RobinhoodBroker)...
-2025-05-05 13:51:22,872 - brokers.base_broker - INFO - Initializing RobinhoodBroker...
-2025-05-05 13:51:22,872 - brokers.robinhood_broker - INFO - Initializing RobinhoodBroker with logger. Effective level: 10 (DEBUG=10)
-2025-05-05 13:51:22,872 - brokers.robinhood_broker - INFO - RobinhoodBroker initialized for base URL: https://trading.robinhood.com
-2025-05-05 13:51:22,872 - root - INFO - RobinhoodBroker initialized successfully.
-2025-05-05 13:51:22,872 - brokers.robinhood_broker - INFO - Attempting to verify Robinhood connection by fetching account info...
-2025-05-05 13:51:22,872 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/accounts/
-2025-05-05 13:51:22,872 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
-2025-05-05 13:51:22,873 - brokers.robinhood_broker - DEBUG - Message signing successful.
-2025-05-05 13:51:22,873 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/accounts/
-2025-05-05 13:51:22,873 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'O0PQsuPuGeT/bu4b71tpFBo9YdIK6rUeknxExnc1KdNaumCPFPcxdUFL2k2q9v8tPUNOmEfshW0qFvNKwqM8Bg==', 'x-timestamp': '1746471082', 'Content-Type': 'application/json; charset=utf-8'}
-2025-05-05 13:51:23,191 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
-2025-05-05 13:51:23,192 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '106', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Mon, 05 May 2025 18:51:23 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': '4a5e0c89-8460-4738-a491-6057450ba46b', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 2ab8d81143d0eff22704079091d87f82.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P12', 'X-Amz-Cf-Id': 'qRbjkFeMR3Lm-EChXwvA2S2U-2c_2_WA9ei_az_ay6tlQH6t7en52w=='}
-2025-05-05 13:51:23,192 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"account_number":"311081964512","status":"active","buying_power":"16.5500","buying_power_currency":"USD"}...
-2025-05-05 13:51:23,194 - brokers.robinhood_broker - DEBUG - Raw response from _make_api_request in get_account_info: {'account_number': '311081964512', 'status': 'active', 'buying_power': '16.5500', 'buying_power_currency': 'USD'}
-2025-05-05 13:51:23,194 - brokers.robinhood_broker - WARNING - Received unexpected structure or empty response when fetching account info: {'account_number': '311081964512', 'status': 'active', 'buying_power': '16.5500', 'buying_power_currency': 'USD'}
-2025-05-05 13:51:23,194 - brokers.robinhood_broker - ERROR - Robinhood connection verification failed (unable to fetch account info).
-2025-05-05 13:51:23,194 - root - ERROR - Failed to connect to robinhood broker. Disabling trading.
-2025-05-05 13:51:23,194 - root - INFO - Initializing data provider (Preference: yfinance)...
-2025-05-05 13:51:23,195 - alt_crypto_data - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
-2025-05-05 13:51:23,200 - alt_crypto_data - WARNING - NEWS_API_KEY not found in .env file. Sentiment analysis will be disabled.
-2025-05-05 13:51:23,201 - root - INFO - Data provider initialized.
-2025-05-05 13:51:23,201 - root - INFO - Calculating initial normalization statistics...
-2025-05-05 13:51:23,201 - root - INFO - Calculating initial normalization statistics for RL features...
-2025-05-05 13:51:23,201 - root - INFO - Starting normalization loop for symbols: ['BTC-USD']
-2025-05-05 13:51:23,201 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
-2025-05-05 13:51:23,201 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-02-04, End: 2025-05-05, Interval: 1h)...
-2025-05-05 13:51:24,184 - alt_crypto_data - INFO - Successfully fetched 2161 data points for BTC-USD from yfinance.
-2025-05-05 13:51:24,185 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
-2025-05-05 13:51:24,198 - root - INFO - Successfully calculated normalization stats for BTC-USD.
-2025-05-05 13:51:24,198 - root - INFO - Finished calculating initial normalization statistics.
-2025-05-05 13:51:24,198 - root - INFO - Normalization stats calculated for: ['BTC-USD']
-2025-05-05 13:51:24,198 - root - INFO - Normalization stats calculated for: ['BTC-USD']
-2025-05-05 13:51:24,198 - root - INFO - Fetching initial holdings...
-2025-05-05 13:51:24,198 - root - INFO - Fetching current holdings via broker client...
-2025-05-05 13:51:24,198 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
-2025-05-05 13:51:24,198 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
-2025-05-05 13:51:24,198 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:05,307 - root - DEBUG - Shape of final slice for normalization: (30, 14)
+2025-05-06 01:51:05,307 - root - DEBUG - Selecting FEATURE_COLS: ['open', 'high', 'low', 'close', 'volume', 'RSI_14', 'M2025-05-06 01:51:05,896 - schedule - DEBUG - Running job Job(interval=5, unit=minutes, do=run_trading_cycle, args=(), kwargs={})
+2025-05-06 01:51:05,896 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:05,896 - root - INFO - Fetching current holdings via API client...
+2025-05-06 01:51:05,898 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): trading.robinhood.com:443
+2025-05-06 01:51:06,046 - urllib3.connectionpool - DEBUG - https://trading.robinhood.com:443 "GET /api/v1/crypto/trading/holdings/ HTTP/1.1" 200 190
+2025-05-06 01:51:06,046 - robinhood_api_client - DEBUG - Response (200): {'next': None, 'previous': None, 'results': [{'account_number': '311081964512', 'asset_code': 'BTC', 'total_quantity': '0.000212380000000000', 'quantity_available_for_trading': '0.000212380000000000'}]}
+2025-05-06 01:51:06,048 - root - INFO - Successfully retrieved 0 holdings: []
+2025-05-06 01:51:06,048 - root - DEBUG - Fetching data for analysis for BTC-USD...
+2025-05-06 01:51:06,048 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:06,048 - alt_crypto_data - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-05-06 01:51:06,048 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-03-02, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:06,049 - yfinance - DEBUG - Entering history()
+2025-05-06 01:51:06,049 - peewee - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-05-06 01:51:06,049 - yfinance - DEBUG -  Entering history()
+2025-05-06 01:51:06,049 - yfinance - DEBUG - BTC-USD: Yahoo GET parameters: {'period1': '2025-03-02 06:51:06+00:00', 'period2': '2025-05-06 06:51:06+00:00', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-06 01:51:06,049 - yfinance - DEBUG -   Entering get()
+2025-05-06 01:51:06,049 - yfinance - DEBUG -    Entering _make_request()
+2025-05-06 01:51:06,049 - yfinance - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-05-06 01:51:06,049 - yfinance - DEBUG - params={'period1': 1740898266, 'period2': 1746514266, 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-06 01:51:06,049 - yfinance - DEBUG -     Entering _get_cookie_and_crumb()
+2025-05-06 01:51:06,049 - yfinance - DEBUG - cookie_mode = 'basic'
+2025-05-06 01:51:06,049 - yfinance - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-05-06 01:51:06,184 - yfinance - DEBUG - reusing crumb
+2025-05-06 01:51:06,184 - yfinance - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-05-06 01:51:06,184 - yfinance - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-05-06 01:51:06,489 - yfinance - DEBUG - response code=200
+2025-05-06 01:51:06,489 - yfinance - DEBUG -    Exiting _make_request()
+2025-05-06 01:51:06,489 - yfinance - DEBUG -   Exiting get()
+2025-05-06 01:51:06,494 - yfinance - DEBUG - BTC-USD: yfinance received OHLC data: 2025-03-02 06:00:00 -> 2025-05-06 06:49:00
+2025-05-06 01:51:06,501 - yfinance - DEBUG - BTC-USD: OHLC after cleaning: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:49:00+00:00
+2025-05-06 01:51:06,502 - yfinance - DEBUG - BTC-USD: OHLC after combining events: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:49:00+00:00
+2025-05-06 01:51:06,506 - yfinance - DEBUG - BTC-USD: yfinance returning OHLC: 2025-03-02 06:00:00+00:00 -> 2025-05-06 06:00:00+00:00
+2025-05-06 01:51:06,506 - yfinance - DEBUG -  Exiting history()
+2025-05-06 01:51:06,507 - yfinance - DEBUG - Exiting history()
+2025-05-06 01:51:06,509 - alt_crypto_data - INFO - Successfully fetched 1561 data points for BTC-USD from yfinance.
+2025-05-06 01:51:06,509 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:06,509 - root - DEBUG - Shape of df_indicator_input for BTC-USD: (65, 5)
+2025-05-06 01:51:06,509 - root - DEBUG - Calculating indicators on 65 rows for BTC-USD...
+2025-05-06 01:51:06,513 - root - DEBUG - Indicators calculated. Shape after indicators: (65, 14)
+2025-05-06 01:51:06,519 - root - DEBUG - Tail of df_indicator_input after indicators:
+                             open          high  ...  BBB_20_2.0  BBP_20_2.0
+Datetime                                         ...                        
+2025-05-06 02:00:00  94334.875000  94385.757812  ...    1.339396    0.422581
+2025-05-06 03:00:00  94298.562500  94493.421875  ...    1.300904    0.563830
+2025-05-06 04:00:00  94448.992188  94574.085938  ...    1.299760    0.640020
+2025-05-06 05:00:00  94586.890625  94589.593750  ...    1.287362    0.461563
+2025-05-06 06:00:00  94348.109375  94462.273438  ...    1.268888    0.556782
+
+[5 rows x 14 columns]
+2025-05-06 01:51:06,520 - root - DEBUG - Shape of final slice for normalization: (30, 14)
+2025-05-06 01:51:06,520 - root - DEBUG - Selecting FEATURE_COLS: ['open', 'high', 'low', 'close', 'volume', 'RSI_14', 'MACD_12_26_9', 'BBM_20_2.0']
+2025-05-06 01:51:06,521 - root - DEBUG - Shape of df_final_slice after selecting features: (30, 8)
+2025-05-06 01:51:06,521 - root - DEBUG - Columns of df_final_slice after selecting features: ['open', 'high', 'low', 'close', 'volume', 'RSI_14', 'MACD_12_26_9', 'BBM_20_2.0']
+2025-05-06 01:51:06,522 - root - DEBUG - Shape of normalized data BEFORE RETURN for BTC-USD: (30, 8)
+2025-05-06 01:51:06,523 - root - DEBUG - Shape of FLATTENED normalized data for BTC-USD: (240,)
+2025-05-06 01:51:06,523 - root - DEBUG - Shape after appending state features for BTC-USD: (242,)
+2025-05-06 01:51:06,523 - root - DEBUG - RL Agent prediction for BTC-USD: Action=0, Signal='buy_all'
+2025-05-06 01:51:06,524 - root - INFO - Signal for BTC-USD: buy_all. Attempting to execute trade...
+2025-05-06 01:51:06,524 - root - DEBUG - [run_trading_cycle] Passing symbol to _execute_trade: 'BTC-USD'
+2025-05-06 01:51:06,524 - root - DEBUG - [_execute_trade] Received symbol: 'BTC-USD'
+2025-05-06 01:51:06,524 - root - INFO - Placing market order: buy 0.00021175 BTC-USD (ID: 4a57893b-76be-4836-9f3c-6bf0539907b5)
+2025-05-06 01:51:06,524 - robinhood_api_client - DEBUG - [place_order] Received symbol for API call: 'BTC-USD'
+2025-05-06 01:51:06,526 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): trading.robinhood.com:443
+2025-05-06 01:51:06,990 - urllib3.connectionpool - DEBUG - https://trading.robinhood.com:443 "POST /api/v1/crypto/trading/orders/ HTTP/1.1" 400 159
+2025-05-06 01:51:06,991 - robinhood_api_client - ERROR - Error making API request to https://trading.robinhood.com/api/v1/crypto/trading/orders/: 400 Client Error: Bad Request for url: https://trading.robinhood.com/api/v1/crypto/trading/orders/
+2025-05-06 01:51:06,991 - robinhood_api_client - ERROR - Response status: 400
+2025-05-06 01:51:06,991 - robinhood_api_client - ERROR - Error details: {'type': 'validation_error', 'errors': [{'detail': 'Not enough buying power: You do not have enough buying power to place this order.', 'attr': 'non_field_errors'}]}
+2025-05-06 01:51:06,993 - root - ERROR - Order placement API call returned an error for BTC-USD. Result: {'error': 'API request failed', 'status_code': 400, 'details': {'type': 'validation_error', 'errors': [{'detail': 'Not enough buying power: You do not have enough buying power to place this order.', 'attr': 'non_field_errors'}]}}
+2025-05-06 01:51:06,993 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'buy_all'}
+_broker - DEBUG - Message signing successful.
 2025-05-05 13:51:24,198 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
 2025-05-05 13:51:24,198 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'wmgqczrpybjMGtoscIqOauLxKlatHtvJiDdRH1cEiGc76ZEbtWlpiBLfiqZcGLTq+v9BjiaNI9EBS+S974q8Aw==', 'x-timestamp': '1746471084', 'Content-Type': 'application/json; charset=utf-8'}
 2025-05-05 13:51:24,386 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
@@ -16590,3 +16601,278 @@ TypeError: 'decimal.Decimal' object is not subscriptable
 2025-05-06 01:46:04,556 - root - INFO - [BTC-USD] RL agent signal: hold (action_int: 4)
 2025-05-06 01:46:04,556 - root - INFO - Trading is disabled. Skipping trade execution.
 2025-05-06 01:46:04,556 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:01,721 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:01,722 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:01,797 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:01,797 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:01,798 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:01,798 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:01,798 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:01,798 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:01,798 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': '6KByxK8/fkQqccUlFbO/mhVCqQGslFcYMa1lFTszz5Q8R0vNK3kINSJyILpbONENQ8alsOAoXmBfU6cqMF1rDg==', 'x-timestamp': '1746514261', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:01,893 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:01,894 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:02,138 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:02,139 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:02,139 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,139 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:02,139 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:02,139 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,139 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'S3ExWjvsVq1Zq2sT1+GFUSBUfx3KbuX27kMF+Zen3q2E+SumZ9AiznE/DktWH7rTv7AUvhj7yiacNMy7fBYqBA==', 'x-timestamp': '1746514262', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:02,262 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:02,262 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:02,263 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,263 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:02,263 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:02,263 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,263 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'S3ExWjvsVq1Zq2sT1+GFUSBUfx3KbuX27kMF+Zen3q2E+SumZ9AiznE/DktWH7rTv7AUvhj7yiacNMy7fBYqBA==', 'x-timestamp': '1746514262', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:02,385 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:02,385 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:02,440 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:02,440 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:02,440 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,440 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:02,441 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:02,441 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,441 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'S3ExWjvsVq1Zq2sT1+GFUSBUfx3KbuX27kMF+Zen3q2E+SumZ9AiznE/DktWH7rTv7AUvhj7yiacNMy7fBYqBA==', 'x-timestamp': '1746514262', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:02,565 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:02,566 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:02,851 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:02,851 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:02 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': 'cfc39c89-88c1-459e-b102-7779438d1a02', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 f31fa40e0863bae8e02d0ba21cedaeb0.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'ke3NxA6mILMRxb2RrZvdmpE1FQL00k3QRJNhLyNsO1ZGGdPZxTNbpw=='}
+2025-05-06 01:51:02,851 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:02,854 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:02,854 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:02,854 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:02,854 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:02,858 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:02,858 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:02,858 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:02 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': '9c71e1f4-0712-4bde-9417-759f52c70d48', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 57f0537bdb26692a5be92bbbe93e4ea2.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'qDzW__4UWoNGn2dZQzdojyG5H5AQXNOwgyneZOLEkfn3sHShEdXgwA=='}
+2025-05-06 01:51:02,858 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:02,858 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:02,858 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:02,858 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:02,860 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:02,860 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:02 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': '6f29fb4d-8574-47a4-a4de-0a875feb19ad', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 57f0537bdb26692a5be92bbbe93e4ea2.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'KTARaSj_PZRIzp3zacH1MPJ6bqrXLOV3l7Qt01xwwOgE1shJ04q8Mw=='}
+2025-05-06 01:51:02,860 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:02,864 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:02,864 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:02,864 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:02,864 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:02,865 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:02,865 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:02,866 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:02,865 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:02,866 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:02,866 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:02,866 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:02,866 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:02,933 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:02,933 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:02,933 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,934 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:02,934 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:02,934 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:02,934 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'S3ExWjvsVq1Zq2sT1+GFUSBUfx3KbuX27kMF+Zen3q2E+SumZ9AiznE/DktWH7rTv7AUvhj7yiacNMy7fBYqBA==', 'x-timestamp': '1746514262', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:03,026 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:03,027 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:03 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': '10d2ae46-8dc6-4a52-bf95-e509a11f5343', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 5a3010bd9376613ba1249daca87b27a2.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'jSkHHnN3Rk6k2vjpwXVhzG_uAj98IFmRgZdZzwsSNeiOtWXlQOfKDw=='}
+2025-05-06 01:51:03,027 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:03,029 - brokers.robinhood_broker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:03,029 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:03,029 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:03,030 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:03,034 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:03,034 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:03,035 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:03,035 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:03,078 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:03,079 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:03,201 - brokers.robinhood_broker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:03,201 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:03,202 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:03,202 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:03,361 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:03,361 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:03,361 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:03,361 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:03,361 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:03,362 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:03,362 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'ge0CIm0Hak6zfeLMrlQYxDaJDJJONIUr1I+cXMXjMGZDD5bSOc2cVox2ck9YPhhzEGL3gehyTAVv5aV4u1A2BA==', 'x-timestamp': '1746514263', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:03,381 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:03,382 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:03 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': '359238d0-79b1-4857-90e5-99821bd6e1bd', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 471c951325b4c2c11c6c583a1d28e92a.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'm5FO785tIyKBU92SKeWRUCpqLScSqktvljrTeCGTgj3OC1vU9pb6Bg=='}
+2025-05-06 01:51:03,382 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:03,387 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:03,387 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:03,387 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:03,387 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:03,476 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:03,476 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:03,476 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:03,477 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:03,477 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:03,477 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:03,477 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'ge0CIm0Hak6zfeLMrlQYxDaJDJJONIUr1I+cXMXjMGZDD5bSOc2cVox2ck9YPhhzEGL3gehyTAVv5aV4u1A2BA==', 'x-timestamp': '1746514263', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:03,686 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:03,687 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:03,801 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:03,802 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:03,802 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:03,802 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:03,977 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:03,977 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:03 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': '30b53a7a-64f0-4702-9758-90f69d5f3189', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 e61f6cd3dfbf1a805c935627b416490e.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'fW7Ht-7Em64KMCgcYxR-gVYbUXBNjrL_dbmzSgJmXO2dMRxIekB6ow=='}
+2025-05-06 01:51:03,977 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:03,979 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:03,979 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:03,980 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:03,980 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:04,069 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:04,069 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:04,077 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:04,077 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:04 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': 'c688dd0a-ec90-4d84-adf4-6a9d9f257579', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 ed78483d37e5338746e5a4b545e5818e.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'F29k5BEZkkHckcK-XtfGI-U9ucr2bXi94cLK0hZp57oSCRdtQAAg3g=='}
+2025-05-06 01:51:04,077 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:04,079 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:04,079 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:04,079 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:04,079 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:04,202 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:04,202 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:04,312 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,313 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,316 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:04,316 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:04,317 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:04,317 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:04,321 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,321 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,331 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,331 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,334 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,334 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,338 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,338 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,338 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,339 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:04,339 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:04,339 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:04,339 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:04,339 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:04,339 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:04,339 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'ynWEslv40cqAvFiqB1tLRE1Hl7bV/vYFe7xKzG7RqpaQRKOI1gfzK+bIRpiqiWq9BGFDFGgOXBmp7T7QAyKtAg==', 'x-timestamp': '1746514264', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:04,341 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,342 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,337 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,345 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,346 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,346 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,346 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,347 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,346 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,347 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,347 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,347 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,348 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,348 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,349 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,349 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,349 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,358 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,358 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,358 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,359 - root - ERROR - Error accessing self.holdings within _get_normalized_features for BTC-USD: 'decimal.Decimal' object is not subscriptable. Setting state features to 0.
+Traceback (most recent call last):
+  File "/Users/activate/Dev/robinhood-crypto-bot/crypto_bot.py", line 349, in _get_normalized_features
+    # Fetch current holdings and balance needed for the observation space (expected shape 242)
+TypeError: 'decimal.Decimal' object is not subscriptable
+2025-05-06 01:51:04,359 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,359 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,360 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,360 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,360 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,360 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,363 - root - INFO - [BTC-USD] RL agent signal: hold (action_int: 4)
+2025-05-06 01:51:04,364 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,364 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,404 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,404 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,416 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,416 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,416 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,436 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:04,436 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:04,436 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:04,436 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:04,471 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:04,471 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:04,471 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:04,472 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:04,494 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:04,494 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:04 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': '8d7552bd-de26-442d-8515-0bbbdb504ded', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 475bc4efb9c2dcfa6769dde201c9bbbc.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'e3M_oV1twVu7gDE6NW0xXoEFD805pov-a6iJe4TnX7JZJBZpv4JDtg=='}
+2025-05-06 01:51:04,494 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:04,496 - brokers.robinhood_broker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:04,496 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:04,496 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:04,496 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:04,587 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,587 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,602 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,602 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,602 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,612 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,613 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,625 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,625 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,625 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,658 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,659 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,672 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,672 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,672 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,781 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,781 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,795 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,795 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,796 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,828 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,829 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,842 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,842 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,842 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,918 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:04,918 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:04,930 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:04,931 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:04,931 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:04,999 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:05,000 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:05,012 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:05,012 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:05,012 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:05,343 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:05,343 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:05,483 - root - INFO - Starting new trading cycle...
+2025-05-06 01:51:05,484 - root - INFO - Fetching current holdings via broker client...
+2025-05-06 01:51:05,484 - brokers.robinhood_broker - DEBUG - ENTERING _make_api_request for GET /api/v1/crypto/trading/holdings/
+2025-05-06 01:51:05,484 - brokers.robinhood_broker - DEBUG - Attempting to sign message...
+2025-05-06 01:51:05,484 - brokers.robinhood_broker - DEBUG - Message signing successful.
+2025-05-06 01:51:05,484 - brokers.robinhood_broker - DEBUG - Making Robinhood API Request: GET https://trading.robinhood.com/api/v1/crypto/trading/holdings/
+2025-05-06 01:51:05,484 - brokers.robinhood_broker - DEBUG - Request Headers: {'x-api-key': 'rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6', 'x-signature': 'J0ocmTPegF/BUnMUs1/XmqgTe9N5SAoi+oH2w7Pk3vNNPLgPBvmt+VX/pc+gqyVgOYytfXfvDpa538KT7RkQAQ==', 'x-timestamp': '1746514265', 'Content-Type': 'application/json; charset=utf-8'}
+2025-05-06 01:51:05,501 - brokers.RobinhoodBroker - WARNING - Received unexpected or empty response when fetching holdings.
+2025-05-06 01:51:05,501 - root - WARNING - Received no data or empty response when fetching holdings.
+2025-05-06 01:51:05,501 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:05,501 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:05,679 - brokers.robinhood_broker - DEBUG - Response Status Code: 200
+2025-05-06 01:51:05,679 - brokers.robinhood_broker - DEBUG - Response Headers: {'Content-Type': 'application/json', 'Content-Length': '190', 'Connection': 'keep-alive', 'server': 'envoy', 'date': 'Tue, 06 May 2025 06:51:05 GMT', 'allow': 'GET, HEAD, OPTIONS', 'x-robinhood-api-version': '0.0.0', 'trace-uuid': 'd994c87c-2cb4-4b3f-af79-a3113ada50d4', 'x-content-type-options': 'nosniff', 'referrer-policy': 'same-origin', 'cross-origin-opener-policy': 'same-origin', 'vary': 'Origin', 'X-Cache': 'Miss from cloudfront', 'Via': '1.1 f82a4020c8fc9b14a403737c65661074.cloudfront.net (CloudFront)', 'X-Amz-Cf-Pop': 'ORD58-P1', 'X-Amz-Cf-Id': 'O9EQS7lV8UY5Y7etlfRwu1PllRQUNWOZ5EmniWxnjxAhxxEjqAZThw=='}
+2025-05-06 01:51:05,679 - brokers.robinhood_broker - DEBUG - Response Text (partial): {"next":null,"previous":null,"results":[{"account_number":"311081964512","asset_code":"BTC","total_quantity":"0.000212380000000000","quantity_available_for_trading":"0.000212380000000000"}]}...
+2025-05-06 01:51:05,681 - brokers.robinhood_broker - DEBUG - Parsed holdings: {'BTC': Decimal('0.000212380000000000')}
+2025-05-06 01:51:05,682 - root - INFO - Successfully retrieved 1 holdings: ['BTC']
+2025-05-06 01:51:05,682 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-06 01:51:05,682 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2025-01-31, End: 2025-05-06, Interval: 1h)...
+2025-05-06 01:51:05,831 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:05,831 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:05,840 - root - INFO - RL Agent signal for BTC-USD: hold (Action: 4)
+2025-05-06 01:51:05,840 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:05,840 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}
+2025-05-06 01:51:06,197 - alt_crypto_data - INFO - Successfully fetched 2281 data points for BTC-USD from yfinance.
+2025-05-06 01:51:06,198 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-06 01:51:06,207 - root - INFO - [BTC-USD] RL agent signal: hold (action_int: 4)
+2025-05-06 01:51:06,207 - root - INFO - Trading is disabled. Skipping trade execution.
+2025-05-06 01:51:06,207 - root - INFO - Trading cycle finished. Signals: {'BTC-USD': 'hold'}

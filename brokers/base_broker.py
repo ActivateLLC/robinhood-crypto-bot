@@ -3,8 +3,39 @@ import logging
 from abc import ABC, abstractmethod
 from typing import Any, Dict, List, Optional, Tuple
 from decimal import Decimal
+from datetime import datetime
 
 logger = logging.getLogger(__name__)
+
+# --- Common Data Structures for Broker Interface ---
+class Order:
+    """Represents a trading order."""
+    def __init__(self, order_id: str, symbol: str, side: str, quantity: Decimal, status: str, price: Optional[Decimal] = None, timestamp: Optional[datetime] = None):
+        self.order_id = order_id
+        self.symbol = symbol
+        self.side = side
+        self.quantity = quantity
+        self.status = status
+        self.price = price
+        self.timestamp = timestamp
+
+class Holding:
+    """Represents a portfolio holding."""
+    def __init__(self, symbol: str, quantity: Decimal, average_cost: Optional[Decimal] = None):
+        self.symbol = symbol
+        self.quantity = quantity
+        self.average_cost = average_cost
+
+class MarketData:
+    """Represents market data for a symbol (e.g., a candle)."""
+    def __init__(self, symbol: str, timestamp: datetime, open_price: Decimal, high_price: Decimal, low_price: Decimal, close_price: Decimal, volume: Decimal):
+        self.symbol = symbol
+        self.timestamp = timestamp
+        self.open_price = open_price
+        self.high_price = high_price
+        self.low_price = low_price
+        self.close_price = close_price
+        self.volume = volume
 
 class BaseBroker(ABC):
     """

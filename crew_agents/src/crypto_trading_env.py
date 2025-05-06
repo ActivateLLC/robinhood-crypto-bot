@@ -429,225 +429,252 @@ class CryptoTradingEnvironment(gym.Env):
         
         return True
     
-        def _advanced_data_preprocessing(self, data: pd.DataFrame) -> pd.DataFrame:
-            # Ensure 'High', 'Low', 'Close', 'Volume' columns exist and are correctly named by pandas_ta
-            # pandas_ta might rename them (e.g., to 'high', 'low', 'close', 'volume')
-            # We'll try to use the capitalized versions first, then fall back to lowercase if necessary
-            # For TTM Squeeze and other indicators, ensure consistency in column naming
-            required_cols_capital = ['High', 'Low', 'Close', 'Volume', 'Open']
-            required_cols_lower = [col.lower() for col in required_cols_capital]
+    def _advanced_data_preprocessing(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        Enhanced data preprocessing with comprehensive technical indicators,
+        normalization, and handling of missing values for RL agent consumption.
+        This version is tailored for detailed state representation.
+        Args:
+            data (pd.DataFrame): Input historical price data with 'High', 'Low', 'Close', 'Volume'.
+                                 Column names are expected to be capitalized.
+        Returns:
+            pd.DataFrame: Processed DataFrame with added features and normalized values.
+        Raises:
+            ValueError: If critical columns are missing or data is insufficient.
+        """
+        self.logger.info(f"Starting advanced data preprocessing. Initial data shape: {data.shape}")
+        
+        # --- Basic Column and Data Validation ---
+        required_cols_capitalized = ['High', 'Low', 'Close', 'Volume']
+        missing_cols = [col for col in required_cols_capitalized if col not in data.columns]
+        if missing_cols:
+            self.logger.error(f"Critical columns missing from input data: {missing_cols}. Available: {data.columns.tolist()}")
+            # Attempt to rename if lowercase versions exist
+            renamed_cols = False
+            for col_cap in required_cols_capitalized:
+                col_low = col_cap.lower()
+                if col_low in data.columns and col_cap not in data.columns:
+                    data.rename(columns={col_low: col_cap}, inplace=True)
+                    self.logger.info(f"Renamed column '{col_low}' to '{col_cap}'.")
+                    renamed_cols = True
             
-            # Create a mapping for potential renames if pandas_ta standardizes to lowercase
-            rename_map = {}
-            for cap_col, low_col in zip(required_cols_capital, required_cols_lower):
-                if low_col in data.columns and cap_col not in data.columns:
-                    rename_map[low_col] = cap_col # Rename 'close' to 'Close' for internal consistency
-            
-            if rename_map:
-                data.rename(columns=rename_map, inplace=True)
-                logger.debug(f"Renamed columns for consistency: {rename_map}")
-    
-            # Ensure all required columns are present after potential rename
-            missing_cols = [col for col in required_cols_capital if col not in data.columns]
-            if missing_cols:
-                logger.error(f"Missing critical columns after potential rename: {missing_cols}. DataFrame columns: {data.columns.tolist()}")
-                # Fill missing essential columns with 0 or raise an error, depending on strategy
-                for col in missing_cols:
-                    data[col] = 0.0 # Or handle more gracefully
-                # return data # Or raise error
-    
-            # Original calculations (RSI, MACD already capitalized for 'Close')
-            data['rsi'] = ta.rsi(data['Close'])
-            
+            # Re-check for missing columns after attempting rename
+            missing_cols_after_rename = [col for col in required_cols_capitalized if col not in data.columns]
+            if missing_cols_after_rename:
+                self.logger.error(f"Critical columns still missing after rename attempt: {missing_cols_after_rename}. Processing cannot continue.")
+                raise ValueError(f"Missing critical columns after rename: {missing_cols_after_rename}")
+            elif renamed_cols:
+                self.logger.info("Successfully renamed lowercase columns to uppercase.")
+        else:
+            self.logger.debug("All critical columns (High, Low, Close, Volume) are present.")
+
+        if data.empty:
+            self.logger.error("Input data for preprocessing is empty.")
+            raise ValueError("Input data is empty.")
+        
+        if len(data) < 20: # Minimum length for some TAs like Keltner Channel default
+            self.logger.warning(f"Data length ({len(data)}) is less than 20, some indicators might be NaN or unreliable.")
+            # Depending on strategy, might raise ValueError or proceed with caution.
+
+        # --- Feature Engineering: Technical Indicators ---
+        self.logger.info("Calculating technical indicators...")
+        data = data.copy() # Ensure we're working on a copy
+
+        # Ensure columns are float, coerce errors to NaN for TAs that can handle it
+        for col in required_cols_capitalized:
+            if data[col].dtype != 'float64' and data[col].dtype != 'int64':
+                try:
+                    data[col] = pd.to_numeric(data[col], errors='coerce')
+                    self.logger.debug(f"Converted column {col} to numeric.")
+                except Exception as e:
+                    self.logger.error(f"Could not convert column {col} to numeric: {e}. It will be left as is or may cause TA calculation errors.")
+        
+        # Basic Indicators
+        try:
+            data['SMA_20'] = ta.sma(data['Close'], length=20)
+            data['EMA_20'] = ta.ema(data['Close'], length=20)
+            data['RSI'] = ta.rsi(data['Close'], length=14)
             # MACD (Moving Average Convergence Divergence)
-            macd_df = data.ta.macd(close='Close')
-            if macd_df is not None and not macd_df.empty:
-                macd_line_col = next((col for col in macd_df.columns if 'MACD' in col and 'MACDh' not in col and 'MACDs' not in col), None)
-                macd_signal_col = next((col for col in macd_df.columns if 'MACDs' in col), None)
-                macd_hist_col = next((col for col in macd_df.columns if 'MACDh' in col), None)
-    
-                data['macd_line'] = macd_df[macd_line_col] if macd_line_col else 0.0
-                data['macd_signal_line'] = macd_df[macd_signal_col] if macd_signal_col else 0.0
-                data['macd_hist'] = macd_df[macd_hist_col] if macd_hist_col else 0.0
-                if not macd_line_col: logger.warning("Could not find MACD line column in macd_df.")
-                if not macd_signal_col: logger.warning("Could not find MACD signal line column in macd_df.")
-                if not macd_hist_col: logger.warning("Could not find MACD histogram column in macd_df.")
+            macd = ta.macd(data['Close'], fast=12, slow=26, signal=9)
+            if macd is not None and not macd.empty:
+                data['MACD'] = macd['MACD_12_26_9']
+                data['MACD_signal'] = macd['MACDs_12_26_9']
+                data['MACD_hist'] = macd['MACDh_12_26_9']
             else:
-                data['macd_line'] = 0.0
-                data['macd_signal_line'] = 0.0
-                data['macd_hist'] = 0.0
-                logger.warning("ta.macd() returned None or empty DataFrame.")
-    
-            # Bollinger Bands (still needed for Squeeze calculation)
-            bbands = data.ta.bbands(length=20, std=2, mamode='sma', close='Close')
+                self.logger.warning("MACD calculation returned None or empty. Skipping MACD features.")
+                data['MACD'] = data['MACD_signal'] = data['MACD_hist'] = np.nan
+            
+            # Bollinger Bands
+            bbands = ta.bbands(data['Close'], length=20, std=2)
             if bbands is not None and not bbands.empty:
-                bb_upper_col = next((col for col in bbands.columns if 'BBU' in col), None)
-                bb_middle_col = next((col for col in bbands.columns if 'BBM' in col), None)
-                bb_lower_col = next((col for col in bbands.columns if 'BBL' in col), None)
-    
-                data['bb_upper'] = bbands[bb_upper_col] if bb_upper_col else 0.0
-                data['bb_middle'] = bbands[bb_middle_col] if bb_middle_col else 0.0
-                data['bb_lower'] = bbands[bb_lower_col] if bb_lower_col else 0.0
+                data['BB_upper'] = bbands['BBU_20_2.0']
+                data['BB_middle'] = bbands['BBM_20_2.0']
+                data['BB_lower'] = bbands['BBL_20_2.0']
             else:
-                data['bb_upper'] = 0.0
-                data['bb_middle'] = 0.0
-                data['bb_lower'] = 0.0
-                logger.warning("ta.bbands() returned None or empty DataFrame.")
-            
-            # ATR for TTM Squeeze and as a feature. Ensure 'High', 'Low', 'Close' are available.
-            # Using mamode='ema' as it's often preferred for smoothness with TTM Squeeze components.
-            atr_series = data.ta.atr(length=20, mamode='ema', high='High', low='Low', close='Close')
-            if atr_series is not None and not atr_series.empty:
-                data['ttm_atr'] = atr_series
-            else:
-                data['ttm_atr'] = 0.0
-                logger.warning("ta.atr() returned None or empty Series for ttm_atr.")
-    
-            # Keltner Channels (still needed for Squeeze calculation)
-            kc = data.ta.kc(length=20, scalar=1.5, mamode='ema', atr_length=20, close='Close', high='High', low='Low', truerange='tr')
-            if kc is not None and not kc.empty:
-                logger.debug(f"Keltner Channel (kc) columns: {kc.columns.tolist()}")
-                kc_upper_col = next((col for col in kc.columns if 'KCU' in col), None)
-                kc_lower_col = next((col for col in kc.columns if 'KCL' in col), None)
-                kc_middle_col = next((col for col in kc.columns if 'KCM' in col), None)
-                logger.debug(f"Found KC cols: Upper='{kc_upper_col}', Lower='{kc_lower_col}', Middle='{kc_middle_col}'")
-    
-                data['kc_upper'] = kc[kc_upper_col] if kc_upper_col else 0.0
-                data['kc_lower'] = kc[kc_lower_col] if kc_lower_col else 0.0
-                data['kc_middle'] = kc[kc_middle_col] if kc_middle_col else 0.0
-                if not kc_upper_col: logger.warning("Could not find Keltner Channel Upper band column in kc_df.")
-                if not kc_lower_col: logger.warning("Could not find Keltner Channel Lower band column in kc_df.")
-                if not kc_middle_col: logger.warning("Could not find Keltner Channel Middle band column in kc_df.")
-            else:
-                data['kc_upper'] = 0.0
-                data['kc_lower'] = 0.0
-                data['kc_middle'] = 0.0
-                logger.warning("ta.kc() returned None or empty DataFrame for Keltner Channels.")
-    
-            # TTM Squeeze calculation (using Bollinger Bands and Keltner Channels)
-            if 'bb_upper' in data.columns and 'bb_lower' in data.columns and \
-               'kc_upper' in data.columns and 'kc_lower' in data.columns:
-                squeeze_on = (data['bb_lower'] > data['kc_lower']) & (data['bb_upper'] < data['kc_upper'])
-                data['ttm_squeeze_on'] = squeeze_on.astype(int)
-            else:
-                data['ttm_squeeze_on'] = 0 
-                logger.warning("Could not calculate TTM Squeeze On/Off due to missing BB/KC components.")
-            
-            # TTM Squeeze Momentum
-            length = 20 
-            if 'High' in data.columns and 'Low' in data.columns and 'Close' in data.columns:
-                highest_high = data['High'].rolling(window=length).max()
-                lowest_low = data['Low'].rolling(window=length).min()
-                avg_high_low = (highest_high + lowest_low) / 2
-                price_minus_avg = data['Close'] - avg_high_low
-                linreg_series = data.ta.linreg(close=price_minus_avg, length=length, offset=0) 
-                data['ttm_momentum'] = linreg_series if linreg_series is not None and not linreg_series.empty else 0.0
-                if linreg_series is None or linreg_series.empty : logger.warning("ta.linreg for TTM Momentum returned None or empty.")
-            else:
-                data['ttm_momentum'] = 0.0
-                logger.warning("Missing High, Low, or Close for TTM Momentum calculation.")
-    
-            # Mid-Point Momentum
-            mid_point_period = 14
-            data['mid_momentum'] = data.ta.mom(close=data['Close'], length=mid_point_period) if 'Close' in data.columns else 0.0
-    
-            # Volatility
-            volatility_window = 20
-            data['volatility'] = data['log_returns'].rolling(window=volatility_window).std() if 'log_returns' in data.columns else 0.0
-    
-            # Heikin Ashi Trend
-            ha_df = data.ta.ha(open='Open', high='High', low='Low', close='Close')
-            if ha_df is not None and not ha_df.empty and 'HA_close' in ha_df.columns and 'HA_open' in ha_df.columns:
-                data['ha_trend'] = (ha_df['HA_close'] > ha_df['HA_open']).astype(int) * 2 - 1
-            else:
-                data['ha_trend'] = 0
-                logger.warning("Could not calculate Heikin Ashi trend.")
-    
-            # Stochastic Oscillator (%K and %D)
-            stoch = data.ta.stoch(high='High', low='Low', close='Close', k=14, d=3, smooth_k=3)
-            if stoch is not None and not stoch.empty:
-                stoch_k_col = next((col for col in stoch.columns if 'STOCHk' in col), None)
-                stoch_d_col = next((col for col in stoch.columns if 'STOCHd' in col), None)
-                data['stoch_k'] = stoch[stoch_k_col] if stoch_k_col else 0.0
-                data['stoch_d'] = stoch[stoch_d_col] if stoch_d_col else 0.0
-            else:
-                data['stoch_k'] = 0.0
-                data['stoch_d'] = 0.0
-    
-            # ADX
-            adx_series = data.ta.adx(length=14, high='High', low='Low', close='Close')
-            if adx_series is not None and not adx_series.empty:
-                adx_col_name = next((col for col in adx_series.columns if 'ADX' in col), None)
-                data['adx'] = adx_series[adx_col_name] if adx_col_name else 0.0
-                if not adx_col_name: logger.warning("Could not find ADX column in adx_series output. Setting ADX to 0.")
-            else:
-                data['adx'] = 0.0
-    
-            # Williams %R
-            data['willr'] = data.ta.willr(length=14, high='High', low='Low', close='Close')
-            if data['willr'] is None: data['willr'] = 0.0
-    
-            # EMAs
-            data['ema_50'] = data.ta.ema(length=50, close='Close')
-    
-            # PROC
-            data['proc'] = data.ta.roc(length=10, close='Close')
-            if data['proc'] is None: data['proc'] = 0.0
-    
-            # OBV
-            data['obv'] = data.ta.obv(close='Close', volume='Volume')
-            if data['obv'] is None: data['obv'] = 0.0
-    
-            # Lagged Close Prices
-            lags = [1, 2, 3, 5]
-            for lag in lags:
-                data[f'close_lag_{lag}'] = data['Close'].shift(lag)
-    
-            # TTM Wave
-            ttm_trend_data = data.ta.ttm_trend(high='High', low='Low', close='Close')
-            if ttm_trend_data is not None and not ttm_trend_data.empty:
-                trend_col = next((col for col in ttm_trend_data.columns if 'TTM_TRND' in col), None)
-                cross_col = next((col for col in ttm_trend_data.columns if 'TTM_Cross' in col), None)
-                data['ttm_wave_trend'] = ttm_trend_data[trend_col] if trend_col else 0.0
-                data['ttm_wave_cross'] = ttm_trend_data[cross_col] if cross_col else 0.0
-            else:
-                data['ttm_wave_trend'] = 0.0
-                data['ttm_wave_cross'] = 0.0
-    
-            # TTM Scalper Alert
-            open_col = 'open' if 'open' in data.columns else 'Open'
-            close_col = 'close' if 'close' in data.columns else 'Close'
-            if 'ema_50' in data.columns and open_col in data.columns and close_col in data.columns:
-                buy_condition = (data[close_col] > data['ema_50']) & (data[close_col] > data[open_col])
-                sell_condition = (data[close_col] < data['ema_50']) & (data[close_col] < data[open_col])
-                data['ttm_scalper_alert'] = np.select([buy_condition, sell_condition], [1.0, -1.0], default=0.0)
-            else:
-                data['ttm_scalper_alert'] = 0.0
-                logger.warning("Could not calculate TTM Scalper Alert.")
-    
-            # Returns and Log Returns
-            data['returns'] = data['Close'].pct_change()
-            data['log_returns'] = np.log(1 + data['returns'])
-    
-            cols_to_fill_na = [
-                'rsi', 'macd_line', 'macd_signal_line', 'macd_hist',
-                'bb_upper', 'bb_middle', 'bb_lower', 'ttm_atr',
-                'kc_upper', 'kc_middle', 'kc_lower', 
-                'ttm_squeeze_on', 'ttm_momentum', 
-                'mid_momentum', 'volatility', 'ha_trend',
-                'stoch_k', 'stoch_d', 'adx', 'willr', 
-                'ema_50', 'proc', 'obv',
-                'close_lag_1', 'close_lag_2', 'close_lag_3', 'close_lag_5',
-                'ttm_wave_trend', 'ttm_wave_cross', 'ttm_scalper_alert',
-                'returns', 'log_returns'
-            ]
-            for col in cols_to_fill_na:
-                if col in data.columns:
-                    data[col].fillna(0.0, inplace=True)
+                self.logger.warning("Bollinger Bands calculation returned None or empty. Skipping BB features.")
+                data['BB_upper'] = data['BB_middle'] = data['BB_lower'] = np.nan
+
+            # ATR (Average True Range) - Using updated parameter
+            data['ATR'] = ta.atr(data['High'], data['Low'], data['Close'], length=14) # Length=14
+
+            # Keltner Channels - Using updated parameter
+            keltner = ta.kc(data['High'], data['Low'], data['Close'], length=20, atr_length=14, mamode='sma') # atr_length=14
+            if keltner is not None and not keltner.empty:
+                # Ensure column names match typical pandas_ta output or adjust as needed
+                # Assuming 'KCLe_20_14', 'KCBe_20_14', 'KCUe_20_14' for SMA based on docs, may vary
+                # Check the actual column names pandas-ta generates for Keltner Channels
+                # Common names are like: KCUe_length_atr_length, KCLe_length_atr_length, KCCe_length_atr_length or similar
+                # For ta.kc with mamode='sma', length=20, atr_length=14, it might be 'KCUe_20_14.0', 'KCLe_20_14.0', 'KCCe_20_14.0'
+                # Adjust these keys based on actual output from pandas-ta or inspect the `keltner` DataFrame columns.
+                keltner_upper_col = next((col for col in keltner.columns if 'KCUe' in col), None)
+                keltner_lower_col = next((col for col in keltner.columns if 'KCLe' in col), None)
+                keltner_basis_col = next((col for col in keltner.columns if 'KCBe' in col or 'KCCe' in col), None) # Basis or Center
+
+                if keltner_upper_col and keltner_lower_col and keltner_basis_col:
+                    data['Keltner_Upper'] = keltner[keltner_upper_col]
+                    data['Keltner_Lower'] = keltner[keltner_lower_col]
+                    data['Keltner_Basis'] = keltner[keltner_basis_col] # or 'Keltner_Middle'
                 else:
-                    logger.warning(f"Attempted to fillna on non-existent column: {col}")
-                    data[col] = 0.0 
-            return data
+                    self.logger.warning(f"Could not find expected Keltner Channel columns in {keltner.columns}. Skipping Keltner features.")
+                    data['Keltner_Upper'] = data['Keltner_Lower'] = data['Keltner_Basis'] = np.nan
+            else:
+                self.logger.warning("Keltner Channel calculation returned None or empty. Skipping Keltner features.")
+                data['Keltner_Upper'] = data['Keltner_Lower'] = data['Keltner_Basis'] = np.nan
+
+            # ROC (Rate of Change) - Using updated parameter
+            data['ROC'] = ta.roc(data['Close'], length=12) # Length=12
+
+            # Stochastic Oscillator %K and %D
+            stoch = ta.stoch(data['High'], data['Low'], data['Close'], k=14, d=3, smooth_k=3)
+            if stoch is not None and not stoch.empty:
+                data['Stoch_K'] = stoch['STOCHk_14_3_3']
+                data['Stoch_D'] = stoch['STOCHd_14_3_3']
+            else:
+                self.logger.warning("Stochastic Oscillator calculation returned None or empty. Skipping Stoch features.")
+                data['Stoch_K'] = data['Stoch_D'] = np.nan
+
+            # TTM Squeeze (ta.squeeze or ta.squeeze_pro)
+            # `ta.squeeze` is often used. It looks for Bollinger Bands within Keltner Channels.
+            # Parameters: bb_length, bb_std, kc_length, kc_scalar (or atr_length for kc)
+            squeeze = ta.squeeze(data['High'], data['Low'], data['Close'], 
+                                 bb_length=20, bb_std=2.0, 
+                                 kc_length=20, kc_scalar=1.5) # kc_scalar or use atr_length with kc
+            if squeeze is not None and not squeeze.empty and 'SQZ_ON' in squeeze.columns:
+                data['TTM_Squeeze_On'] = squeeze['SQZ_ON'] # Boolean indicating if squeeze is on
+                # 'SQZ_OFF' or 'SQZ_NO' might also be available, or just use `~SQZ_ON`
+                # 'SQZ_ALERT' if momentum breaks out of squeeze
+                if 'SQZ_ALERT' in squeeze.columns: data['TTM_Squeeze_Alert'] = squeeze['SQZ_ALERT']
+                else: data['TTM_Squeeze_Alert'] = 0 # Default to 0 if not present
+            else:
+                self.logger.warning("TTM Squeeze calculation returned None, empty, or missing 'SQZ_ON'. Skipping TTM Squeeze.")
+                data['TTM_Squeeze_On'] = 0 # Default to 0 (squeeze off)
+                data['TTM_Squeeze_Alert'] = 0
+
+            # Volume-based indicators
+            data['OBV'] = ta.obv(data['Close'], data['Volume'])
+            data['VWAP'] = ta.vwap(data['High'], data['Low'], data['Close'], data['Volume'])
+        
+        except Exception as e:
+            self.logger.error(f"Error calculating one or more basic technical indicators: {e}", exc_info=True)
+            # Fill potentially missing columns with NaN if error occurred mid-calculation
+            ta_cols = ['SMA_20', 'EMA_20', 'RSI', 'MACD', 'MACD_signal', 'MACD_hist', 
+                       'BB_upper', 'BB_middle', 'BB_lower', 'ATR', 'Keltner_Upper', 'Keltner_Lower', 
+                       'Keltner_Basis', 'ROC', 'Stoch_K', 'Stoch_D', 'TTM_Squeeze_On', 'TTM_Squeeze_Alert', 
+                       'OBV', 'VWAP']
+            for col in ta_cols:
+                if col not in data.columns:
+                    data[col] = np.nan
+        
+        self.logger.info("Basic technical indicators calculated.")
+
+        # --- Advanced Features: Momentum, Volatility, Trend (Heikin-Ashi) ---
+        self.logger.info("Calculating advanced features (momentum, volatility, trend)...")
+        try:
+            # Momentum Indicators
+            data['Momentum_10'] = data['Close'].diff(10) # 10-period momentum
+
+            # Volatility Indicators (e.g., Standard Deviation of Close)
+            data['Volatility_20'] = data['Close'].rolling(window=20).std()
+
+            # Heikin-Ashi Candlesticks (requires a separate calculation as it modifies O,H,L,C)
+            # Note: pandas_ta does not have a direct Heikin-Ashi transform that returns a full DataFrame in one go easily attachable.
+            # We might need a helper or implement it if critical for observation.
+            # For now, we'll skip direct Heikin-Ashi in the main features and assume other indicators capture trend.
+            # If HA is needed, a common approach is: 
+            # ha_close = (data['Open'] + data['High'] + data['Low'] + data['Close']) / 4
+            # ha_open = (data['Open'].shift(1) + data['Close'].shift(1)) / 2 (with initial value for first row)
+            # etc. This is a simplification. For a full HA, it's more involved.
+            # For simplicity, let's focus on indicators derived from standard OHLCV for now.
+            # If TTM Squeeze uses HA internally, that's handled by `ta.squeeze`.
+
+            # Price relative to EMAs (trend direction)
+            data['Price_vs_EMA50'] = data['Close'] / ta.ema(data['Close'], length=50) - 1
+            data['Price_vs_EMA200'] = data['Close'] / ta.ema(data['Close'], length=200) - 1
+
+        except Exception as e:
+            self.logger.error(f"Error calculating advanced features: {e}", exc_info=True)
+            adv_feat_cols = ['Momentum_10', 'Volatility_20', 'Price_vs_EMA50', 'Price_vs_EMA200']
+            for col in adv_feat_cols:
+                if col not in data.columns:
+                    data[col] = np.nan
+        self.logger.info("Advanced features calculated.")
+
+        # --- Handling Missing Values --- 
+        self.logger.info(f"Handling missing values. NaN count before ffill/bfill: {data.isnull().values.any()}")
+        # Option 1: Forward-fill then backward-fill (common for time series)
+        data.ffill(inplace=True)
+        data.bfill(inplace=True)
+        # Option 2: Fill with a specific value (e.g., 0 or mean) if ffill/bfill leaves NaNs (e.g., at the very start)
+        data.fillna(0.0, inplace=True) # Fill any remaining NaNs with 0
+        self.logger.info(f"NaN count after ffill/bfill and fill(0): {data.isnull().values.any()}")
+
+        # --- Normalization (Example: Z-score or Min-Max) ---
+        # For RL, it's often good to normalize features to a similar range (e.g., [-1, 1] or [0, 1])
+        # Here we apply a simple scaling for demonstration. Robust normalization might be needed.
+        self.logger.info("Normalizing selected features...")
+        # Select only numeric columns for normalization, exclude original OHLCV if model doesn't need them raw
+        # or if they are implicitly used via returns/indicators.
+        # For this example, let's assume we normalize all TA indicators and engineered features.
+        cols_to_normalize = [
+            'SMA_20', 'EMA_20', 'RSI', 'MACD', 'MACD_signal', 'MACD_hist',
+            'BB_upper', 'BB_middle', 'BB_lower', 'ATR', 'Keltner_Upper', 'Keltner_Lower',
+            'Keltner_Basis', 'ROC', 'Stoch_K', 'Stoch_D', 'TTM_Squeeze_On', 'TTM_Squeeze_Alert',
+            'OBV', 'VWAP', 'Momentum_10', 'Volatility_20', 'Price_vs_EMA50', 'Price_vs_EMA200'
+        ]
+        # Add 'Volume' to normalization if it's part of the observation space directly
+        # Original 'Open', 'High', 'Low', 'Close' might be scaled or used to derive returns, etc.
+
+        for col in cols_to_normalize:
+            if col in data.columns:
+                # Simple min-max scaling to [-1, 1] (example)
+                # More robust: Z-score ( (x - mean) / std ) or ( (x - min) / (max - min) ) * 2 - 1
+                # Handle cases where max == min to avoid division by zero
+                min_val = data[col].min()
+                max_val = data[col].max()
+                if max_val > min_val:
+                    data[col] = 2 * (data[col] - min_val) / (max_val - min_val) - 1
+                else:
+                    data[col] = 0 # Or some other appropriate value if all values are the same
+            else:
+                self.logger.warning(f"Column {col} not found for normalization, was it calculated correctly?")
+        self.logger.info("Feature normalization completed.")
+
+        # --- Final Check for NaNs/Infs --- 
+        if data.isnull().values.any() or np.isinf(data.select_dtypes(include=[np.number])).values.any():
+            self.logger.error("NaN or Inf values still present after preprocessing and normalization!")
+            # Log details of NaNs/Infs
+            nan_counts = data.isnull().sum()
+            inf_counts = np.isinf(data.select_dtypes(include=[np.number])).sum()
+            self.logger.error(f"NaN counts per column:\n{nan_counts[nan_counts > 0]}")
+            self.logger.error(f"Inf counts per column:\n{inf_counts[inf_counts > 0]}")
+            # Consider raising an error or more robust imputation
+            # For now, fill again to prevent crashes, but this indicates an issue
+            data.replace([np.inf, -np.inf], np.nan, inplace=True)
+            data.fillna(0.0, inplace=True)
+            self.logger.warning("Replaced Inf with NaN and re-ran fillna(0.0) as a fallback.")
+
+        self.logger.info(f"Advanced data preprocessing completed. Final data shape: {data.shape}")
+        return data
 
     def _get_initial_market_data(self, length: int = 200) -> pd.DataFrame:
         """Fetches initial market data for the environment."""

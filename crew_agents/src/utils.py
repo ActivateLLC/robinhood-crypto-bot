@@ -29,10 +29,10 @@ def setup_logger(name, log_level='INFO', log_directory='logs', filename_prefix='
     # Console Handler (optional, but good for immediate feedback)
     # You might want to control this with a flag or based on environment
     # For tests, we might want to minimize console output unless debugging.
-    # if not any(isinstance(handler, logging.StreamHandler) for handler in logger.handlers):
-    #     ch = logging.StreamHandler(sys.stdout) 
-    #     ch.setFormatter(formatter)
-    #     logger.addHandler(ch)
+    if not any(isinstance(handler, logging.StreamHandler) for handler in logger.handlers):
+        ch = logging.StreamHandler(sys.stdout) 
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
 
     # File Handler with Rotation
     log_file = os.path.join(log_directory, f"{filename_prefix}{name}.log")

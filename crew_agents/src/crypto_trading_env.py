@@ -3,7 +3,7 @@ import sys
 import numpy as np
 import pandas as pd
 import yfinance as yf
-import gymnasium as gym
+import gymnasium as gym # Main RL environment library
 import ccxt
 from typing import Dict, Any, Tuple, Optional, Literal
 import logging
@@ -14,18 +14,28 @@ import importlib
 import json
 import pandas_ta as ta
 
-# Add project root to sys.path if necessary
-project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
+# Ensure the project root is in the Python path
+project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')) # Corrected path to project root
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from alt_crypto_data import AltCryptoDataProvider # Import updated provider from root
+from .utils import setup_logger # Corrected: utils.py is in the same directory (src)
+# from ..src.feature_engineering import AdvancedFeatureEngineer # Module/Class not found
+from alt_crypto_data import AltCryptoDataProvider # Corrected: alt_crypto_data.py is at project root
+# from ..src.data_providers.base_data_provider import BaseDataProvider # Module/Class not found
+from brokers.base_broker import BaseBroker # Corrected: Changed Broker to BaseBroker
+
+# For type hinting, if BaseDataProvider is not found, use Any or a more generic type
+# from typing import Optional, Dict, Any, List, Tuple # Ensure Any is imported if used elsewhere
+from typing import Optional, Dict, Any, List, Tuple # Ensure Any is imported
+
+# Define constants if they are used and not defined elsewhere, or ensure they are imported
 
 # Import Broker Interfaces/Implementations
 
 try:
     brokers_base = importlib.import_module("brokers.base_broker")
-    Broker = brokers_base.BaseBroker # Use BaseBroker, not BrokerInterface
+    BaseBroker = brokers_base.BaseBroker # Use BaseBroker, not BrokerInterface
     # MarketData = brokers_base.MarketData # Also import MarketData if needed
 except ImportError as e:
     print(f"ERROR: Failed to import brokers.base_broker: {e}")
@@ -65,36 +75,72 @@ class CryptoTradingEnvironment(gym.Env):
     """
     def __init__(
         self, 
-        data_provider: AltCryptoDataProvider, # Expecting the updated provider
-        symbol: str = 'BTC-USD',
-        initial_capital: float = 10000.0,  # Default set here
-        lookback_window: int = 24,  # 24 hours of history
-        trading_fee: float = 0.0005,  # Reduced fee for more frequent trading
-        df: Optional[pd.DataFrame] = None,
-        live_trading: bool = False,
-        broker_type: Literal['simulation', 'robinhood', 'ibkr'] = 'simulation',
-        log_experience: bool = False # Added parameter for controlling live logging
+        df: pd.DataFrame, 
+        config: Dict[str, Any], 
+        live_trading: bool = False, 
+        broker_type: str = 'simulation', 
+        _test_trigger_debug_dump: bool = False,
+        data_provider: Optional[Any] = None # Changed BaseDataProvider to Any as it's not found
     ):
         super().__init__()
-        
-        self.logger = logging.getLogger(self.__class__.__name__)
-        self.logger.setLevel(logging.INFO)
-        ch = logging.StreamHandler()
-        ch.setLevel(logging.INFO)
-        formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        ch.setFormatter(formatter)
-        self.logger.addHandler(ch)
+        # Temporary, direct print to see incoming config *before* logger is set up
+        print(f"DEBUG ENV INIT [RAW]: Received config type: {type(config)}")
+        if isinstance(config, dict):
+            print(f"DEBUG ENV INIT [RAW]: Received config keys: {list(config.keys())}")
+            print(f"DEBUG ENV INIT [RAW]: Received config['window_size']: {config.get('window_size')}")
+        else:
+            print(f"DEBUG ENV INIT [RAW]: Received config is NOT a dict: {config}")
 
+        self.broker_type = broker_type # Needs to be set before logger for logger name
+        self.logger = setup_logger(
+            name=f"CryptoTradingEnv.{self.broker_type}.{config.get('symbol', 'DefaultSymbol')}",
+            log_level=config.get('log_level', 'INFO')
+        )
+        self.live_trading = live_trading
+        # self.broker_type = broker_type # Moved up
+        self._test_trigger_debug_dump = _test_trigger_debug_dump
+
+        self.logger.info(f"DEBUG ENV INIT: Assigning config. Type before assign: {type(config)}")
+        self.config = config
+        self.logger.info(f"DEBUG ENV INIT: self.config type after assign: {type(self.config)}")
+        if isinstance(self.config, dict):
+            self.logger.info(f"DEBUG ENV INIT: self.config keys: {list(self.config.keys())}")
+            self.logger.info(f"DEBUG ENV INIT: self.config['window_size'] via get: {self.config.get('window_size')}")
+        else:
+            self.logger.warning(f"DEBUG ENV INIT: self.config IS NOT A DICT after assignment! Value: {self.config}")
+
+        if not isinstance(df, pd.DataFrame) or df.empty:
+            self.logger.error("DataFrame is not valid or empty.")
+        
+        self.logger.info(f"DEBUG ENV INIT: About to set self.symbol and self.window_size.")
+        self.logger.info(f"DEBUG ENV INIT: self.config type at this point: {type(self.config)}")
+        if isinstance(self.config, dict):
+            self.logger.info(f"DEBUG ENV INIT: self.config['window_size'] from dict before setting self.window_size: {self.config.get('window_size')}")
+        else:
+            self.logger.warning(f"DEBUG ENV INIT: self.config IS NOT A DICT before setting window_size! Value: {self.config}")
+
+        # Configuration parameters
+        self.symbol = self.config.get('symbol', 'BTC-USD')
+        self.window_size = self.config.get('window_size', 24) # Default to 24 if not found
+        self.logger.info(f"DEBUG ENV INIT: self.window_size set to: {self.window_size}")
+
+        self.initial_balance = float(self.config.get('initial_balance', 10000))
+        
         # Core Parameters
-        self.symbol = symbol
-        self.data_provider = data_provider
-        self.initial_capital = initial_capital
-        self.lookback_window = lookback_window
-        self.trading_fee = trading_fee 
+        if data_provider:
+            self.data_provider = data_provider
+            self.logger.info("Using provided data_provider.")
+        else:
+            self.data_provider = AltCryptoDataProvider() # Use default provider if none passed
+            self.logger.info("Initialized default AltCryptoDataProvider.")
+            
+        self.initial_capital = self.initial_balance
+        self.lookback_window = self.window_size
+        self.trading_fee = 0.0005  # Reduced fee for more frequent trading 
         self.live_trading = live_trading
         self.broker_type = broker_type if live_trading else 'simulation'
-        self.broker: Optional[Broker] = None 
-        self.log_experience = log_experience # Store the parameter value
+        self.broker: Optional[BaseBroker] = None 
+        self.log_experience = False # Store the parameter value
 
         self.logger.info(f"Initializing environment: Symbol={self.symbol}, Live Trading={self.live_trading}, Broker Type={self.broker_type}")
 
@@ -158,16 +204,16 @@ class CryptoTradingEnvironment(gym.Env):
         
         # Trading state variables (will be updated from broker in live mode during reset)
         self.current_step = 0
-        self.current_capital = initial_capital
+        self.current_capital = self.initial_balance
         self.crypto_holdings = 0
-        self.portfolio_value = initial_capital
-        self.max_portfolio_value = initial_capital
+        self.portfolio_value = self.initial_balance
+        self.max_portfolio_value = self.initial_balance
         self.max_drawdown = 0.2  
 
         # --- Additions for Differential Sharpe Ratio ---
         self.sharpe_window = 100  
         self.risk_free_rate = 0.0 
-        self.portfolio_history = [initial_capital] 
+        self.portfolio_history = [self.initial_balance] 
         self.previous_sharpe_ratio = 0.0
         # ---------------------------------------------
         
@@ -430,21 +476,18 @@ class CryptoTradingEnvironment(gym.Env):
         return True
     
     def _advanced_data_preprocessing(self, data: pd.DataFrame) -> pd.DataFrame:
-        """
-        Enhanced data preprocessing with comprehensive technical indicators,
-        normalization, and handling of missing values for RL agent consumption.
-        This version is tailored for detailed state representation.
-        Args:
-            data (pd.DataFrame): Input historical price data with 'High', 'Low', 'Close', 'Volume'.
-                                 Column names are expected to be capitalized.
-        Returns:
-            pd.DataFrame: Processed DataFrame with added features and normalized values.
-        Raises:
-            ValueError: If critical columns are missing or data is insufficient.
-        """
-        self.logger.info(f"Starting advanced data preprocessing. Initial data shape: {data.shape}")
-        
-        # --- Basic Column and Data Validation ---
+        """Enhanced data preprocessing with configurable TA indicators and refined logging."""
+        if data.empty:
+            self.logger.warning("Input DataFrame for preprocessing is empty. Returning as is.")
+            return data
+
+        # Initialize series/df variables to None
+        atr_series = None
+        keltner_channels = None
+        roc_series = None
+
+        # --- Basic Feature Engineering ---
+        # Ensure necessary columns are present (High, Low, Close, Volume)
         required_cols_capitalized = ['High', 'Low', 'Close', 'Volume']
         missing_cols = [col for col in required_cols_capitalized if col not in data.columns]
         if missing_cols:
@@ -515,34 +558,95 @@ class CryptoTradingEnvironment(gym.Env):
                 data['BB_upper'] = data['BB_middle'] = data['BB_lower'] = np.nan
 
             # ATR (Average True Range) - Using updated parameter
-            data['ATR'] = ta.atr(data['High'], data['Low'], data['Close'], length=14) # Length=14
+            atr_series = ta.atr(data['High'], data['Low'], data['Close'], length=self.atr_length_config) # Use config
+            print(f"DEBUG: Raw atr_series from ta.atr:\n{atr_series.to_string() if atr_series is not None else 'None'}")
+            if atr_series is not None and not atr_series.empty:
+                data['ATR'] = atr_series # Directly assign the calculated Series
+                data['ATR'] = data['ATR'].fillna(0.0)  # Specific fill for ATR NaNs
+            else:
+                self.logger.warning("ATR calculation returned None or empty Series.")
+                data['ATR'] = 0.0 # Fallback, though fillna below would also cover NaNs
+            if 'ATR' in data.columns:
+                print(f"DEBUG ENV: data['ATR'] post-assign & specific fill (len {len(data['ATR'])}):\n{data['ATR'].to_string() if not data['ATR'].empty else 'Empty Series'}")
+            else:
+                print("DEBUG ENV: data['ATR'] column NOT created post-assign.")
 
             # Keltner Channels - Using updated parameter
-            keltner = ta.kc(data['High'], data['Low'], data['Close'], length=20, atr_length=14, mamode='sma') # atr_length=14
-            if keltner is not None and not keltner.empty:
-                # Ensure column names match typical pandas_ta output or adjust as needed
-                # Assuming 'KCLe_20_14', 'KCBe_20_14', 'KCUe_20_14' for SMA based on docs, may vary
-                # Check the actual column names pandas-ta generates for Keltner Channels
-                # Common names are like: KCUe_length_atr_length, KCLe_length_atr_length, KCCe_length_atr_length or similar
-                # For ta.kc with mamode='sma', length=20, atr_length=14, it might be 'KCUe_20_14.0', 'KCLe_20_14.0', 'KCCe_20_14.0'
-                # Adjust these keys based on actual output from pandas-ta or inspect the `keltner` DataFrame columns.
-                keltner_upper_col = next((col for col in keltner.columns if 'KCUe' in col), None)
-                keltner_lower_col = next((col for col in keltner.columns if 'KCLe' in col), None)
-                keltner_basis_col = next((col for col in keltner.columns if 'KCBe' in col or 'KCCe' in col), None) # Basis or Center
+            # Ensure 'mamode' is a string, default to 'sma' if not specified or not a string
+            kc_mamode = str(self.keltner_mamode_config) if isinstance(self.keltner_mamode_config, str) else 'sma'
+            keltner_channels = ta.kc(
+                data['High'], data['Low'], data['Close'], 
+                length=self.keltner_length_config, 
+                scalar=self.keltner_scalar_config, 
+                mamode=kc_mamode, 
+                atr_length=self.keltner_atr_length_config
+            )
+            print(f"DEBUG: Raw keltner_channels from ta.kc:\n{keltner_channels.to_string() if keltner_channels is not None else 'None'}")
+            if keltner_channels is not None and not keltner_channels.empty:
+                self.logger.info(f"Keltner Channels calculated. Columns: {keltner_channels.columns.tolist()}")
+                # Dynamically construct expected column names based on pandas-ta conventions
+                # For mamode='sma', pandas-ta uses 's' suffix, e.g., KCBs_20_2.0
+                # For other mamodes like 'ema', it includes mamode, e.g., KCB_20_ema_2.0
+                # The atr_length is used in calculation but not typically in the column name string for 'sma'.
+                base_col_name = f"KCB{'s' if kc_mamode == 'sma' else ''}_{self.keltner_length_config}"
+                upper_col_name = f"KCU{'s' if kc_mamode == 'sma' else ''}_{self.keltner_length_config}"
+                lower_col_name = f"KCL{'s' if kc_mamode == 'sma' else ''}_{self.keltner_length_config}"
 
-                if keltner_upper_col and keltner_lower_col and keltner_basis_col:
-                    data['Keltner_Upper'] = keltner[keltner_upper_col]
-                    data['Keltner_Lower'] = keltner[keltner_lower_col]
-                    data['Keltner_Basis'] = keltner[keltner_basis_col] # or 'Keltner_Middle'
+                if kc_mamode != 'sma':
+                    basis_col_name_expected = f"{base_col_name}_{kc_mamode}_{self.keltner_scalar_config}"
+                    upper_col_name_expected = f"{upper_col_name}_{kc_mamode}_{self.keltner_scalar_config}"
+                    lower_col_name_expected = f"{lower_col_name}_{kc_mamode}_{self.keltner_scalar_config}"
                 else:
-                    self.logger.warning(f"Could not find expected Keltner Channel columns in {keltner.columns}. Skipping Keltner features.")
-                    data['Keltner_Upper'] = data['Keltner_Lower'] = data['Keltner_Basis'] = np.nan
+                    basis_col_name_expected = f"{base_col_name}_{self.keltner_scalar_config}" # e.g., KCBs_20_2.0
+                    upper_col_name_expected = f"{upper_col_name}_{self.keltner_scalar_config}" # e.g., KCUs_20_2.0
+                    lower_col_name_expected = f"{lower_col_name}_{self.keltner_scalar_config}" # e.g., KCLs_20_2.0
+
+                # Assign to DataFrame if columns exist in calculated keltner_channels
+                if basis_col_name_expected in keltner_channels.columns:
+                    data['Keltner_Basis'] = keltner_channels[basis_col_name_expected]
+                else:
+                    self.logger.warning(f"Expected Keltner Basis column '{basis_col_name_expected}' not found. Available: {keltner_channels.columns.tolist()}")
+                    data['Keltner_Basis'] = 0.0
+                
+                if upper_col_name_expected in keltner_channels.columns:
+                    data['Keltner_Upper'] = keltner_channels[upper_col_name_expected]
+                else:
+                    self.logger.warning(f"Expected Keltner Upper column '{upper_col_name_expected}' not found. Available: {keltner_channels.columns.tolist()}")
+                    data['Keltner_Upper'] = 0.0
+                
+                if lower_col_name_expected in keltner_channels.columns:
+                    data['Keltner_Lower'] = keltner_channels[lower_col_name_expected]
+                else:
+                    self.logger.warning(f"Expected Keltner Lower column '{lower_col_name_expected}' not found. Available: {keltner_channels.columns.tolist()}")
+                    data['Keltner_Lower'] = 0.0
+                data['Keltner_Basis'] = data['Keltner_Basis'].fillna(0.0)
+                data['Keltner_Upper'] = data['Keltner_Upper'].fillna(0.0)
+                data['Keltner_Lower'] = data['Keltner_Lower'].fillna(0.0)
             else:
-                self.logger.warning("Keltner Channel calculation returned None or empty. Skipping Keltner features.")
+                self.logger.warning("Keltner Channels calculation returned None or empty. Skipping Keltner features.")
                 data['Keltner_Upper'] = data['Keltner_Lower'] = data['Keltner_Basis'] = np.nan
+                data['Keltner_Basis'] = data['Keltner_Basis'].fillna(0.0)
+                data['Keltner_Upper'] = data['Keltner_Upper'].fillna(0.0)
+                data['Keltner_Lower'] = data['Keltner_Lower'].fillna(0.0)
+            if 'Keltner_Basis' in data.columns:
+                print(f"DEBUG ENV: data['Keltner_Basis'] post-assign & specific fill (len {len(data['Keltner_Basis'])}):\n{data['Keltner_Basis'].to_string() if not data['Keltner_Basis'].empty else 'Empty Series'}")
+            else:
+                print("DEBUG ENV: data['Keltner_Basis'] column NOT created post-assign.")
 
             # ROC (Rate of Change) - Using updated parameter
-            data['ROC'] = ta.roc(data['Close'], length=12) # Length=12
+            roc_series = ta.roc(data['Close'], length=self.roc_length_config) # Use config
+            print(f"DEBUG: Raw roc_series from ta.roc:\n{roc_series.to_string() if roc_series is not None else 'None'}")
+            if roc_series is not None and not roc_series.empty:
+                data['ROC'] = roc_series # Directly assign the calculated Series
+                data['ROC'] = data['ROC'].fillna(0.0)  # Specific fill for ROC NaNs
+            else:
+                self.logger.warning("ROC calculation returned None or empty Series.")
+                data['ROC'] = 0.0 # Fallback, though fillna below would also cover NaNs
+                data['ROC'] = data['ROC'].fillna(0.0)
+            if 'ROC' in data.columns:
+                print(f"DEBUG ENV: data['ROC'] post-assign & specific fill (len {len(data['ROC'])}):\n{data['ROC'].to_string() if not data['ROC'].empty else 'Empty Series'}")
+            else:
+                print("DEBUG ENV: data['ROC'] column NOT created post-assign.")
 
             # Stochastic Oscillator %K and %D
             stoch = ta.stoch(data['High'], data['Low'], data['Close'], k=14, d=3, smooth_k=3)
@@ -600,11 +704,6 @@ class CryptoTradingEnvironment(gym.Env):
             # Note: pandas_ta does not have a direct Heikin-Ashi transform that returns a full DataFrame in one go easily attachable.
             # We might need a helper or implement it if critical for observation.
             # For now, we'll skip direct Heikin-Ashi in the main features and assume other indicators capture trend.
-            # If HA is needed, a common approach is: 
-            # ha_close = (data['Open'] + data['High'] + data['Low'] + data['Close']) / 4
-            # ha_open = (data['Open'].shift(1) + data['Close'].shift(1)) / 2 (with initial value for first row)
-            # etc. This is a simplification. For a full HA, it's more involved.
-            # For simplicity, let's focus on indicators derived from standard OHLCV for now.
             # If TTM Squeeze uses HA internally, that's handled by `ta.squeeze`.
 
             # Price relative to EMAs (trend direction)
@@ -625,8 +724,18 @@ class CryptoTradingEnvironment(gym.Env):
         data.ffill(inplace=True)
         data.bfill(inplace=True)
         # Option 2: Fill with a specific value (e.g., 0 or mean) if ffill/bfill leaves NaNs (e.g., at the very start)
-        data.fillna(0.0, inplace=True) # Fill any remaining NaNs with 0
-        self.logger.info(f"NaN count after ffill/bfill and fill(0): {data.isnull().values.any()}")
+        # data[numeric_cols] = data[numeric_cols].fillna(0.0) # Temporarily commented out for debugging
+        numeric_cols = data.select_dtypes(include=np.number).columns
+        data[numeric_cols] = data[numeric_cols].fillna(0.0) # Restored this line
+        self.logger.info(f"Filled NaN values with 0.0. Data shape after NaN fill: {data.shape}")
+
+        # Debug prints after final fillna
+        if 'ATR' in data.columns:
+            print(f"DEBUG ENV: data['ATR'] POST-FINAL-FILLNA:\n{data['ATR'].to_string()}")
+        if 'Keltner_Basis' in data.columns:
+            print(f"DEBUG ENV: data['Keltner_Basis'] POST-FINAL-FILLNA:\n{data['Keltner_Basis'].to_string()}")
+        if 'ROC' in data.columns:
+            print(f"DEBUG ENV: data['ROC'] POST-FINAL-FILLNA:\n{data['ROC'].to_string()}")
 
         # --- Normalization (Example: Z-score or Min-Max) ---
         # For RL, it's often good to normalize features to a similar range (e.g., [-1, 1] or [0, 1])
@@ -674,6 +783,7 @@ class CryptoTradingEnvironment(gym.Env):
             self.logger.warning("Replaced Inf with NaN and re-ran fillna(0.0) as a fallback.")
 
         self.logger.info(f"Advanced data preprocessing completed. Final data shape: {data.shape}")
+        
         return data
 
     def _get_initial_market_data(self, length: int = 200) -> pd.DataFrame:
@@ -765,11 +875,11 @@ class CryptoTradingEnvironment(gym.Env):
         market_indicators = np.clip(market_indicators, -1.0, 1.0)
 
         # Portfolio state: current capital and crypto holdings (normalized)
-        normalized_capital = self.current_capital / self.initial_capital if self.initial_capital > 0 else 0.0
+        normalized_capital = self.current_capital / self.initial_balance if self.initial_balance > 0 else 0.0
         # Max holding could be estimated based on initial capital and some leverage or typical position size
         # For simplicity, let's assume max_crypto_to_hold is related to initial capital / some reference price, or a fixed large number
         # This normalization needs to be consistent with training
-        max_possible_holding_value_estimate = self.initial_capital # Simplistic: can hold up to initial capital value in crypto
+        max_possible_holding_value_estimate = self.initial_balance # Simplistic: can hold up to initial capital value in crypto
         current_price = latest_data.get('close', self.initial_price_guess)
         max_crypto_units = max_possible_holding_value_estimate / current_price if current_price > 0 else 1.0 # Avoid div by zero
         
@@ -816,7 +926,7 @@ class CryptoTradingEnvironment(gym.Env):
             current_sharpe_ratio = (mean_return - self.risk_free_rate) / std_dev
 
         # --- Exponential/Quadratic Return Reward ---
-        final_return = (current_portfolio_value / self.initial_capital) - 1.0
+        final_return = (current_portfolio_value / self.initial_balance) - 1.0
         if final_return >= 0:
             exp_reward = np.log1p(final_return) ** 2  # Quadratic scaling for positive returns
         else:
@@ -1236,7 +1346,7 @@ class CryptoTradingEnvironment(gym.Env):
                 else:
                     self.crypto_holdings = 0.0
                 
-                self.initial_capital = self.current_capital # Reset initial capital to current live capital
+                self.initial_balance = self.current_capital # Reset initial capital to current live capital
                 self.logger.info(f"Live state fetched: Capital={self.current_capital:.2f}, Holdings={self.crypto_holdings:.6f}")
 
                 # --- Fetch Initial Live Data for Observation --- 
@@ -1280,20 +1390,20 @@ class CryptoTradingEnvironment(gym.Env):
             
             # --- Calculate Initial Action Mask for Live ---    
             initial_mask = self._get_action_mask()
-            
+
         else:
             # --- Simulation Reset Logic --- 
             if self.historical_data is None or self.historical_data.empty:
                  raise ValueError("Cannot reset simulation environment without historical data.")
             
             self.current_step = self.lookback_window # Start after lookback period
-            self.current_capital = self.initial_capital
+            self.current_capital = self.initial_balance
             self.crypto_holdings = 0
-            self.portfolio_value = self.initial_capital
-            self.max_portfolio_value = self.initial_capital
+            self.portfolio_value = self.initial_balance
+            self.max_portfolio_value = self.initial_balance
 
             # --- Reset Differential Sharpe Ratio tracking --- 
-            self.portfolio_history = [self.initial_capital] * self.lookback_window # Start history with initial value
+            self.portfolio_history = [self.initial_balance] * self.lookback_window # Start history with initial value
             self.previous_sharpe_ratio = 0.0
             # --------------------------------------------- 
             

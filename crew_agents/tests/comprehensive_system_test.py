@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from ..src.crypto_trading_env import CryptoTradingEnvironment
 from ..src.utils import setup_logger
+import pandas.testing as pd_testing
 
 # Mock AltCryptoDataProvider for testing
 class MockAltCryptoDataProvider:
@@ -57,41 +58,54 @@ class TestCryptoTradingEnvironment(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         """Set up for all tests in this class."""
-        cls.test_logger = setup_logger('TestCryptoEnv', log_level='CRITICAL')
+        cls.test_logger = setup_logger('TestCryptoEnv', log_level='DEBUG') # Ensure DEBUG level
+        cls.test_logger.debug("setUpClass started.")
 
+        # Updated mock_config_dict for the new CryptoTradingEnvironment constructor
         cls.mock_config_dict = {
             'symbol': 'BTC-USD',
-            'initial_capital': 10000.0,
-            'lookback_window': 24, 
-            'trading_fee': 0.001, # Matched key from CryptoTradingEnvironment.__init__
-            'live_trading': False, # For most unit tests, keep this false
-            'broker_type': 'simulation',
-            'log_experience': False
+            'initial_balance': 10000.0, # Changed from initial_capital
+            'window_size': 24,          # Changed from lookback_window
+            # 'trading_fee' is not directly set from config in the new __init__
+            # 'log_experience' is not directly set from config in the new __init__
+            # The environment will use its defaults or internal logic for these if not in config.
+            # Add any other config keys the environment's __init__ now expects from the 'config' dict.
         }
 
-        # Data provider settings from the original mock_config
-        cls.data_provider_config = {'type': 'mock'} # Keep for consistency if AltCryptoDataProvider uses it
-        cls.mock_data_provider = MockAltCryptoDataProvider(config=cls.data_provider_config, logger=cls.test_logger)
+        # This mock_data_provider is used to generate the initial 'df'
+        cls.mock_data_provider = MockAltCryptoDataProvider(logger=cls.test_logger)
+        cls.test_logger.debug("setUpClass: MockAltCryptoDataProvider created.")
+
+        initial_df = cls.mock_data_provider.get_historical_data(
+            symbol=cls.mock_config_dict['symbol'],
+            interval='1h', # Or whatever interval is appropriate for the mock data
+            lookback_period=str(cls.mock_config_dict['window_size'] * 5) # Ensure enough data for window + features
+        )
+
+        if initial_df is None or initial_df.empty:
+            cls.test_logger.error("setUpClass: MockAltCryptoDataProvider returned empty or None DataFrame.")
+            cls.env = None # Explicitly set to None
+            cls.test_logger.debug("setUpClass: initial_df was empty or None. cls.env is None. Returning.")
+            return # Stop further setup if data is bad
+
+        cls.test_logger.debug(f"setUpClass: initial_df loaded, shape: {initial_df.shape}. dataframe is not None and not empty.")
 
         try:
+            cls.test_logger.debug("setUpClass: Attempting to initialize CryptoTradingEnvironment with _test_trigger_debug_dump=True.")
             cls.env = CryptoTradingEnvironment(
-                data_provider=cls.mock_data_provider,
-                symbol=cls.mock_config_dict['symbol'],
-                initial_capital=cls.mock_config_dict['initial_capital'],
-                lookback_window=cls.mock_config_dict['lookback_window'],
-                trading_fee=cls.mock_config_dict['trading_fee'],
-                live_trading=cls.mock_config_dict['live_trading'],
-                broker_type=cls.mock_config_dict['broker_type'],
-                log_experience=cls.mock_config_dict['log_experience'],
-                # Pass the pre-fetched mock data via df for non-live mode
-                df=cls.mock_data_provider.get_historical_data(
-                    cls.mock_config_dict['symbol'], '1h', cls.mock_config_dict['lookback_window']
-                ) 
+                df=initial_df,
+                config=cls.mock_config_dict,
+                live_trading=False, # Explicitly set for testing offline scenarios
+                broker_type='simulation',
+                data_provider=cls.mock_data_provider, # Pass the mock provider
+                _test_trigger_debug_dump=True # Explicitly set to True for this instantiation
             )
-            cls.env.logger = cls.test_logger # Override env's default logger for test quietness
+            cls.test_logger.info("setUpClass: CryptoTradingEnvironment initialized successfully. cls.env should be set.")
         except Exception as e:
-            cls.test_logger.error(f"Error setting up TestCryptoTradingEnvironment: {e}", exc_info=True)
-            cls.env = None
+            cls.test_logger.error(f"setUpClass: Failed to initialize CryptoTradingEnvironment: {e}", exc_info=True)
+            cls.env = None # Ensure env is None if setup fails
+        
+        cls.test_logger.debug(f"setUpClass finished. cls.env is {'NOT None' if cls.env else 'None'}.")
 
     def setUp(self):
         """Set up for each test method."""
@@ -104,6 +118,25 @@ class TestCryptoTradingEnvironment(unittest.TestCase):
         self.sample_df['returns'] = self.sample_df['Close'].pct_change()
         self.sample_df['log_returns'] = np.log(1 + self.sample_df['returns'])
         self.sample_df.fillna(0.0, inplace=True) # Mimic initial NA fill
+        print(f"DEBUG TEST SETUP: self.env type: {type(self.env)}")
+        # print(f"DEBUG TEST SETUP: self.env dir: {dir(self.env)}") # Can be very verbose
+        if hasattr(self.env, 'window_size'):
+            print(f"DEBUG TEST SETUP: self.env.window_size exists: {self.env.window_size}")
+        else:
+            print(f"DEBUG TEST SETUP: self.env.window_size DOES NOT EXIST")
+        if hasattr(self.env, 'config') and isinstance(self.env.config, dict):
+            print(f"DEBUG TEST SETUP: self.env.config['window_size'] from dict: {self.env.config.get('window_size')}")
+        else:
+            print(f"DEBUG TEST SETUP: self.env.config is not a dict or does not exist")
+
+    def _normalize_series_for_test(self, series: pd.Series) -> pd.Series:
+        """Applies min-max normalization to [-1, 1] as done in _advanced_data_preprocessing."""
+        min_val = series.min()
+        max_val = series.max()
+        if max_val > min_val:
+            return 2 * (series - min_val) / (max_val - min_val) - 1
+        # If all values are the same, _advanced_data_preprocessing sets them to 0 after normalization
+        return pd.Series(0.0, index=series.index, dtype=float) # Ensure float output
 
     def test_advanced_data_preprocessing_runs_and_adds_columns(self):
         """Test that _advanced_data_preprocessing runs and adds expected indicator columns."""
@@ -172,6 +205,120 @@ class TestCryptoTradingEnvironment(unittest.TestCase):
         data_missing_high = self.sample_df.drop(columns=['High'])
         with self.assertRaisesRegex(ValueError, "Missing critical columns after rename: \\['High'\\]"):
             processed_df = self.env._advanced_data_preprocessing(data_missing_high.copy())
+
+    def test_atr_calculation_custom_params(self):
+        """Test ATR(14) calculation against expected values."""
+        if self.env is None:
+            self.skipTest("Environment setup failed.")
+        
+        # Use specific config for ATR for this test
+        self.env.atr_length_config = 14
+        
+        # Preprocess data using the environment's method
+        # The sample_df is used internally by _setup_initial_data_for_test
+        processed_df = self.env._advanced_data_preprocessing(self.env.historical_data.copy())
+
+        print(f"DEBUG TEST ATR: self.env type: {type(self.env)}")
+        # print(f"DEBUG TEST ATR: self.env dir: {dir(self.env)}") # Can be very verbose
+        if hasattr(self.env, 'window_size'):
+            print(f"DEBUG TEST ATR: self.env.window_size exists: {self.env.window_size}")
+        else:
+            print(f"DEBUG TEST ATR: self.env.window_size DOES NOT EXIST")
+        if hasattr(self.env, 'config') and isinstance(self.env.config, dict):
+            print(f"DEBUG TEST ATR: self.env.config['window_size'] from dict: {self.env.config.get('window_size')}")
+        else:
+            print(f"DEBUG TEST ATR: self.env.config is not a dict or does not exist")
+
+        # Calculate ATR directly using pandas_ta for comparison
+        temp_df_for_atr = self.sample_df.copy()
+        import pandas_ta as ta # Temporary import for direct calculation
+        raw_expected_atr_series = ta.atr(temp_df_for_atr['High'], temp_df_for_atr['Low'], temp_df_for_atr['Close'], length=14).fillna(0.0)
+
+        # Normalize the expected series to match preprocessing
+        expected_atr_series = self._normalize_series_for_test(raw_expected_atr_series)
+
+        # Align index with processed_df for comparison if necessary (e.g. if processed_df has a specific DatetimeIndex)
+        # If both are default RangeIndex of same length, direct comparison might be fine.
+        # However, explicit alignment is safer if processed_df's index might differ.
+        # Ensure processed_df['ATR'] exists and has the expected length from preprocessing.
+        if 'ATR' not in processed_df.columns:
+            self.fail("ATR column not found in processed_df")
+        if len(processed_df['ATR']) != len(expected_atr_series):
+            self.fail(f"Length mismatch before index alignment: processed_df ATR len {len(processed_df['ATR'])}, expected_atr_series len {len(expected_atr_series)}")
+
+        expected_atr_series.index = processed_df['ATR'].index
+
+        # print(f"DEBUG TEST: Processed ATR (len {len(processed_df['ATR'])}):\n{processed_df['ATR'].to_string()}")
+        # print(f"DEBUG TEST: Expected ATR (len {len(expected_atr_series)}):\n{expected_atr_series.to_string()}")
+
+        pd_testing.assert_series_equal(processed_df['ATR'], expected_atr_series, check_dtype=False, atol=1e-5, check_names=False)
+
+    def test_keltner_channels_calculation_custom_params(self):
+        """Test Keltner Channels(20,14,sma) calculation against expected values."""
+        if self.env is None:
+            self.skipTest("Environment setup failed.")
+
+        # Custom parameters for Keltner Channels
+        self.env.keltner_length_config = 20
+        self.env.keltner_scalar_config = 2.0
+        self.env.keltner_mamode_config = 'sma'
+        self.env.keltner_atr_length_config = 14
+
+        processed_df = self.env._advanced_data_preprocessing(self.env.historical_data.copy())
+        
+        temp_df_for_kc = self.sample_df.copy()
+        import pandas_ta as ta # Temporary import for direct calculation
+        keltner_direct = ta.kc(temp_df_for_kc['High'], temp_df_for_kc['Low'], temp_df_for_kc['Close'], 
+                                   length=self.env.keltner_length_config, 
+                                   scalar=self.env.keltner_scalar_config, 
+                                   mamode=self.env.keltner_mamode_config, 
+                                   atr_length=self.env.keltner_atr_length_config)
+        
+        expected_kc_basis_col_name = f"KCBs_{self.env.keltner_length_config}_{self.env.keltner_scalar_config}"
+        expected_kc_upper_col_name = f"KCUs_{self.env.keltner_length_config}_{self.env.keltner_scalar_config}"
+        expected_kc_lower_col_name = f"KCLs_{self.env.keltner_length_config}_{self.env.keltner_scalar_config}"
+
+        raw_expected_kc_basis_series = keltner_direct[expected_kc_basis_col_name].fillna(0.0)
+        raw_expected_kc_upper_series = keltner_direct[expected_kc_upper_col_name].fillna(0.0)
+        raw_expected_kc_lower_series = keltner_direct[expected_kc_lower_col_name].fillna(0.0)
+
+        # Normalize expected series
+        expected_kc_basis_series = self._normalize_series_for_test(raw_expected_kc_basis_series)
+        expected_kc_upper_series = self._normalize_series_for_test(raw_expected_kc_upper_series)
+        expected_kc_lower_series = self._normalize_series_for_test(raw_expected_kc_lower_series)
+
+        # Align index with processed_df for comparison
+        expected_kc_basis_series.index = processed_df['Keltner_Basis'].index 
+        expected_kc_upper_series.index = processed_df['Keltner_Upper'].index
+        expected_kc_lower_series.index = processed_df['Keltner_Lower'].index
+
+        pd_testing.assert_series_equal(processed_df['Keltner_Basis'], expected_kc_basis_series, check_dtype=False, atol=1e-5, check_names=False)
+        pd_testing.assert_series_equal(processed_df['Keltner_Upper'], expected_kc_upper_series, check_dtype=False, atol=1e-5, check_names=False)
+        pd_testing.assert_series_equal(processed_df['Keltner_Lower'], expected_kc_lower_series, check_dtype=False, atol=1e-5, check_names=False)
+
+    def test_roc_calculation_custom_params(self):
+        """Test ROC(12) calculation against expected values."""
+        if self.env is None:
+            self.skipTest("Environment setup failed.")
+            
+        self.env.roc_length_config = 12
+        
+        # Preprocess data
+        processed_df = self.env._advanced_data_preprocessing(self.env.historical_data.copy())
+
+        # Expected ROC (12 periods)
+        temp_df_for_roc = self.sample_df.copy()
+        import pandas_ta as ta # Temporary import for direct calculation
+        raw_expected_roc_series = ta.roc(temp_df_for_roc['Close'], length=12).fillna(0.0)
+
+        # Normalize expected series
+        expected_roc_series = self._normalize_series_for_test(raw_expected_roc_series)
+
+        # Align index
+        expected_roc_series.index = processed_df['ROC'].index # Align index
+
+        # print(f"DEBUG TEST: Processed ROC (len {len(processed_df['ROC'])}):\n{processed_df['ROC'].to_string()}")
+        pd_testing.assert_series_equal(processed_df['ROC'], expected_roc_series, check_dtype=False, atol=1e-5, check_names=False)
 
 # This allows running tests directly from this file
 if __name__ == '__main__':

@@ -4,10 +4,19 @@ import time
 import json
 import logging
 import traceback
+import joblib
 from typing import Dict, Any, List, Optional
+import datetime # <-- Add import
+
+# --- Early Logging --- #
+import logging
+initial_logger = logging.getLogger(f"{__name__}_initial")
+initial_logger.info("Crew Optimization Manager Script - Top Level Reached.")
+# --- End Early Logging --- #
 
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 import yfinance as yf
 import ccxt
 import ta
@@ -19,6 +28,8 @@ import gymnasium
 from stable_baselines3 import PPO
 import torch
 import optuna
+
+from alt_crypto_data import AltCryptoDataProvider
 
 # Configure logging
 logging.basicConfig(
@@ -208,7 +219,7 @@ class CrewOptimizationAgent:
         self.agents = {
             'data_analyst': DataAnalystAgent(symbol),
             'feature_engineer': FeatureEngineeringAgent(symbol),
-            'hyperparameter_tuner': HyperparameterTuningAgent(symbol),
+            'hyperparameter_tuner': HyperparameterTuningAgent(symbol, logger=logger), # Pass logger
             'risk_manager': RiskManagementAgent(symbol),
             'model_trainer': ModelTrainingAgent(symbol),
             'portfolio_optimizer': PortfolioOptimizationAgent(symbol)
@@ -241,18 +252,40 @@ class CrewOptimizationAgent:
             start_time = time.time()
             logger.info(f"Starting Optimization Pipeline for {self.symbol}")
             
+            # Instantiate Data Provider early for reuse
+            try:
+                initial_logger.info("Attempting to import AltCryptoDataProvider...")
+                data_provider = AltCryptoDataProvider()
+                logger.info("AltCryptoDataProvider initialized.")
+            except Exception as dp_error:
+                logger.error(f"Failed to initialize AltCryptoDataProvider: {dp_error}", exc_info=True)
+                return {'error': 'Data Provider Initialization Failed', 'details': str(dp_error)}
+
             # 1. Advanced Market Data Analysis
-            market_data = self.agents['data_analyst'].analyze_market_data()
+            # Pass the data_provider instance
+            market_data = self.agents['data_analyst'].analyze_market_data(data_provider=data_provider)
+            
+            # --- Check if market_data is valid --- #
+            if market_data is None or market_data.empty:
+                logger.error(f"Market data analysis failed or returned empty data for {self.symbol}. Skipping further processing.")
+                return {
+                    'error': 'Market Data Analysis Failed',
+                    'symbol': self.symbol,
+                    'details': 'analyze_market_data returned None or empty DataFrame.'
+                }
+            # -------------------------------------- #
             
             # 2. Sophisticated Feature Engineering
             enhanced_features = self.agents['feature_engineer'].engineer_features(market_data)
-            
+
             # 3. Multi-Objective Hyperparameter Tuning
+            # Pass data_provider and features
             best_hyperparams = self.agents['hyperparameter_tuner'].tune_hyperparameters(
+                data_provider=data_provider,
                 features=enhanced_features,
-                objectives=['roi', 'risk', 'stability']
+                objectives=['roi', 'risk', 'stability'] # Example objectives
             )
-            
+
             # 4. Comprehensive Risk Assessment
             risk_profile = self.agents['risk_manager'].assess_risk(
                 hyperparameters=best_hyperparams,
@@ -260,7 +293,9 @@ class CrewOptimizationAgent:
             )
             
             # 5. Advanced Model Training
+            # Pass data_provider, features, hyperparameters, and risk_profile
             trained_model = self.agents['model_trainer'].train_model(
+                data_provider=data_provider,
                 features=enhanced_features,
                 hyperparameters=best_hyperparams,
                 risk_profile=risk_profile
@@ -320,6 +355,8 @@ class CrewOptimizationAgent:
             logger.info(f"Optimization Pipeline Completed Successfully for {self.symbol}")
             logger.info(f"Optimization Duration: {optimization_results['duration']:.2f} seconds")
             
+            # Return the final trained model within the results
+            optimization_results['trained_model'] = trained_model # Ensure model is in results
             return optimization_results
         
         except Exception as e:
@@ -357,18 +394,18 @@ class DataAnalystAgent:
         self.symbol = symbol
         self.communication_hub = None
     
-    def analyze_market_data(self) -> Optional[pd.DataFrame]:
+    def analyze_market_data(self, data_provider: AltCryptoDataProvider) -> Optional[pd.DataFrame]:
         """Analyze market data using yfinance and ta libraries"""
         try:
             logger.info(f"Analyzing market data for {self.symbol}...")
             # Define date range - Last 40 days 
-            end_date = datetime.now()
-            start_date = end_date - timedelta(days=40)
+            end_date = datetime.datetime.now()
+            start_date = end_date - datetime.timedelta(days=40)
 
             # Fetch historical data
             # Use start/end dates instead of period for hourly data 
-            data = yf.download(
-                self.symbol, 
+            data = data_provider.fetch_historical_data(
+                symbol=self.symbol, 
                 start=start_date.strftime('%Y-%m-%d'), 
                 end=end_date.strftime('%Y-%m-%d'), 
                 interval='1h', 
@@ -559,154 +596,157 @@ class FeatureEngineeringAgent:
 
 class HyperparameterTuningAgent:
     """Agent responsible for hyperparameter optimization"""
-    def __init__(self, symbol: str):
+    def __init__(self, symbol: str, logger):
         self.symbol = symbol
-        self.communication_hub = None
+        self.search_space = {
+            # PPO specific
+            'n_steps': optuna.distributions.IntDistribution(128, 2048, step=64),
+            'gamma': optuna.distributions.FloatDistribution(0.9, 0.9999, log=True),
+            # 'vf_coef': optuna.distributions.UniformDistribution(0.2, 0.8),
+        }
+        self.logger = logger # Store logger instance
     
-    def tune_hyperparameters(self, features, objectives):
+    def tune_hyperparameters(self, data_provider: AltCryptoDataProvider, features: pd.DataFrame, objectives: List[str], n_trials: int = 10):
         """
         Use Optuna for hyperparameter tuning
-        
+
         Args:
-            features (pd.DataFrame): Engineered features (used for context, not passed to env directly)
-            objectives (list): Optimization objectives (currently unused in objective)
-        
+            data_provider (AltCryptoDataProvider): Data provider instance
+            features (pd.DataFrame): Engineered features (used for environment creation)
+            objectives (list): Optimization objectives (currently unused, placeholder)
+            n_trials (int): Number of Optuna trials
+
         Returns:
-            Best hyperparameters
+            dict: Best hyperparameters found
         """
-        try:
-            import optuna
-            import os
-            from stable_baselines3 import PPO
-            from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment
-            import numpy as np
-            import pandas as pd 
-            from datetime import datetime, timedelta 
+        self.logger.info(f"Starting Hyperparameter Tuning for {self.symbol} ({n_trials} trials)")
 
-            # Ensure storage directory exists
-            storage_dir = '/Users/activate/Dev/robinhood-crypto-bot/optuna_storage'
-            os.makedirs(storage_dir, exist_ok=True)
-            # Create a unique DB path per symbol
-            db_filename = f"hyperparameter_optimization_{self.symbol.replace('-', '_')}.db"
-            db_path = os.path.join(storage_dir, db_filename)
-            storage_url = f'sqlite:///{db_path}'
+        # --- Define Objective Function Nested --- #
+        def objective(trial):
+            try:
+                # 1. Define Hyperparameter Search Space
+                hyperparameters = {
+                    'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True),
+                    'batch_size': trial.suggest_categorical('batch_size', [64, 128, 256]),
+                    'n_steps': trial.suggest_categorical('n_steps', [1024, 2048, 4096]),
+                    'gamma': trial.suggest_float('gamma', 0.9, 0.999),
+                    'gae_lambda': trial.suggest_float('gae_lambda', 0.9, 0.99),
+                    'ent_coef': trial.suggest_float('ent_coef', 0.0, 0.1),
+                    'clip_range': trial.suggest_float('clip_range', 0.1, 0.3),
+                    'n_epochs': trial.suggest_int('n_epochs', 5, 20),
+                    # Add other env params if needed, e.g., lookback_window
+                    # 'lookback_window': trial.suggest_int('lookback_window', 12, 48)
+                }
 
-            # --- Define the Optuna Objective Function --- 
-            def objective(trial):
-                try:
-                    # 1. Define Hyperparameter Search Space
-                    hyperparameters = {
-                        'learning_rate': trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True),
-                        'batch_size': trial.suggest_categorical('batch_size', [64, 128, 256]),
-                        'n_steps': trial.suggest_categorical('n_steps', [1024, 2048, 4096]),
-                        'gamma': trial.suggest_float('gamma', 0.9, 0.999),
-                        'gae_lambda': trial.suggest_float('gae_lambda', 0.9, 0.99),
-                        'ent_coef': trial.suggest_float('ent_coef', 0.0, 0.1),
-                        'clip_range': trial.suggest_float('clip_range', 0.1, 0.3),
-                        'n_epochs': trial.suggest_int('n_epochs', 5, 20),
-                    }
-                    
-                    # 2. Create Environment Instance for this trial
-                    # Define date range for tuning environment data
-                    end_date = datetime.now()
-                    start_date = end_date - timedelta(days=730) # Use last 2 years for tuning data
-                    
-                    # Initialize Environment - let it fetch its own data
-                    env = CryptoTradingEnvironment(
-                        symbol=self.symbol,
-                        start_date=start_date.strftime('%Y-%m-%d'),
-                        end_date=end_date.strftime('%Y-%m-%d'),
-                        interval='1h', # Consistent interval
-                        initial_balance=10000, # Use a standard balance for comparison
-                        fee=0.001, # Example fee 
-                        log_metrics=False # Disable detailed logging during tuning
-                    )
-                    
-                    # Check if data loading failed in the environment
-                    if env.df is None or env.df.empty:
-                        logger.warning(f"Trial {trial.number}: Data loading failed for symbol {self.symbol}. Skipping trial.")
-                        return -1e9 # Return poor score if data fails
+                # 2. Create Environment Instance for this trial
+                # Use captured data_provider and features from the outer scope
+                # Ensure features is not empty
+                if features is None or features.empty:
+                     logger.warning(f"Trial {trial.number}: Features data is empty. Skipping trial.")
+                     return -1e9 # Return poor score if no features
 
-                    # Wrap in a VecEnv (required by SB3)
-                    vec_env = make_vec_env(lambda: env, n_envs=1)
+                env = CryptoTradingEnvironment(
+                    data_provider=data_provider, # Captured from outer scope
+                    symbol=self.symbol,
+                    initial_capital=10000.0, # Use a standard balance for comparison
+                    trading_fee=0.001,      # Use a standard fee for comparison
+                    df=features,              # Captured from outer scope
+                    # live_trading=False # Default
+                    # lookback_window=hyperparameters.get('lookback_window', 24) # If tuning lookback
+                )
 
-                    # 3. Create and Train PPO Model
-                    model = PPO(
-                        "MlpPolicy", 
-                        vec_env, 
-                        verbose=0, 
-                        device='auto', 
-                        **hyperparameters
-                    )
-                    
-                    training_timesteps = 10000 
-                    model.learn(total_timesteps=training_timesteps)
+                # Check if data loading/processing within env failed (redundant if features is checked, but safe)
+                if env.historical_data is None or env.historical_data.empty:
+                    logger.warning(f"Trial {trial.number}: Environment failed to initialize with data. Skipping trial.")
+                    return -1e9
 
-                    # 4. Evaluate the Trained Model
-                    obs, _ = vec_env.reset()
-                    cumulative_reward = 0
-                    # Get initial portfolio value from the environment after reset
-                    final_portfolio_value = env.balance 
-                    # Evaluate over the length of the data fetched by the env
-                    n_steps = len(env.df) 
+                # Wrap in a VecEnv
+                from stable_baselines3.common.env_util import make_vec_env
+                vec_env = make_vec_env(lambda: env, n_envs=1)
 
-                    for step in range(n_steps):
+                # 3. Create and Train PPO Model
+                from stable_baselines3 import PPO
+                model = PPO(
+                    "MlpPolicy",
+                    vec_env,
+                    verbose=0,
+                    device='auto',
+                    # Filter only PPO specific hyperparameters
+                    **{k: v for k, v in hyperparameters.items() if k in ['learning_rate', 'n_steps', 'batch_size', 'gamma', 'gae_lambda', 'ent_coef', 'clip_range', 'n_epochs']}
+                )
+
+                training_timesteps = 10000 # Reduced timesteps for faster tuning
+                model.learn(total_timesteps=training_timesteps)
+
+                # 4. Evaluate the Trained Model
+                obs, _ = vec_env.reset()
+                cumulative_reward = 0
+                # Get initial portfolio value from the environment after reset
+                final_portfolio_value = env.initial_capital # Start with initial capital
+                n_steps_eval = len(env.historical_data) - env.lookback_window # Evaluate over valid steps
+
+                if n_steps_eval <= 0:
+                    logger.warning(f"Trial {trial.number}: Not enough data points ({len(env.historical_data)}) for evaluation with lookback {env.lookback_window}. Skipping eval.")
+                    final_portfolio_value = env.initial_capital # Return initial capital if no eval possible
+                else:
+                    for step in range(n_steps_eval):
                         action, _ = model.predict(obs, deterministic=True)
                         obs, reward, terminated, truncated, info = vec_env.step(action)
                         done = terminated or truncated
-                        cumulative_reward += reward[0] 
+                        cumulative_reward += reward[0]
+                        # Get portfolio value from info if available
                         if isinstance(info, list) and len(info) > 0 and 'portfolio_value' in info[0]:
                             final_portfolio_value = info[0]['portfolio_value']
-                        
+
                         if done:
-                            # Get final value directly from env property before reset
-                            final_portfolio_value = env.portfolio_value
+                            # Ensure final value is captured correctly on done
+                            if isinstance(info, list) and len(info) > 0 and 'portfolio_value' in info[0]:
+                                final_portfolio_value = info[0]['portfolio_value']
+                            else: # Fallback to env property if not in info
+                                final_portfolio_value = env.portfolio_value
                             break
-                    
-                    # If loop finished without done, get final value
+
+                    # If loop finished without done, capture final value from env state
                     if not done:
-                        final_portfolio_value = env.portfolio_value
+                         final_portfolio_value = env.portfolio_value
 
-                    # Cleanup environment
-                    vec_env.close()
+                # Cleanup environment
+                vec_env.close()
 
-                    logger.debug(f"Trial {trial.number}: Params={trial.params}, Final Value={final_portfolio_value}, Cum Reward={cumulative_reward}")
-                    
-                    if np.isnan(final_portfolio_value) or final_portfolio_value <= 0:
-                        return -1e9 
-                        
-                    return final_portfolio_value
-                
-                except Exception as e:
-                    logger.warning(f"Trial {trial.number} failed during execution: {e}")
-                    logger.warning(traceback.format_exc()) 
-                    return -1e9 
-            # --- End of Objective Function --- 
-            
-            # Create and run study
-            study = optuna.create_study(
-                study_name=f'{self.symbol} Hyperparameter Optimization',
-                direction='maximize', 
-                storage=storage_url,
-                load_if_exists=True,
-                pruner=optuna.pruners.MedianPruner() 
-            )
-            
-            study.optimize(objective, n_trials=50, n_jobs=1) 
-            
-            logger.info("Hyperparameter Tuning Completed")
-            logger.info(f"Best Trial Value (Final Portfolio): {study.best_trial.value}")
-            logger.info(f"Best Hyperparameters: {study.best_trial.params}")
-            
-            return study.best_trial.params
-        
+                self.logger.debug(f"Trial {trial.number}: Params={trial.params}, Final Value={final_portfolio_value:.2f}, Cum Reward={cumulative_reward:.2f}")
+
+                # Handle potential NaN or non-positive portfolio values
+                if np.isnan(final_portfolio_value) or final_portfolio_value <= 0:
+                    self.logger.warning(f"Trial {trial.number} resulted in invalid final portfolio value: {final_portfolio_value}. Returning poor score.")
+                    return -1e9 # Return a very poor score
+
+                # Return final portfolio value as the objective to maximize
+                return final_portfolio_value
+
+            except Exception as e:
+                self.logger.warning(f"Trial {trial.number} failed during execution: {e}", exc_info=True)
+                # Consider logging traceback here if needed: self.logger.warning(traceback.format_exc())
+                return -1e9 # Return a very poor score on any exception
+        # --- End of Nested Objective Function --- #
+
+        try:
+            # Create Optuna study
+            study = optuna.create_study(direction='maximize')
+            # Run optimization using the nested objective function
+            study.optimize(objective, n_trials=n_trials, timeout=600) # Added timeout
+
+            self.logger.info("Hyperparameter Tuning Completed")
+            self.logger.info(f"Best Trial Value (Final Portfolio): {study.best_value}")
+            self.logger.info(f"Best Hyperparameters: {study.best_params}")
+            return study.best_params
+
         except Exception as e:
-            logger.error(f"Hyperparameter tuning failed: {e}")
-            logger.error(traceback.format_exc())
+            self.logger.error(f"Optuna hyperparameter tuning failed: {e}", exc_info=True)
+            # Return default or empty dict on failure
             return {}
 
 class RiskManagementAgent:
-    """Agent responsible for risk assessment"""
+    """Agent focused on risk analysis and mitigation"""
     def __init__(self, symbol: str):
         self.symbol = symbol
         self.communication_hub = None
@@ -743,14 +783,15 @@ class RiskManagementAgent:
 class ModelTrainingAgent:
     """Agent responsible for model training"""
     def __init__(self, symbol: str):
-        self.symbol = symbol
-        self.communication_hub = None
-    
-    def train_model(self, features, hyperparameters, risk_profile):
+        self.symbol = symbol # Keep symbol for context/logging if needed
+        self.logger = logging.getLogger(f"{self.__class__.__name__}_{symbol}")
+
+    def train_model(self, data_provider: AltCryptoDataProvider, features: pd.DataFrame, hyperparameters: Dict, risk_profile: Dict):
         """
         Train reinforcement learning model
         
         Args:
+            data_provider (AltCryptoDataProvider): Data provider instance
             features (pd.DataFrame): Engineered features
             hyperparameters (dict): Optimized hyperparameters
             risk_profile (dict): Risk assessment profile
@@ -766,21 +807,45 @@ class ModelTrainingAgent:
             # Create custom gym environment
             from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment
             
+            # --- Environment Initialization ---
+            # Extract potential environment-related params from hyperparameters IF THEY WERE TUNED
+            # Defaults will be used from CryptoTradingEnvironment if not tuned.
+            env_kwargs = {}
+            if 'initial_capital' in hyperparameters: env_kwargs['initial_capital'] = hyperparameters['initial_capital']
+            if 'lookback_window' in hyperparameters: env_kwargs['lookback_window'] = hyperparameters['lookback_window']
+            if 'trading_fee' in hyperparameters: env_kwargs['trading_fee'] = hyperparameters['trading_fee']
+            # Add other potential env params here if they are added to Optuna search space
+            
+            self.logger.info(f"Initializing CryptoTradingEnvironment with specific args and kwargs: {env_kwargs}")
             env = CryptoTradingEnvironment(
-                market_data=features,
-                initial_balance=100000,
-                **hyperparameters
+                df=features,                # Pass historical data
+                data_provider=data_provider, # Pass the data provider instance
+                symbol=self.symbol,         # Pass the symbol
+                # Pass any tuned env parameters, otherwise defaults are used
+                **env_kwargs
             )
+            self.logger.info("CryptoTradingEnvironment initialized for training.")
             
-            # Initialize and train model
+            # --- PPO Model Initialization ---
+            # Filter hyperparameters for only those relevant to PPO
+            ppo_hyperparams = {
+                k: v for k, v in hyperparameters.items() 
+                if k in [
+                    'n_steps', 'gamma', 'learning_rate', 'vf_coef', 'max_grad_norm', 
+                    'gae_lambda', 'ent_coef', 'clip_range', 'batch_size', 'n_epochs'
+                ] # Add other valid PPO params if tuned
+            }
+            self.logger.info(f"Initializing PPO model with hyperparameters: {ppo_hyperparams}")
             model = PPO(
-                'MlpPolicy', 
-                env, 
-                verbose=1,
-                **{k: v for k, v in hyperparameters.items() if k in ['learning_rate', 'n_steps', 'batch_size', 'gamma', 'gae_lambda', 'ent_coef', 'clip_range']}
+                "MlpPolicy",
+                env,
+                verbose=1, 
+                tensorboard_log=f"{self.model_save_dir}/tensorboard/",
+                # Use only the relevant hyperparameters for the PPO model
+                **ppo_hyperparams 
             )
             
-            # Train model
+            # --- Model Training ---
             model.learn(total_timesteps=50000)
             
             # Log training details
@@ -933,18 +998,61 @@ def main():
     """
     Main execution for crew-based optimization
     """
+    # --- Main Function Logging --- #
+    main_logger = logging.getLogger("CrewOptimizationManager_Main")
+    main_logger.info("Entered main function of crew_optimization_manager.")
+    # --- End Main Function Logging --- #
     try:
         # Initialize crew optimization agent
-        crew_agent = CrewOptimizationAgent(symbol='BTC-USD', initial_capital=100000)
+        # Ensure the TRADING_SYMBOL env var is set by the launcher
+        trading_symbol = os.environ.get('TRADING_SYMBOL', 'BTC-USD') # Default if not set
+        logger.info(f"Initializing CrewOptimizationAgent for symbol: {trading_symbol}")
+        crew_agent = CrewOptimizationAgent(symbol=trading_symbol, initial_capital=100000)
         
         # Run optimization pipeline
+        logger.info(f"Running optimization pipeline for {trading_symbol}...")
         optimization_results = crew_agent.run_optimization_pipeline()
         
-        # Save results
-        import joblib
-        joblib.dump(optimization_results, '/Users/activate/Dev/robinhood-crypto-bot/logs/optimization_results.pkl')
-        
-        logger.info("Crew Optimization Pipeline Completed Successfully")
+        # Define model save path and directory
+        model_save_dir = '/Users/activate/Dev/robinhood-crypto-bot/models'
+        model_save_path = os.path.join(model_save_dir, 'ppo_crypto_trader_live.zip')
+        log_save_path = '/Users/activate/Dev/robinhood-crypto-bot/logs/optimization_results.pkl'
+
+        # Create directories if they don't exist
+        os.makedirs(model_save_dir, exist_ok=True)
+        os.makedirs(os.path.dirname(log_save_path), exist_ok=True)
+
+        # Save optimization results dictionary (excluding the model object if too large)
+        try:
+            results_to_save = optimization_results.copy()
+            if 'trained_model' in results_to_save:
+                del results_to_save['trained_model'] # Avoid saving large model object in pickle
+            joblib.dump(results_to_save, log_save_path)
+            logger.info(f"Optimization results dictionary saved to {log_save_path}")
+        except Exception as dump_error:
+            logger.error(f"Error saving optimization results dictionary: {dump_error}")
+
+        # Explicitly save the trained model
+        trained_model = optimization_results.get('trained_model')
+        if trained_model:
+            logger.info(f"Found trained model object in results. Type: {type(trained_model)}")
+            try:
+                logger.info(f"Attempting to save model to {model_save_path}...")
+                trained_model.save(model_save_path)
+                logger.info(f"Model saving process completed for path: {model_save_path}") 
+                # Verify file existence immediately after saving attempt
+                if os.path.exists(model_save_path):
+                    logger.info(f"Verified: Model file exists at {model_save_path}")
+                else:
+                    logger.error(f"Verification failed: Model file NOT found at {model_save_path} immediately after save call.")
+            except Exception as save_error:
+                logger.error(f"Error occurred during model.save() operation for {model_save_path}: {save_error}", exc_info=True) 
+        elif 'error' not in optimization_results:
+             logger.warning("Optimization pipeline finished, but no trained model found in results to save.")
+        else:
+            logger.error("Optimization pipeline failed, skipping model save.")
+
+        logger.info(f"Crew Optimization Pipeline for {trading_symbol} Completed.")
     
     except Exception as e:
         logger.error(f"Crew optimization failed: {e}")

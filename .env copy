@@ -1,0 +1,48 @@
+# Trading Configuration
+TRADING_STRATEGY=RL  # Options: 'RL' (reinforcement learning), 'macd', 'rsi', 'breakout'
+CHECK_INTERVAL=5  # Minutes between trading checks
+TRADE_AMOUNT_USD=20.0  # Maximum USD amount per trade (used for position sizing)
+SYMBOLS_TO_TRADE=BTC-USD  # Comma-separated list of trading pairs (e.g., BTC-USD,ETH-USD)
+LOOKBACK_DAYS=90  # Days of historical data to fetch for indicators
+ENABLE_TRADING=true  # Set to false for paper trading/testing
+LOG_FILE=crypto_bot.log  # Name of the log file
+LOG_LEVEL=INFO  # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+
+# Broker Configuration
+BROKER_TYPE=robinhood  # Specify the broker to use ('robinhood' or 'ibkr')
+
+# Robinhood API Credentials (REQUIRED if BROKER_TYPE=robinhood)
+ROBINHOOD_API_KEY=rh-api-1a57571f-4cd8-44d6-a10d-895f02a53678
+BASE64_PRIVATE_KEY=Pqq1zdIHr15jmkS0toeCRezRgVkbJvkGGK/NbVdXJbA=
+OPENAI_API_KEY=sk-proj-6d46568f45c244158112c4540f221623
+# IMPORTANT: The value above is your PRIVATE KEY (base64). DO NOT register this in the portal.
+# You must register the corresponding PUBLIC KEY (base64) in the Robinhood portal.
+# PUBLIC KEY (base64): <PASTE_YOUR_PUBLIC_KEY_HERE> # Add your generated public key here after registering it.
+# If you need to generate the public key from your BASE64_PRIVATE_KEY, run this Python command:
+# python -c "import nacl.signing, base64; print(base64.b64encode(nacl.signing.SigningKey(base64.b64decode('YOUR_BASE64_PRIVATE_KEY_HERE')).verify_key.encode()).decode())" 
+# Replace 'YOUR_BASE64_PRIVATE_KEY_HERE' with the actual value from the line above.
+Private Key (Base64):
+VBr4mupD83MZJv2R4da8z0xAx2Ny/2YXkmUbgO24lFI=
+
+Public Key (Base64):
+QbpLPOye3p8rRxyt3yYETWs5gmi2xFIy2ehj3irrODE=
+Exit Code 0
+
+Public key
+
+QbpLPOye3p8rRxyt3yYETWs5gmi2xFIy2ehj3irrODE=
+API key
+rh-api-8cf0cb4e-601b-4b18-8352-a7f927b8e0d6
+
+# RL Configuration (Required if TRADING_STRATEGY=RL)
+RL_MODEL_PATH=trained_models/BTC_USD_PPO_100000steps.zip  # Path to your trained model
+ENABLE_RL_MODEL=true  # Enable/disable the RL model for trading
+
+# Web Server Configuration (Optional)
+PORT=9095  # Port for the web interface
+ENABLE_WEB_SERVER=true  # Enable/disable the web interface
+
+# --- Robinhood Credentials (REQUIRED) --- 
+ROBINHOOD_USERNAME=usualprovider@gmail.com
+ROBINHOOD_PASSWORD=Only1God__
+# ROBINHOOD_MFA_CODE=your_current_mfa_code # Only needed if MFA is enabled

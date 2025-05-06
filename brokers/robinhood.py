@@ -1,39 +1,122 @@
+import os
+import base64
 import datetime
 import json
-import logging
-import os
+from typing import Any, Dict, Optional, List
 import uuid
-from decimal import Decimal, InvalidOperation
-from typing import Any, Dict, Optional, List, Tuple, Union
-
-import pandas as pd
-import requests
-import yfinance as yf
+from nacl.signing import SigningKey
 from dotenv import load_dotenv
-
-from config import ROBINHOOD_API_KEY
+import requests
+import pandas as pd
+import logging
+import time
+from decimal import Decimal, InvalidOperation
 from .base_broker import BrokerInterface, Order, Holding, MarketData
 
-# Load environment variables from .env file if present
+# Load environment variables
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-API_KEY = ROBINHOOD_API_KEY or os.getenv("ROBINHOOD_API_KEY")
-
 class RobinhoodBroker(BrokerInterface):
-    """Robinhood Crypto API implementation for the BrokerInterface."""
+    """Broker implementation for Robinhood Crypto API."""
 
     def __init__(self):
-        if not API_KEY:
-            logger.error("ROBINHOOD_API_KEY not found in config or environment variables.")
-            raise ValueError("API Key must be set.")
-        self.api_key = API_KEY
+        """Initialize the Robinhood broker, loading keys and setting up."""
+        logger.info("Initializing RobinhoodBroker...")
+        self.api_key = os.getenv("ROBINHOOD_API_KEY")
+        base64_private_key_env = os.getenv("BASE64_PRIVATE_KEY")
+
+        if not self.api_key:
+            logger.error("ROBINHOOD_API_KEY not found in environment variables.")
+            raise ValueError("ROBINHOOD_API_KEY must be set.")
+        if not base64_private_key_env:
+            logger.error("BASE64_PRIVATE_KEY not found in environment variables.")
+            raise ValueError("BASE64_PRIVATE_KEY must be set.")
+
+        try:
+            private_key_seed = base64.b64decode(base64_private_key_env)
+            self.private_key = SigningKey(private_key_seed)
+            logger.info("Signing key generated successfully from BASE64_PRIVATE_KEY.")
+        except Exception as e:
+            logger.error(f"Failed to decode BASE64_PRIVATE_KEY or create SigningKey: {e}")
+            raise ValueError("Invalid BASE64_PRIVATE_KEY provided.") from e
+
         self.base_url = "https://trading.robinhood.com"
-        self._session = requests.Session()
-        self._session.headers.update({"Content-Type": "application/json; charset=utf-8", "Authorization": f"Bearer {API_KEY}"})
         self.latest_market_data = {}
+        self._session = requests.Session() # Session for connection pooling
+        # Headers will be generated per request
         logger.info(f"RobinhoodBroker initialized for base URL: {self.base_url}")
+
+    @staticmethod
+    def _get_current_timestamp() -> int:
+        return int(datetime.datetime.now(tz=datetime.timezone.utc).timestamp())
+
+    @staticmethod
+    def _get_query_params(key: str, *args: Optional[str]) -> str:
+        if not args:
+            return ""
+
+        params = []
+        for arg in args:
+            if arg: # Ensure arg is not None or empty before adding
+                params.append(f"{key}={arg}")
+
+        return "?" + "&".join(params) if params else ""
+
+    def get_authorization_header(
+            self, method: str, path: str, body: str, timestamp: int
+    ) -> Dict[str, str]:
+        """Generate the authorization header based on the API documentation."""
+        message_to_sign = f"{self.api_key}{timestamp}{path}{method}{body}"
+        signed = self.private_key.sign(message_to_sign.encode("utf-8"))
+
+        return {
+            "x-api-key": self.api_key,
+            "x-signature": base64.b64encode(signed.signature).decode("utf-8"),
+            "x-timestamp": str(timestamp),
+            "Content-Type": "application/json; charset=utf-8" # Add Content-Type here
+        }
+
+    def _make_api_request(self, method: str, path: str, body: str = "") -> Optional[Any]:
+        """Make an authenticated API request to Robinhood."""
+        timestamp = self._get_current_timestamp()
+        headers = self.get_authorization_header(method, path, body, timestamp)
+        url = self.base_url + path
+        response_json = None
+
+        try:
+            if method == "GET":
+                response = self._session.get(url, headers=headers, timeout=10)
+            elif method == "POST":
+                # Ensure body is valid JSON string if provided
+                request_body_data = json.loads(body) if body else None
+                response = self._session.post(url, headers=headers, json=request_body_data, timeout=10)
+            else:
+                logger.error(f"Unsupported HTTP method: {method}")
+                return None
+
+            response.raise_for_status()  # Raise HTTPError for bad responses (4xx or 5xx)
+            response_json = response.json()
+            logger.debug(f"{method} {path} successful. Response: {response_json}")
+
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Error making {method} request to {url}: {e}")
+            if hasattr(e, 'response') and e.response is not None:
+                try:
+                    error_details = e.response.json()
+                    logger.error(f"API Error Response: {error_details}")
+                except json.JSONDecodeError:
+                    logger.error(f"API Error Response (non-JSON): {e.response.text}")
+            return None # Indicate failure
+        except json.JSONDecodeError as e:
+             logger.error(f"Failed to decode JSON response from {url}: {e}")
+             return None # Indicate failure
+        except Exception as e:
+            logger.exception(f"An unexpected error occurred during API request to {url}: {e}")
+            return None # Indicate failure
+
+        return response_json
 
     def connect(self) -> bool:
         """Check if API keys are loaded. Connection is implicit."""
@@ -354,13 +437,13 @@ class RobinhoodBroker(BrokerInterface):
         try:
             if 'm' in yf_interval or 'h' in yf_interval:
                  fetch_period = '7d' if 'm' in yf_interval else '60d' 
-                 data = yf.download(symbol, period=fetch_period, interval=yf_interval, progress=False)
+                 data = pd.read_json(f"https://query1.finance.yahoo.com/v7/finance/chart/{symbol}?range=1d&interval={yf_interval}&corsDomain=finance.yahoo.com")
             elif 'd' in yf_interval or 'wk' in yf_interval or 'mo' in yf_interval:
                  days_per_period = {'d': 1, 'wk': 7, 'mo': 30}[yf_interval[-2:]]
                  total_days_needed = periods * days_per_period * 1.2 
                  end_date = datetime.datetime.now()
                  start_date = end_date - datetime.timedelta(days=total_days_needed)
-                 data = yf.download(symbol, start=start_date.strftime('%Y-%m-%d'), end=end_date.strftime('%Y-%m-%d'), interval=yf_interval, progress=False)
+                 data = pd.read_json(f"https://query1.finance.yahoo.com/v7/finance/chart/{symbol}?period1={int(start_date.timestamp())}&period2={int(end_date.timestamp())}&interval={yf_interval}&corsDomain=finance.yahoo.com")
             else:
                  logger.error(f"Could not determine fetch parameters for interval {yf_interval}")
                  return None
@@ -386,75 +469,6 @@ class RobinhoodBroker(BrokerInterface):
 
         except Exception as e:
             logger.error(f"Error fetching historical data for {symbol} using yfinance: {e}", exc_info=True)
-            return None
-
-    def _get_query_params(self, key: str, *args: Optional[str]) -> str:
-        """Helper to construct URL query parameters, handling symbol conversion except for the 'symbol' key itself."""
-        if not args or all(arg is None for arg in args):
-            return ""
-
-        params = []
-        for arg in args:
-            if arg is not None:
-                value_to_use = arg if key == 'symbol' else self._convert_symbol_for_trading(arg)
-                if value_to_use: 
-                     params.append(f"{key}={value_to_use}")
-            
-        return "?" + "&".join(params)
-
-    def _make_api_request(self, method: str, path: str, body: str = "") -> Any:
-        url = self.base_url + path
-        headers = self._session.headers
-        json_payload = None
-
-        try:
-            logger.debug(f"Attempting {method} request to URL: {url}")
-            logger.debug(f"Request Headers: {headers}")
-            if method == "POST" and body:
-                logger.debug(f"Request Body: {body}")
-
-            response = self._session.request(method.upper(), url, headers=headers, json=json_payload, timeout=20) 
-
-            logger.debug(f"Response status code: {response.status_code}")
-            response_content_for_log = None
-            if response.content:
-                try:
-                    response_json = response.json()
-                    logger.debug(f"Response JSON: {response_json}")
-                    response_content_for_log = response_json 
-                except json.JSONDecodeError:
-                    response_text = response.text
-                    logger.debug(f"Response Text: {response_text[:500]}...") 
-                    response_content_for_log = response_text 
-
-            response.raise_for_status() 
-            
-            if response.status_code == 204 or not response.content:
-                logger.debug("Request successful with empty response body.")
-                return None 
-            
-            json_response = None
-            try:
-                 json_response = response.json() if isinstance(response_content_for_log, dict) else response_content_for_log
-                 return json_response
-            except Exception as json_err: 
-                 logger.error(f"Error processing response content: {json_err}. Content was: {response_content_for_log}")
-                 return None
-
-        except requests.exceptions.HTTPError as http_err:
-            logger.error(f"HTTP error occurred during {method} request to {url}: {http_err}") 
-            response_content_for_log = None
-            try:
-                 error_details = http_err.response.json()
-                 logger.error(f"Robinhood error details: {error_details}")
-                 response_content_for_log = error_details 
-            except json.JSONDecodeError:
-                 response_text = http_err.response.text
-                 logger.error(f"Could not parse Robinhood error details from response: {response_text[:500]}...")
-                 response_content_for_log = response_text 
-            return response_content_for_log
-        except requests.exceptions.RequestException as e:
-            logger.error(f"Error making API request to {path}: {e}", exc_info=True)
             return None
 
     def _convert_symbol_for_trading(self, symbol: Optional[str]) -> Optional[str]:

@@ -12,82 +12,86 @@ import uuid # For client_order_id
 import json
 from dotenv import load_dotenv
 from stable_baselines3 import PPO
+from brokers.base_broker import BaseBroker
+from brokers.robinhood_broker import RobinhoodBroker
+from typing import Dict, Any, Optional, List, Tuple, Union
 
 # Load environment variables
 load_dotenv()
 
 # Local imports
-from config import * # Load all config variables
+from config import load_config, setup_logging, Config
 from alt_crypto_data import AltCryptoDataProvider # Import only the class
-from robinhood_api_client import CryptoAPITrading # Import the API helper class
 
 # Define constants used for RL feature processing directly here
 OHLCV_COLS = ['open', 'high', 'low', 'close', 'volume'] # Standard OHLCV columns
 # Features used for RL model input (MUST match training environment)
 FEATURE_COLS = [
-    'open', 'high', 'low', 'close', 'volume', # OHLCV
-    'RSI_14', # RSI
-    'MACD_12_26_9', # MACD Line
-    #'MACDh_12_26_9', # MACD Histogram (Removed)
-    #'MACDs_12_26_9', # MACD Signal Line (Removed)
-    #'BBL_20_2.0',    # Bollinger Lower Band (Removed)
-    'BBM_20_2.0',    # Bollinger Middle Band
-    #'BBU_20_2.0'     # Bollinger Upper Band (Removed)
+    'open', 'high', 'low', 'close' # Assuming model was trained only on OHLC
 ]
 
-# Setup basic logging first in case _setup_logging fails or isn't defined yet
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
-
+# Default mapping from RL integer actions to trade signals
+DEFAULT_RL_ACTIONS_MAP = {0: 'sell', 1: 'hold', 2: 'buy'}
+# Define the expected observation space shape for the RL model
+# This might include flattened historical data + current balance + current holding
+# Example: (lookback_window * num_features) + 2
+# Adjust this based on your actual feature engineering
+EXPECTED_OBS_SHAPE = (60 * 4) + 2 # Based on model error: 60 lookback * 4 features + 2 state vars
 
 class RobinhoodCryptoBot:
     """
     Automated cryptocurrency trading bot for Robinhood using RL or traditional strategies.
     """
     def __init__(self):
-        # Basic Setup and Config Loading
-        self.log_level = LOG_LEVEL
-        self.log_file = LOG_FILE
-        # self._setup_logging() # Let's keep basicConfig for now, setup can refine later if needed
-        # Use basicConfig for initial setup, _setup_logging can refine it later if needed
-        # logging.basicConfig(level=self.log_level, format='%(asctime)s - %(levelname)s - %(message)s', filename=self.log_file, filemode='w') # Use filemode='w' to overwrite log on each run
-        logging.info("--- Initializing Crypto Bot --- ") # This should now work
+        # --- CRITICAL: Setup Logging FIRST --- #
+        # Load config first to pass to logging setup
+        self.config = load_config()
+        setup_logging(self.config) # Call setup_logging IMMEDIATELY after loading config
+        # ------------------------------------ #
 
-        logging.info("Loading configuration...")
-        self.symbols = SYMBOLS
-        self.enable_trading = ENABLE_TRADING
-        self.trade_amount_usd = TRADE_AMOUNT_USD
-        self.lookback_days = LOOKBACK_DAYS
-        self.check_interval = INTERVAL_MINUTES
-        self.trading_strategy = TRADING_STRATEGY
-        self.rl_model_path = RL_MODEL_PATH
+        # Now safe to make logging calls
+        logging.info("--- Initializing Crypto Bot (Revised Logging) --- ")
+
+        logging.info("Loading configuration...") # This is somewhat redundant now, but ok
+        self.symbols = self.config.SYMBOLS_TO_TRADE
+        self.enable_trading = self.config.ENABLE_TRADING
+        self.trade_amount_usd = self.config.TRADE_AMOUNT_USD
+        self.lookback_days = self.config.LOOKBACK_DAYS
+        self.check_interval = self.config.INTERVAL_MINUTES
+        self.trading_strategy = self.config.TRADING_STRATEGY
+        self.rl_model_path = self.config.RL_MODEL_PATH
         self.interval = self.check_interval # Assign self.interval = self.check_interval
-        self.plot_enabled = PLOT_ENABLED # Added from view
-        self.plot_output_dir = PLOT_OUTPUT_DIR # Added from view
+        self.plot_enabled = self.config.PLOT_ENABLED # Added from view
+        self.plot_output_dir = self.config.PLOT_OUTPUT_DIR # Added from view
 
         # Initialize placeholders
-        self.api_client = None
+        self.broker: Optional[BaseBroker] = None
         self.rl_agent = None
         self.data_provider = None
         self.symbol_map = {}
         self.historical_data = {}
         self.holdings = {'USD': {'quantity': Decimal('0')}}
-        self.rl_lookback_window = RL_LOOKBACK_WINDOW # Added from view
+        self.rl_lookback_window = self.config.RL_LOOKBACK_WINDOW # Added from view
         self.rl_features_mean = None # Added from view
         self.rl_features_std = None # Added from view
         self.norm_stats = {} # Initialize dict to store normalization stats per symbol
+        self.current_holdings: Dict[str, Decimal] = {symbol.split('-')[0]: Decimal('0.0') for symbol in self.config.SYMBOLS_TO_TRADE} # Initialize holdings keyed by base asset (e.g., 'BTC') using SYMBOLS_TO_TRADE
+        self.data_cache = {}
+        self.actions_map = DEFAULT_RL_ACTIONS_MAP
+        self.experience_logger = logging.getLogger('experience_logger') # Get the experience logger
 
         logging.info(f"Configuration loaded: Symbols={self.symbols}, Strategy={self.trading_strategy}, Trading Enabled={self.enable_trading}")
 
         # --- Complex Initializations ---
 
         # 1. Conditionally load RL agent
-        if self.trading_strategy == 'RL':
+        if self.config.ENABLE_RL_MODEL and self.trading_strategy == 'rl': # Check both config flags
             logging.info(f"RL strategy selected. Attempting to load model from: {self.rl_model_path}")
             try:
                 from stable_baselines3 import PPO # Or your specific agent
                 if os.path.exists(self.rl_model_path):
-                    self.rl_agent = PPO.load(self.rl_model_path)
-                    logging.info("RL agent loaded successfully.")
+                    self.rl_agent = PPO.load(self.rl_model_path) # Load the agent
+                    logging.info("RL Agent loaded successfully.")
                     # Define the mapping from RL action index to signal string
                     self.rl_actions_map = {
                         0: 'buy_all',
@@ -103,7 +107,7 @@ class RobinhoodCryptoBot:
                     #       self.rl_features_mean, self.rl_features_std = pickle.load(f)
                     #       logging.info("Normalization parameters loaded.")
                 else:
-                    logging.error(f"RL model file not found at {self.rl_model_path}. RL trading disabled.")
+                    logging.error(f"RL model file not found at {self.rl_model_path}. RL strategy disabled.")
                     self.trading_strategy = 'hold' # Fallback
                     self.rl_agent = None # Add check
                     logging.error("RL model failed to load. RL strategy will not function.")
@@ -118,38 +122,40 @@ class RobinhoodCryptoBot:
                 self.rl_agent = None # Add check
                 logging.error("RL model failed to load. RL strategy will not function.")
 
-        # 2. Initialize API Client
-        try:
-            logging.info("Initializing API client...")
-            if ROBINHOOD_API_KEY and ROBINHOOD_PRIVATE_KEY:
-                # Pass the required keys to the constructor <- No, keys are read inside the class now
-                # self.api_client = CryptoAPITrading(api_key=ROBINHOOD_API_KEY, base64_private_key=ROBINHOOD_PRIVATE_KEY)
-                self.api_client = CryptoAPITrading() # Call without arguments
-                # Optional: Verify connection
-                # account_info = self.api_client.get_account()
-                # if account_info and 'id' in account_info:
-                #     logging.info(f"Successfully connected to Robinhood API. Account ID: {account_info['id']}")
-                # else:
-                #     logging.error(f"Failed to verify Robinhood API connection. Disabling trading. Response: {account_info}")
-                #     self.enable_trading = False
-                #     self.api_client = None
+        # 2. Initialize Broker Client (using the interface)
+        self.broker: Optional[BaseBroker] = None # Initialize broker attribute
+        if self.enable_trading:
+            # --- Broker Selection Logic (Future Enhancement) ---
+            # Currently hardcoded to Robinhood, later select based on config
+            broker_type = self.config.BROKER_TYPE.lower() # Use self.config
+            if broker_type == 'robinhood':
+                broker_config = {
+                    'api_key': self.config.ROBINHOOD_API_KEY,
+                    'base64_private_key': self.config.ROBINHOOD_BASE64_PRIVATE_KEY
+                }
+                self.broker = self._initialize_broker(RobinhoodBroker, broker_config)
+            # elif broker_type == 'ibkr':
             else:
-                logging.warning("API Key or Private Key missing. Cannot initialize API client. Trading disabled.")
+                logger.error(f"Unsupported broker type specified in config: {self.config.BROKER_TYPE}")
                 self.enable_trading = False
-                self.api_client = None # Ensure it's None if keys are missing
-        except Exception as e:
-            logging.exception(f"Error initializing API client: {e}. Trading disabled.")
-            self.enable_trading = False
-            self.api_client = None
+
+            # If broker initialization failed, disable trading
+            if self.broker is None:
+                self.enable_trading = False
+            else:
+                # Attempt to connect the broker
+                if not self.broker.connect():
+                    logging.error(f"Failed to connect to {broker_type} broker. Disabling trading.")
+                    self.enable_trading = False
 
         # 3. Initialize Data Provider
         try:
-            logging.info(f"Initializing data provider (Preference: {DATA_PROVIDER_PREFERENCE})...")
+            logging.info(f"Initializing data provider (Preference: {self.config.DATA_PROVIDER_PREFERENCE})...")
             self.data_provider = AltCryptoDataProvider() # Still need this if RL uses it?
             logging.info("Data provider initialized.")
 
             # 4. Fetch initial historical data and calculate normalization stats if using RL
-            if self.trading_strategy == 'RL':
+            if self.trading_strategy == 'rl':
                 logging.info("Calculating initial normalization statistics...")
                 # self.fetch_all_historical_data() # Make sure this method exists <- Incorrect name
                 self._calculate_and_store_norm_stats() # <-- Correct method to fetch data and calc stats
@@ -166,7 +172,7 @@ class RobinhoodCryptoBot:
             self.data_provider = None
 
         # 5. Fetch initial holdings (Requires API Client)
-        if self.api_client:
+        if self.broker:
             logging.info("Fetching initial holdings...")
             # self.fetch_holdings() # Make sure this method exists <- Incorrect name
             self.get_holdings() # <-- Correct method name (matches API client method)
@@ -174,6 +180,23 @@ class RobinhoodCryptoBot:
             logging.warning("Skipping initial holdings fetch: API client not available or trading disabled.")
             self.holdings = {} # Initialize as empty if not fetched
         logging.info(f"RobinhoodCryptoBot __init__ finished. Trading Enabled: {self.enable_trading}")
+
+    def _initialize_broker(self, broker_class: type[BaseBroker], broker_config: Dict[str, Any]) -> Optional[BaseBroker]:
+        broker_type = broker_class.__name__
+        try:
+            # Get a logger specific to the broker being initialized
+            broker_logger = logging.getLogger(f"brokers.{broker_type}")
+            logging.info(f"Initializing broker (Type: {broker_type})...")
+            if broker_type == 'RobinhoodBroker':
+                broker_logger = logging.getLogger("brokers.robinhood_broker")
+                broker = broker_class(broker_config, broker_logger) # Pass the correct logger
+            else:
+                broker = broker_class(broker_config, broker_logger)
+            logging.info(f"{broker_type} initialized successfully.")
+            return broker
+        except Exception as e:
+            logging.exception(f"Failed to initialize {broker_type}:")
+            return None
 
     def _calculate_and_store_norm_stats(self):
         """
@@ -317,82 +340,193 @@ class RobinhoodCryptoBot:
             # 7. Normalize using stored stats
             df_normalized = (df_final_slice - stats['means']) / stats['stds']
             logging.debug(f"Shape of normalized data BEFORE RETURN for {symbol}: {df_normalized.shape}") # Log shape before return
-            return df_normalized
+
+            # 8. Flatten the DataFrame to a 1D NumPy array for the RL agent
+            flattened_features = df_normalized.values.flatten()
+            logging.debug(f"Shape of FLATTENED normalized data for {symbol}: {flattened_features.shape}") # Log shape before return
+
+            # --- Append Portfolio State Features --- 
+            # Fetch current holdings and balance needed for the observation space (expected shape 242)
+            # NOTE: This assumes the model was trained with these 2 extra features appended.
+            # NOTE: These values are NOT normalized here, which might differ from training!
+            try:
+                symbol_base = symbol.split('-')[0] # e.g., 'BTC' from 'BTC-USD'
+                current_holding_qty_decimal = self.holdings.get(symbol_base, Decimal('0.0'))
+                current_holding_qty = float(current_holding_qty_decimal)
+                current_balance_usd = float(self.holdings.get('USD', Decimal('0.0')))
+
+            except Exception as e:
+                logging.exception(f"Error accessing self.holdings within _get_normalized_features for {symbol}: {e}. Setting state features to 0.")
+                current_holding_qty = 0.0
+                current_balance_usd = 0.0
+
+            # Append the two state features
+            state_features = np.array([current_balance_usd, current_holding_qty])
+            final_observation = np.concatenate((flattened_features, state_features))
+            logging.debug(f"Shape after appending state features for {symbol}: {final_observation.shape}")
+
+            # --- Final Shape Check ---
+            # Now expecting 240 (market) + 2 (state) = 242
+            expected_final_size = (self.rl_lookback_window * len(FEATURE_COLS)) + 2 
+            if final_observation.shape[0] != expected_final_size:
+                logging.error(f"Final observation shape {final_observation.shape} does not match expected {expected_final_size}. Returning None.")
+                return None
+
+            return final_observation
 
         except Exception as e:
              # Log the specific slice that caused the error if possible
              logging.exception(f"Error adding indicators/normalizing data slice for {symbol}:")
              return None
 
-    def _get_signal(self, symbol: str) -> str:
+    def _get_signal(self, symbol: str, analysis_data: pd.DataFrame) -> str:
         """
         Determine trading signal for a given cryptocurrency
         
         Args:
             symbol (str): Trading symbol (e.g., 'BTC-USD')
+            analysis_data (pd.DataFrame): DataFrame containing historical data for analysis.
         
         Returns:
             str: Trading signal (buy/sell/hold)
         """
-        # Convert symbol for analysis if needed
-        analysis_symbol = self.api_client.convert_symbol_for_analysis(symbol)
-        
-        # Perform technical analysis
-        signal = self._analyze_market(analysis_symbol)
-        
-        return signal
+        signal = 'hold'  # Default signal
 
-    def _execute_trade(self, symbol: str, signal: str, amount: float):
+        if self.trading_strategy == 'rl' and self.rl_agent is not None:
+            logging.debug(f"Generating signal for {symbol} using RL agent.")
+            try:
+                # 1. Prepare features
+                obs = self._get_normalized_features(symbol, analysis_data)
+                if obs is None:
+                    logging.warning(f"Could not generate normalized features for {symbol}. Defaulting to 'hold'.")
+                    return 'hold'
+
+                # Check observation shape (optional but good practice)
+                if obs.shape[0] != EXPECTED_OBS_SHAPE:
+                    logging.warning(f"Observation shape mismatch for {symbol}. Expected {EXPECTED_OBS_SHAPE}, Got {obs.shape}. Defaulting to 'hold'.")
+                    # Potentially pad or handle this case depending on model requirements
+                    return 'hold'
+
+                # 2. Predict action
+                action, _ = self.rl_agent.predict(obs, deterministic=True)
+                signal = self.actions_map.get(action.item(), 'hold') # Use .item() for numpy int
+                logging.info(f"[{symbol}] RL agent signal: {signal} (action_int: {action.item()})")
+
+                # --- Log Experience (Action Determined) ---
+                self._log_experience(
+                    symbol=symbol,
+                    state=obs, # Log the state used for prediction
+                    action=signal,
+                    reward=0.0, # Placeholder for now
+                    pnl_change=0.0, # Placeholder for now
+                    portfolio_value=0.0 # Placeholder for now
+                )
+                return signal
+            except Exception as e:
+                logging.exception(f"Error during RL signal generation for {symbol}: {e}")
+                return 'hold' # Default to hold on error
+        elif self.trading_strategy == 'rsi': # Example: Add other strategies
+            logging.debug(f"Generating signal for {symbol} using RSI strategy (placeholder).")
+            # Placeholder for RSI strategy logic
+            # rsi_value = analysis_data['RSI_14'].iloc[-1]
+            # if rsi_value < 30: return 'buy'
+            # elif rsi_value > 70: return 'sell'
+            return 'hold'
+        else:
+            logging.warning(f"Unknown or unsupported trading strategy: '{self.trading_strategy}'. Defaulting to 'hold' for {symbol}.")
+            return 'hold'
+ 
+     # --- Trade Execution ---
+    def _execute_trade(self, symbol: str, signal: str, latest_price: Decimal):
+        logging.debug(f"Executing trade for {symbol}...")
         """
         Execute trade based on signal
         
         Args:
             symbol (str): Trading symbol
             signal (str): Trading signal
-            amount (float): Trade amount in USD
+            latest_price (Decimal): The latest price used for signal generation & quantity calculation.
         """
-        # Convert symbol for Robinhood trading execution
-        trading_symbol = self.api_client.convert_symbol_for_trading(symbol)
-        
-        if signal == 'buy':
-            self.api_client.place_order(
-                side='buy', 
-                symbol=trading_symbol, 
-                amount_in_dollars=amount
-            )
-        elif signal == 'sell':
-            self.api_client.place_order(
-                side='sell', 
-                symbol=trading_symbol, 
-                amount_in_dollars=amount
-            )
+        # Ensure trading is enabled
+        if not self.enable_trading:
+            logging.info("Trading is disabled. Skipping trade execution.")
+            return
+
+        # Ensure API client is available
+        if not self.broker:
+            logging.error("Broker not initialized. Cannot execute trade.")
+            return
+
+        # 1. Determine Side and Calculate Quantity
+        side = None
+        quantity = Decimal('0.0')
+        trade_amount = Decimal(str(self.trade_amount_usd))
+        symbol_base = symbol.split('-')[0]
+
+        try:
+            if latest_price <= 0:
+                logging.error(f"Invalid latest price ({latest_price}) for {symbol}. Skipping trade.")
+                return
+
+            # Get current holdings
+            current_holding_qty = Decimal(self.holdings.get(symbol_base, Decimal('0.0')))
+
+            if signal == 'buy_all':
+                side = 'buy'
+                quantity = trade_amount / latest_price
+            elif signal == 'buy_half':
+                side = 'buy'
+                quantity = (trade_amount / Decimal('2')) / latest_price
+            elif signal == 'sell_all':
+                side = 'sell'
+                quantity = current_holding_qty
+            elif signal == 'sell_half':
+                side = 'sell'
+                quantity = current_holding_qty / Decimal('2')
+
+        except Exception as e:
+            logging.exception(f"Error calculating quantity for {symbol} signal {signal}: {e}")
+            return
+
+        # 2. Validate Trade
+        if side is None or quantity <= Decimal('0.00000001'): # Check against a minimum tradeable quantity
+            logging.warning(f"Invalid trade parameters for {symbol}: side={side}, calculated quantity={quantity:.8f}. Signal was '{signal}'. Skipping trade.")
+            return
+
+        if side == 'sell' and quantity > current_holding_qty:
+            logging.warning(f"Attempting to sell {quantity:.8f} {symbol_base}, but only hold {current_holding_qty:.8f}. Adjusting to sell max available.")
+            quantity = current_holding_qty
+            if quantity <= Decimal('0.00000001'): # Double check after adjustment
+                logging.warning(f"No holdings ({current_holding_qty:.8f}) of {symbol_base} to sell after adjustment. Skipping trade.")
+                return
+
+        # 3. Prepare and Place Order (Market Order)
+        order_details = self.broker.place_market_order(
+            symbol=symbol,      # e.g., 'BTC-USD'
+            side=signal,        # 'buy' or 'sell'
+            quantity=quantity   # Decimal quantity
+        )
+
+        if order_details and order_details.get('status') not in ['failed', 'rejected', 'cancelled']:
+            # Basic check for success, might need refinement based on states
+            order_id = order_details.get('order_id')
+            logging.info(f"Trade submitted successfully via broker. Order ID: {order_id}")
+        else:
+            logging.error(f"Trade submission failed or was rejected by broker. Response: {order_details}")
 
     def get_holdings(self):
-        """Fetches current crypto holdings using the API client and updates self.holdings."""
-        if not self.api_client:
-            logging.warning("Attempted to get holdings, but API client is not initialized.")
+        """Fetches current crypto holdings using the broker client and updates self.holdings."""
+        if not self.broker:
+            logging.warning("Attempted to get holdings, but broker is not initialized.")
             self.holdings = {}
             return
 
-        logging.info("Fetching current holdings via API client...")
+        logging.info("Fetching current holdings via broker client...")
         try:
-            # Pass asset codes if needed, otherwise get all
-            # holdings_data = self.api_client.get_holdings(*[s.split('-')[0] for s in self.symbols])
-            holdings_data = self.api_client.get_holdings() # Get all holdings by default
-
-            if holdings_data and 'results' in holdings_data:
-                # Process the holdings data - structure depends on API response
-                # Example: Assuming 'results' is a list of dicts with 'asset_code' and 'quantity'
-                self.holdings = {
-                    holding['asset_code']: float(holding['quantity'])
-                    for holding in holdings_data['results']
-                    if 'asset_code' in holding and 'quantity' in holding
-                }
+            holdings_data = self.broker.get_holdings()
+            if holdings_data is not None: # Expects Dict[str, Decimal] or None
+                self.holdings = holdings_data
                 logging.info(f"Successfully retrieved {len(self.holdings)} holdings: {list(self.holdings.keys())}")
-            elif holdings_data:
-                 # Handle cases where structure might be different or empty
-                 logging.warning(f"Received holdings data, but 'results' key missing or empty: {holdings_data}")
-                 self.holdings = {}
             else:
                 logging.warning("Received no data or empty response when fetching holdings.")
                 self.holdings = {}
@@ -416,18 +550,17 @@ class RobinhoodCryptoBot:
         # Or, perhaps fetch data inside analyze_symbol?
 
         # 2. Fetch current holdings
-        if self.api_client:
+        if self.broker:
             self.get_holdings() # Update holdings each cycle
 
         # 3. Analyze each symbol and get signals
         signals = {}
-        for symbol in self.symbols:
+        for symbol in self.config.SYMBOLS_TO_TRADE: # Use config list
             # Fetch or retrieve the necessary data for analysis
             # This might involve calling self.data_provider.get_historical_data again
             # or using data already stored in self.historical_data
             # For RL, we need at least lookback_window length of data ending now.
             # Placeholder: Assuming data is magically available for now
-            # In a real scenario, you'd fetch recent data here.
             logging.debug(f"Fetching data for analysis for {symbol}...")
             # Example Fetch (needs proper start/end dates):
             # analysis_data = self.data_provider.get_historical_data(symbol, ..., interval=self.interval)
@@ -451,67 +584,13 @@ class RobinhoodCryptoBot:
                 if signal != 'hold':
                     logging.info(f"Signal for {symbol}: {signal}. Attempting to execute trade...")
                     try:
-                        # 1. Get latest price
-                        latest_price = analysis_data['close'].iloc[-1]
-                        if latest_price <= 0:
-                            logging.error(f"Invalid latest price ({latest_price}) for {symbol}. Cannot execute trade.")
+                        # Get the latest price from the analysis data used for the signal
+                        latest_price_for_trade = Decimal(str(analysis_data['close'].iloc[-1]))
+                        if latest_price_for_trade <= 0:
+                            logging.error(f"Invalid latest price ({latest_price_for_trade}) from analysis data for {symbol}. Skipping trade.")
                             continue
 
-                        # 2. Determine side and quantity
-                        symbol_base = symbol.split('-')[0]
-                        trade_amount_usd = float(os.getenv('TRADE_AMOUNT_USD', '10')) # Get trade amount from config
-                        current_holding_qty = self.holdings.get(symbol_base, 0.0)
-
-                        side = None
-                        quantity = 0.0
-
-                        if signal == 'buy_all':
-                            side = 'buy'
-                            quantity = trade_amount_usd / latest_price
-                        elif signal == 'buy_half':
-                            side = 'buy'
-                            quantity = (trade_amount_usd / 2) / latest_price
-                        elif signal == 'sell_all':
-                            side = 'sell'
-                            quantity = current_holding_qty
-                        elif signal == 'sell_half':
-                            side = 'sell'
-                            quantity = current_holding_qty / 2
-
-                        # 3. Validate trade
-                        if side is None or quantity <= 0:
-                            logging.warning(f"Invalid trade parameters for {symbol}: side={side}, quantity={quantity}. Skipping trade.")
-                            continue
-                        if side == 'sell' and quantity > current_holding_qty:
-                            logging.warning(f"Attempting to sell {quantity} {symbol_base}, but only hold {current_holding_qty}. Adjusting to sell max available.")
-                            quantity = current_holding_qty
-                            if quantity <= 0: # Double check after adjustment
-                                logging.warning(f"No holdings ({current_holding_qty}) of {symbol_base} to sell. Skipping trade.")
-                                continue
-
-                        # 4. Prepare and place order (Market Order for simplicity)
-                        client_order_id = str(uuid.uuid4())
-                        order_type = 'market'
-                        # Market order config specifies the quantity for buy/sell
-                        order_config = {
-                            "quantity": f"{quantity:.8f}" # Format quantity as string with precision
-                        }
-
-                        logging.info(f"Placing {order_type} order: {side} {quantity:.8f} {symbol} (ID: {client_order_id})")
-                        order_result = self.api_client.place_order(
-                            client_order_id=client_order_id,
-                            side=side,
-                            order_type=order_type,
-                            symbol=symbol,
-                            order_config=order_config
-                        )
-
-                        if order_result:
-                            logging.info(f"Order placement API call successful for {symbol}. Result: {order_result}")
-                            # TODO: Optionally, fetch holdings again to confirm trade execution status
-                        else:
-                            logging.error(f"Order placement API call failed for {symbol}.")
-
+                        self._execute_trade(symbol, signal, latest_price_for_trade)
                     except Exception as e:
                         logging.exception(f"Error executing trade for {symbol} with signal {signal}:")
         else:
@@ -532,6 +611,32 @@ class RobinhoodCryptoBot:
         while True:
             schedule.run_pending()
             time.sleep(1)
+
+    # --- Experience Logging --- #
+    def _log_experience(self, symbol: str, state: np.ndarray, action: str, reward: float, pnl_change: float, portfolio_value: float):
+        """Logs the agent's experience to a dedicated file for later processing."""
+        try:
+            timestamp = pd.Timestamp.now(tz='UTC').isoformat() # Use ISO format timestamp
+            
+            # Ensure state is serializable (convert numpy array to list)
+            serializable_state = state.tolist() if isinstance(state, np.ndarray) else state
+
+            experience_data = {
+                'timestamp': timestamp,
+                'symbol': symbol,
+                'state': serializable_state, # Log the state used for prediction
+                'action': action,
+                'reward': reward, # Placeholder for now
+                'pnl_change': pnl_change, # Placeholder for now
+                'portfolio_value': portfolio_value # Placeholder for now
+                # Add 'next_state' later if needed for certain RL updates
+            }
+            
+            # Log as a JSON string
+            self.experience_logger.info(json.dumps(experience_data))
+
+        except Exception as e:
+            logging.error(f"Error logging experience data: {e}", exc_info=True)
 
 # Main execution block
 if __name__ == "__main__":

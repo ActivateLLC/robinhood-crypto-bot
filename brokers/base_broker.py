@@ -1,138 +1,106 @@
-import abc
-import pandas as pd
-from typing import Dict, Any, List, Optional
-from dataclasses import dataclass, field
-import datetime
+# /Users/activate/Dev/robinhood-crypto-bot/brokers/base_broker.py
+import logging
+from abc import ABC, abstractmethod
+from typing import Any, Dict, List, Optional, Tuple
+from decimal import Decimal
 
-# --- Data Structures ---
-@dataclass
-class Order:
-    # Non-default fields first
-    id: str  # Broker's unique order ID (e.g., permId for IBKR)
-    symbol: str
-    order_type: str  # e.g., 'market', 'limit'
-    side: str  # e.g., 'buy', 'sell'
-    quantity: float
-    status: str # e.g., 'submitted', 'filled', 'cancelled', 'pending_submit', 'api_pending'
-    
-    # Fields with defaults follow
-    client_order_id: Optional[str] = None # User-defined ID, if provided
-    limit_price: Optional[float] = None
-    stop_price: Optional[float] = None
-    created_at: Optional[datetime.datetime] = None
-    updated_at: Optional[datetime.datetime] = None
-    filled_quantity: float = 0.0
-    remaining_quantity: float = 0.0 # Initial quantity - filled_quantity
-    average_fill_price: Optional[float] = None
-    commission: Optional[float] = None
-    raw_status_details: Optional[Any] = None # Store the raw broker status object if needed
+logger = logging.getLogger(__name__)
 
-@dataclass
-class Holding:
-    symbol: str
-    quantity: float
-    average_cost: float
-    current_value: Optional[float] = None
-    market_price: Optional[float] = None # Add market price if available
-    raw_details: Optional[Any] = None # Store raw broker position object
+class BaseBroker(ABC):
+    """
+    Abstract Base Class for all broker implementations.
+    Defines the standard interface for interacting with different brokers.
+    """
 
-@dataclass
-class MarketData:
-    symbol: str
-    timestamp: datetime.datetime
-    bid: Optional[float] = None
-    ask: Optional[float] = None
-    last: Optional[float] = None
-    volume: Optional[float] = None
-    # Add other fields as needed (e.g., open, high, low, close for historical)
-    raw_ticker: Optional[Any] = None # Store raw broker ticker object
+    def __init__(self, config: Dict[str, Any]):
+        """
+        Initialize the broker with necessary configuration.
+        """
+        self.config = config
+        logger.info(f"Initializing {self.__class__.__name__}...")
 
-# --- Broker Interface ---
-
-class BrokerInterface(abc.ABC):
-    """Abstract base class defining the common interface for broker interactions."""
-
-    @abc.abstractmethod
-    def connect(self, credentials: Dict[str, Any]) -> bool:
-        """Connect to the broker's API using provided credentials."""
-        pass
-
-    @abc.abstractmethod
-    def disconnect(self):
-        """Disconnect from the broker's API."""
-        pass
-
-    @abc.abstractmethod
-    def place_order(self, order_details: Dict[str, Any]) -> Dict[str, Any]:
-        """Place an order with the broker.
-
-        Args:
-            order_details: Dictionary containing order specifics like symbol, 
-                           quantity, side (buy/sell), type (market/limit), etc.
-
-        Returns:
-            Dictionary containing the order confirmation or status.
+    @abstractmethod
+    def connect(self) -> bool:
+        """
+        Establish a connection to the broker, if necessary.
+        Returns True if connection is successful or not needed, False otherwise.
         """
         pass
 
-    @abc.abstractmethod
-    def cancel_order(self, order_id: str) -> Dict[str, Any]:
-        """Cancel an existing order.
-
-        Args:
-            order_id: The unique identifier of the order to cancel.
-
-        Returns:
-            Dictionary containing the cancellation confirmation or status.
+    @abstractmethod
+    def disconnect(self) -> None:
+        """
+        Disconnect from the broker, if necessary.
         """
         pass
 
-    @abc.abstractmethod
-    def get_order_status(self, order_id: str) -> Dict[str, Any]:
-        """Get the status of a specific order.
-
-        Args:
-            order_id: The unique identifier of the order.
-
-        Returns:
-            Dictionary containing the order status details.
+    @abstractmethod
+    def get_account_info(self) -> Optional[Dict[str, Any]]:
+        """
+        Retrieve general account information (e.g., balance, buying power).
+        Returns a dictionary with account details or None if an error occurs.
         """
         pass
 
-    @abc.abstractmethod
-    def get_account_summary(self) -> Dict[str, Any]:
-        """Retrieve account summary details (e.g., balances, equity)."""
+    @abstractmethod
+    def get_holdings(self) -> Optional[Dict[str, Decimal]]:
+        """
+        Retrieve current portfolio holdings.
+        Returns a dictionary mapping asset symbols (e.g., 'BTC', 'ETH')
+        to their quantities (as Decimal), or None if an error occurs.
+        """
         pass
 
-    @abc.abstractmethod
-    def get_positions(self, symbol: Optional[str] = None) -> List[Dict[str, Any]]:
-        """Retrieve current open positions, optionally filtered by symbol."""
+    @abstractmethod
+    def get_latest_price(self, symbol: str) -> Optional[Decimal]:
+        """
+        Get the latest market price for a given trading pair symbol (e.g., 'BTC-USD').
+        Returns the price as a Decimal or None if an error occurs.
+        """
         pass
 
-    @abc.abstractmethod
-    def get_historical_data(
+    @abstractmethod
+    def place_market_order(
         self,
-        symbol: str,
-        timeframe: str,
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None,
-        limit: Optional[int] = None
-    ) -> pd.DataFrame:
-        """Retrieve historical market data for a given symbol and timeframe."""
+        symbol: str,          # Trading pair (e.g., 'BTC-USD')
+        side: str,            # 'buy' or 'sell'
+        quantity: Decimal,    # Amount of the base asset (e.g., BTC quantity)
+        client_order_id: Optional[str] = None # Optional client-provided ID
+    ) -> Optional[Dict[str, Any]]:
+        """
+        Place a market order.
+        Returns a dictionary containing order details (id, status, etc.) or None if failed.
+        """
         pass
 
-    @abc.abstractmethod
-    def get_current_price(self, symbol: str) -> Optional[float]:
-        """Get the current market price for a given symbol."""
+    @abstractmethod
+    def get_order_status(self, order_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the status of a specific order by its ID.
+        Returns a dictionary with order status details or None if an error occurs.
+        """
         pass
 
-    @property
-    @abc.abstractmethod
-    def is_connected(self) -> bool:
-        """Return True if currently connected to the broker, False otherwise."""
+    @abstractmethod
+    def cancel_order(self, order_id: str) -> bool:
+        """
+        Cancel an open order by its ID.
+        Returns True if cancellation was successful or accepted, False otherwise.
+        """
         pass
 
-    # Consider changing return types to use the dataclasses above
-    # e.g., get_order_status(self, order_id: str) -> Optional[Order]:
-    # e.g., get_positions(...) -> List[Holding]:
-    # e.g., get_current_price(...) -> Optional[MarketData]:
+    # --- Helper/Utility methods (Optional but useful) ---
+
+    def format_symbol_for_broker(self, symbol: str) -> str:
+        """
+        Convert a standard symbol (e.g., 'BTC-USD') to the format required by the specific broker API.
+        Default implementation assumes the broker uses the standard format.
+        """
+        return symbol
+
+    def format_symbol_from_broker(self, broker_symbol: Any) -> str:
+        """
+        Convert a symbol received from the broker API back to the standard format (e.g., 'BTC-USD').
+        Default implementation assumes the broker returns the standard format.
+        """
+        return str(broker_symbol)

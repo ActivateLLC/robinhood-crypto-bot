@@ -303,218 +303,292 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     // Fetch all dashboard data
-    function fetchDashboardData() {
-        // Fetch portfolio data
-        fetch('/api/portfolio')
-            .then(response => response.json())
-            .then(data => {
-                portfolioData = data;
-                updatePortfolioStats(data);
-                updateAssetsTable(data.holdings);
-            })
-            .catch(error => console.error('Error fetching portfolio data:', error));
-        
-        // Fetch crypto prices
-        fetch('/api/crypto/prices')
-            .then(response => response.json())
-            .then(data => {
-                cryptoPrices = data;
-            })
-            .catch(error => console.error('Error fetching crypto prices:', error));
-        
-        // Fetch trading signals
-        fetch('/api/trading/signals')
-            .then(response => response.json())
-            .then(data => {
-                tradingSignals = data;
-                updateSignalsList(data);
-            })
-            .catch(error => console.error('Error fetching trading signals:', error));
-        
-        // Fetch bot status
-        fetch('/api/status') // Corrected endpoint
-            .then(response => response.json())
-            .then(data => {
-                botStatus = data;
-                updateBotStatus(data);
-            })
-            .catch(error => console.error('Error fetching bot status:', error));
-        
-        // Fetch portfolio history
-        fetch('/api/portfolio/history')
-            .then(response => response.json())
-            .then(data => {
-                if (data.length > 0) {
-                    if (!marketChart) {
-                        initMarketChart(data);
-                    } else {
-                        // Update existing chart
-                        const labels = data.map(item => {
-                            const date = new Date(item.timestamp);
-                            return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-                        });
-                        
-                        const values = data.map(item => item.value);
-                        
-                        marketChart.data.labels = labels;
-                        marketChart.data.datasets[0].data = values;
-                        marketChart.update();
-                    }
-                }
-            })
-            .catch(error => console.error('Error fetching portfolio history:', error));
-        
-        // Fetch strategy performance
-        fetch('/api/strategy/performance')
-            .then(response => response.json())
-            .then(data => {
-                updateStrategyChart(data.strategies);
-            })
-            .catch(error => console.error('Error fetching strategy performance:', error));
-        
-        // Update meme coins chart
-        updateMemeCoinsChart(cryptoPrices);
+    async function fetchDashboardData() {
+        console.log("Fetching dashboard data...");
+        try {
+            const [statusRes, portfolioRes, pricesRes, signalsRes] = await Promise.all([
+                fetch('/api/status'),
+                fetch('/api/portfolio'),
+                fetch('/api/crypto/prices'),
+                fetch('/api/trading/signals')
+            ]);
+
+            if (!statusRes.ok || !portfolioRes.ok || !pricesRes.ok || !signalsRes.ok) {
+                throw new Error(`HTTP error! Statuses: ${statusRes.status}, ${portfolioRes.status}, ${pricesRes.status}, ${signalsRes.status}`);
+            }
+
+            botStatus = await statusRes.json();
+            portfolioData = await portfolioRes.json();
+            cryptoPrices = await pricesRes.json(); // Assuming this returns an object like { 'BTC-USD': price, ... }
+            tradingSignals = await signalsRes.json(); // Assuming this returns { last_action: 'BUY'/'SELL'/'HOLD', timestamp: ...}
+
+            console.log("Data fetched:", { botStatus, portfolioData, cryptoPrices, tradingSignals });
+
+            // Update UI elements
+            updateBotStatus(botStatus);
+            updatePortfolioStats(portfolioData);
+            // Pass prices to assets table update if needed
+            updateAssetsTable(portfolioData.holdings || {}, cryptoPrices);
+            updateSignalsList(tradingSignals ? [tradingSignals] : []); // Wrap single signal in array if needed by updateSignalsList
+
+            // Update charts (if necessary based on fetched data)
+            // Example: Update market chart if portfolioData contains history
+            if (portfolioData.history && marketChart) {
+                // Assuming history is in the correct format { timestamp: ..., value: ...}
+                initMarketChart(portfolioData.history); // Re-init or update based on chart logic
+            } else if (marketChart) {
+                // If no history, maybe clear or show default state
+                // initMarketChart([]); // Example: Clear chart
+                console.log("Portfolio history not available for chart.");
+            }
+
+            // Placeholder for other chart updates (Meme, Strategy)
+            // updateMemeCoinsChart(cryptoPrices); // Requires specific price data
+            // updateStrategyChart(portfolioData.strategy_performance); // Requires specific strategy data
+
+        } catch (error) {
+            console.error('Failed to fetch dashboard data:', error);
+            // Optionally update UI to show error state
+            // Example: updateBotStatus({ process_status: 'Error', agent_running: false, message: 'Failed to load data' });
+        }
     }
-    
+
     // Update portfolio stats
     function updatePortfolioStats(data) {
-        const portfolioValue = document.querySelector('.stat-value');
-        if (portfolioValue) {
-            portfolioValue.textContent = '$' + data.total_value.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ",");
+        console.log("Updating portfolio stats with data:", data);
+        const portfolioValueEl = document.querySelector('.dashboard-grid .card:nth-child(1) .stat-value');
+        const todaysProfitEl = document.querySelector('.dashboard-grid .card:nth-child(2) .stat-value');
+        // const activeStrategyEl = document.querySelector('.dashboard-grid .card:nth-child(3) .stat-value');
+        // const strategyBadgesEl = document.querySelector('.dashboard-grid .card:nth-child(3) .stat-change');
+        const portfolioChangeEl = document.querySelector('.dashboard-grid .card:nth-child(1) .stat-change');
+        const tradesTodayEl = document.querySelector('.dashboard-grid .card:nth-child(2) .stat-change');
+
+        if (portfolioValueEl && data.portfolio_value !== undefined) {
+            portfolioValueEl.textContent = `$${parseFloat(data.portfolio_value).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+        } else if (portfolioValueEl) {
+            portfolioValueEl.textContent = '$ -.--';
         }
-        
-        // Calculate daily change (for demo we'll use a random value)
-        // In a real app, you'd compare with yesterday's closing value
-        const changePercent = (Math.random() * 8 - 4).toFixed(2);
-        const changeValue = data.total_value * (parseFloat(changePercent) / 100);
-        
-        const priceChange = document.querySelector('.stat-change');
-        if (priceChange) {
-            if (changePercent >= 0) {
-                priceChange.className = 'stat-change price-up';
-                priceChange.innerHTML = '<i class="fas fa-arrow-up"></i> ' + changePercent + '% today';
-            } else {
-                priceChange.className = 'stat-change price-down';
-                priceChange.innerHTML = '<i class="fas fa-arrow-down"></i> ' + Math.abs(changePercent) + '% today';
+
+        // Set Today's Profit to N/A as it's not tracked
+        if (todaysProfitEl) {
+            todaysProfitEl.textContent = 'N/A';
+            // Clear related change info if needed
+            if (tradesTodayEl) {
+                tradesTodayEl.textContent = '- trades';
             }
         }
-        
-        // Update today's profit
-        const todayProfit = document.querySelectorAll('.stat-value')[1];
-        if (todayProfit) {
-            todayProfit.textContent = '$' + Math.abs(changeValue).toFixed(2);
+
+        // Update portfolio change (Placeholder - requires historical data comparison)
+        if (portfolioChangeEl) {
+             portfolioChangeEl.innerHTML = `<i class="fas fa-minus"></i> -.--% today`; // Default or N/A state
+             portfolioChangeEl.className = 'stat-change'; // Reset class
+        }
+
+        // Update Active Strategy (Placeholder - needs data from state)
+        // if (activeStrategyEl && data.active_strategy) {
+        //     activeStrategyEl.textContent = data.active_strategy;
+        // }
+        // if (strategyBadgesEl && data.strategy_components) {
+        //     strategyBadgesEl.innerHTML = data.strategy_components.map(s => `<span class="badge badge-success">${s}</span>`).join(' ');
+        // }
+    }
+
+    // Update assets table
+    function updateAssetsTable(holdings, prices) {
+        console.log("Updating assets table with holdings:", holdings, "and prices:", prices);
+        const tableBody = document.querySelector('#cryptoAssetsTable tbody');
+        if (!tableBody) {
+            console.error("Asset table body not found!");
+            return;
+        }
+
+        tableBody.innerHTML = ''; // Clear existing rows
+
+        if (Object.keys(holdings).length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="8" style="text-align: center; padding: 20px; color: var(--text-muted);">No assets held.</td></tr>';
+            return;
+        }
+
+        // Get the trading symbol from config (needed if state only has base asset)
+        // This should ideally come from the state or config endpoint if possible
+        const tradingSymbol = 'BTC-USD'; // ** Hardcoded: Needs dynamic source **
+        const baseAsset = tradingSymbol.split('-')[0]; // e.g., BTC
+        const quoteAsset = tradingSymbol.split('-')[1]; // e.g., USD
+
+        // Add row for base asset holdings (e.g., BTC)
+        if (holdings[baseAsset] && holdings[baseAsset] > 0) {
+            const amount = holdings[baseAsset];
+            const currentPrice = prices[tradingSymbol] || 0;
+            const value = amount * currentPrice;
+            const row = createAssetRow(baseAsset, tradingSymbol, currentPrice, 0, 0, amount, value); // Placeholders for price change, volume
+            tableBody.appendChild(row);
+        }
+
+        // Add row for quote asset holdings (e.g., USD/Capital)
+        if (holdings[quoteAsset] && holdings[quoteAsset] > 0) {
+             const row = createAssetRow(quoteAsset, '-', '-', 0, 0, holdings[quoteAsset], holdings[quoteAsset], false); // No price/market data for cash
+             tableBody.appendChild(row);
         }
     }
-    
-    // Update assets table
-    function updateAssetsTable(holdings) {
-        const tableBody = document.querySelector('tbody');
-        if (!tableBody) return;
-        
-        // Clear existing rows
-        tableBody.innerHTML = '';
-        
-        // Add rows for each holding
-        holdings.forEach(holding => {
-            const row = document.createElement('tr');
-            
-            // Calculate 24h change (random for demo)
-            const change = (Math.random() * 16 - 8).toFixed(2);
-            const changeClass = parseFloat(change) >= 0 ? 'price-up' : 'price-down';
-            const changePrefix = parseFloat(change) >= 0 ? '+' : '';
-            
-            // Get logo URL (in a real app, you'd have a mapping of symbols to logo URLs)
-            const logoUrl = `https://cryptologos.cc/logos/${holding.symbol.toLowerCase()}-${holding.symbol.toLowerCase()}-logo.png`;
-            
-            // Format market cap (random for demo)
-            const marketCap = (Math.random() * 500 + 100).toFixed(2);
-            
-            // Format signal (random for demo)
-            const signals = ['BUY', 'SELL', 'HOLD'];
-            const signal = signals[Math.floor(Math.random() * signals.length)];
-            const signalClass = signal === 'BUY' ? 'badge-success' : (signal === 'SELL' ? 'badge-danger' : 'badge-warning');
-            
-            row.innerHTML = `
-                <td>
-                    <div style="display: flex; align-items: center;">
-                        <img src="${logoUrl}" alt="${holding.symbol}" class="crypto-icon" onerror="this.src='https://via.placeholder.com/32'">
-                        <span>${holding.symbol}</span>
-                    </div>
-                </td>
-                <td>$${holding.price.toFixed(2)}</td>
-                <td class="${changeClass}">${changePrefix}${change}%</td>
-                <td>$${marketCap}B</td>
-                <td><span class="badge ${signalClass}">${signal}</span></td>
-                <td>${holding.quantity.toFixed(6)}</td>
-                <td>$${holding.value.toFixed(2)}</td>
-                <td>
-                    <button class="btn btn-primary btn-sm">Trade</button>
-                </td>
-            `;
-            
-            tableBody.appendChild(row);
-        });
+
+    // Helper to create a table row for an asset
+    function createAssetRow(assetCode, symbol, price, changePercent, volume, holdingAmount, holdingValue, showTradeButton = true) {
+        const tr = document.createElement('tr');
+
+        const formatCurrency = (value) => value.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
+        const formatNumber = (value) => value.toLocaleString('en-US', { maximumFractionDigits: 8 }); // For crypto amounts
+
+        // TODO: Get actual icons and implement price change styling
+        const iconUrl = `https://cryptologos.cc/logos/${assetCode.toLowerCase()}-${assetCode.toLowerCase()}-logo.png`; // Placeholder icon logic
+        const priceClass = changePercent >= 0 ? 'price-up' : 'price-down';
+        const changePrefix = changePercent >= 0 ? '+' : '';
+
+        tr.innerHTML = `
+            <td>
+                <div style="display: flex; align-items: center;">
+                    <img src="${iconUrl}" alt="${assetCode}" class="crypto-icon" onerror="this.style.display='none'">
+                    <span>${assetCode} ${symbol !== '-' ? '(' + symbol + ')' : ''}</span>
+                </div>
+            </td>
+            <td>${price !== '-' ? formatCurrency(price) : '-'}</td>
+            <td class="${priceClass}">${changePercent !== 0 ? changePrefix + changePercent.toFixed(2) + '%' : '-'}</td>
+            <td>${volume !== 0 ? formatCurrency(volume) : '-'}</td>
+            <td><span class="badge badge-secondary">HOLD</span></td> <!-- Placeholder signal -->
+            <td>${formatNumber(holdingAmount)} ${assetCode}</td>
+            <td>${formatCurrency(holdingValue)}</td>
+            <td>
+                ${showTradeButton ? '<button class="btn btn-primary btn-sm">Trade</button>' : '-'}
+            </td>
+        `;
+        return tr;
     }
-    
+
+
     // Update signals list
     function updateSignalsList(signals) {
-        const signalsList = document.querySelector('.signals-list');
-        if (!signalsList || signals.length === 0) return;
-        
-        // Clear existing signals
-        signalsList.innerHTML = '';
-        
-        // Add new signals (limit to 4)
-        signals.slice(0, 4).forEach(signal => {
-            const signalItem = document.createElement('div');
-            signalItem.className = 'signal-item';
-            
-            // Format timestamp
-            const timestamp = new Date(signal.timestamp);
-            const now = new Date();
-            const diffMs = now - timestamp;
-            const diffMins = Math.round(diffMs / 60000);
-            const timeAgo = diffMins < 60 
-                ? `${diffMins} min ago` 
-                : `${Math.round(diffMins / 60)} hr ago`;
-            
-            signalItem.innerHTML = `
-                <div class="signal-icon ${signal.action === 'BUY' ? 'price-up' : 'price-down'}">
-                    <i class="fas fa-arrow-${signal.action === 'BUY' ? 'up' : 'down'}"></i>
-                </div>
-                <div class="signal-details">
-                    <div class="signal-coin">${signal.symbol}</div>
-                    <div class="signal-strategy">${signal.strategy}</div>
-                </div>
-                <div class="signal-action">
-                    <span class="badge ${signal.action === 'BUY' ? 'badge-success' : 'badge-danger'}">${signal.action}</span>
-                </div>
-                <div class="signal-time">${timeAgo}</div>
-            `;
-            
-            signalsList.appendChild(signalItem);
-        });
+        console.log("Updating signals list with:", signals);
+        const signalsListDiv = document.querySelector('.signals-list');
+        if (!signalsListDiv) {
+             console.error("Signals list container not found!");
+            return;
+        }
+
+        signalsListDiv.innerHTML = ''; // Clear existing signals
+
+        if (!signals || signals.length === 0 || !signals[0] || !signals[0].last_action) {
+            signalsListDiv.innerHTML = '<div class="signal-item" style="text-align: center; padding: 20px; color: var(--text-muted);">No recent trading signals.</div>';
+            return;
+        }
+
+        // Display only the most recent signal from the state
+        const latestSignal = signals[0];
+        const action = latestSignal.last_action.toUpperCase(); // BUY, SELL, HOLD
+        const timestamp = latestSignal.timestamp ? new Date(latestSignal.timestamp * 1000) : new Date(); // Use current time if no timestamp
+
+        let actionClass = 'badge-secondary'; // Default for HOLD
+        let iconClass = 'fa-minus-circle'; // Default for HOLD
+        let priceClass = '';
+
+        if (action === 'BUY') {
+            actionClass = 'badge-success';
+            iconClass = 'fa-arrow-up';
+            priceClass = 'price-up';
+        } else if (action === 'SELL') {
+            actionClass = 'badge-danger';
+            iconClass = 'fa-arrow-down';
+            priceClass = 'price-down';
+        }
+
+        // Calculate time ago
+        const now = new Date();
+        const diffSeconds = Math.round((now - timestamp) / 1000);
+        let timeAgo = '';
+        if (diffSeconds < 60) timeAgo = `${diffSeconds} sec ago`;
+        else if (diffSeconds < 3600) timeAgo = `${Math.floor(diffSeconds / 60)} min ago`;
+        else if (diffSeconds < 86400) timeAgo = `${Math.floor(diffSeconds / 3600)} hr ago`;
+        else timeAgo = `${Math.floor(diffSeconds / 86400)} days ago`;
+
+        // Assuming a default symbol like BTC/USD for display
+        // TODO: Get the actual trading symbol dynamically
+        const displaySymbol = 'BTC/USD';
+
+        const signalElement = document.createElement('div');
+        signalElement.className = 'signal-item';
+        signalElement.innerHTML = `
+            <div class="signal-icon ${priceClass}">
+                <i class="fas ${iconClass}"></i>
+            </div>
+            <div class="signal-details">
+                <div class="signal-coin">${displaySymbol}</div>
+                <div class="signal-price">${cryptoPrices[displaySymbol] ? '$' + parseFloat(cryptoPrices[displaySymbol]).toLocaleString() : 'N/A'}</div>
+            </div>
+            <div class="signal-action">
+                <span class="badge ${actionClass}">${action}</span>
+            </div>
+            <div class="signal-time">${timeAgo}</div>
+        `;
+
+        signalsListDiv.appendChild(signalElement);
     }
-    
+
     // Update bot status
     function updateBotStatus(status) {
-        const botStatusValue = document.querySelectorAll('.stat-value')[3];
-        const botStatusIndicator = document.querySelector('.stat-change i.fa-circle');
-        const nextCheckText = document.querySelectorAll('.stat-change')[3];
-        
-        if (botStatusValue) {
-            botStatusValue.textContent = status.running ? 'Running' : 'Stopped';
-            botStatusValue.style.color = status.running ? 'var(--accent-green)' : '#ff3a5e';
+        console.log("Updating bot status:", status);
+        const statusValueEl = document.querySelector('.dashboard-grid .card:nth-child(4) .stat-value');
+        const statusIconEl = document.querySelector('.dashboard-grid .card:nth-child(4) .stat-change i');
+        const statusTextEl = document.querySelector('.dashboard-grid .card:nth-child(4) .stat-change');
+        const startBtn = document.getElementById('start-bot-btn');
+        const stopBtn = document.getElementById('stop-bot-btn');
+        // const statusDiv = document.getElementById('bot-status-content'); // Defined later, maybe use header status?
+
+        let displayStatus = 'Unknown';
+        let statusColor = 'var(--text-muted)'; // Grey for Unknown/Stopped
+        let nextCheckText = 'Bot is stopped.';
+
+        if (status && status.process_status) {
+            if (status.process_status === 'running' && status.agent_running) {
+                displayStatus = 'Running';
+                statusColor = 'var(--accent-green)';
+                nextCheckText = 'Actively Trading'; // Or add next check time if available
+            } else if (status.process_status === 'running' && !status.agent_running) {
+                displayStatus = 'Idle'; // Process running, agent not (e.g., initializing)
+                statusColor = 'var(--accent-yellow)';
+                nextCheckText = 'Initializing...';
+            } else if (status.process_status === 'stopped') {
+                displayStatus = 'Stopped';
+                statusColor = 'var(--text-muted)';
+                nextCheckText = 'Bot is stopped.';
+            } else if (status.process_status === 'error') {
+                displayStatus = 'Error';
+                statusColor = 'var(--accent-red)';
+                nextCheckText = status.message || 'An error occurred.';
+            }
         }
-        
-        if (botStatusIndicator) {
-            botStatusIndicator.style.color = status.running ? 'var(--accent-green)' : '#ff3a5e';
+
+        if (statusValueEl) {
+            statusValueEl.textContent = displayStatus;
+            statusValueEl.style.color = statusColor;
         }
-        
-        if (nextCheckText && status.time_until_next_check) {
-            const minutes = Math.floor(status.time_until_next_check / 60);
-            const seconds = status.time_until_next_check % 60;
-            nextCheckText.innerHTML = `<i class="fas fa-circle" style="color: ${status.running ? 'var(--accent-green)' : '#ff3a5e'};"></i> Next check in ${minutes}m ${seconds}s`;
+        if (statusIconEl) {
+            statusIconEl.className = displayStatus === 'Running' ? 'fas fa-circle' : (displayStatus === 'Error' ? 'fas fa-exclamation-triangle' : 'far fa-circle');
+            statusIconEl.style.color = statusColor;
+        }
+         if (statusTextEl) {
+            // Keep the icon, replace the text content after it
+            const iconHTML = statusIconEl ? statusIconEl.outerHTML : '';
+            statusTextEl.innerHTML = `${iconHTML} ${nextCheckText}`;
+         }
+
+        // Update button states
+        const isRunning = (status && status.process_status === 'running' && status.agent_running);
+        if (startBtn) startBtn.disabled = isRunning;
+        if (stopBtn) stopBtn.disabled = !isRunning;
+
+        // Also update the simple status text potentially used by buttons
+        const simpleStatusDiv = document.getElementById('bot-status-content');
+        if (simpleStatusDiv) {
+            simpleStatusDiv.textContent = `Bot Status: ${displayStatus}. ${nextCheckText}`;
+            simpleStatusDiv.className = isRunning ? 'status-success' : (displayStatus === 'Error' ? 'status-error' : 'status-info');
         }
     }
     
@@ -732,7 +806,7 @@ document.addEventListener('DOMContentLoaded', function() {
                     if (data.status === 'success') {
                         // Update statusDiv based on data.bot_status (e.g., running, stopped, error)
                         statusDiv.textContent = `Bot Status: ${data.bot_status || 'Unknown'}`;
-                        statusDiv.className = data.bot_status === 'running' ? 'status-success' : 'status-info';
+                        statusDiv.className = data.bot_status === 'running' ? 'status-success' : (data.bot_status === 'error' ? 'status-error' : 'status-info');
                         // Update button states based on status
                         startBtn.disabled = (data.bot_status === 'running');
                         stopBtn.disabled = (data.bot_status !== 'running');

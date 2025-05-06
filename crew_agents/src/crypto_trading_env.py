@@ -72,7 +72,8 @@ class CryptoTradingEnvironment(gym.Env):
         trading_fee: float = 0.0005,  # Reduced fee for more frequent trading
         df: Optional[pd.DataFrame] = None,
         live_trading: bool = False,
-        broker_type: Literal['simulation', 'robinhood', 'ibkr'] = 'simulation'
+        broker_type: Literal['simulation', 'robinhood', 'ibkr'] = 'simulation',
+        log_experience: bool = False # Added parameter for controlling live logging
     ):
         super().__init__()
         
@@ -93,6 +94,7 @@ class CryptoTradingEnvironment(gym.Env):
         self.live_trading = live_trading
         self.broker_type = broker_type if live_trading else 'simulation'
         self.broker: Optional[Broker] = None 
+        self.log_experience = log_experience # Store the parameter value
 
         self.logger.info(f"Initializing environment: Symbol={self.symbol}, Live Trading={self.live_trading}, Broker Type={self.broker_type}")
 
@@ -100,17 +102,12 @@ class CryptoTradingEnvironment(gym.Env):
         if self.live_trading:
             load_dotenv() 
             if self.broker_type == 'robinhood':
-                api_key = os.getenv("RH_API_KEY")
-                private_key = os.getenv("RH_PRIVATE_KEY")
-                if not api_key or not private_key:
-                    self.logger.error("Robinhood API Key or Private Key not found in .env file for live trading.")
-                    raise ValueError("Missing Robinhood credentials for live trading.")
                 try:
-                    self.broker = RobinhoodBroker(api_key=api_key, private_key=private_key)
+                    # Instantiate RobinhoodBroker without passing keys; it should load them itself
+                    self.broker = RobinhoodBroker()
                     self.logger.info("Robinhood broker initialized successfully for live trading.")
                     # Fetch initial live state (capital, holdings) in reset()
                     # Override trading fee with broker's fee if applicable
-                    # self.trading_fee = self.broker.get_trading_fee(self.symbol) 
                 except Exception as e:
                     self.logger.error(f"Failed to initialize Robinhood broker: {e}", exc_info=True)
                     raise
@@ -122,17 +119,17 @@ class CryptoTradingEnvironment(gym.Env):
                 raise ValueError(f"Unsupported live broker: {self.broker_type}")
         # --------------------------
 
-        # Action space: 0=Hold, 1=Buy 25%, 2=Buy 50%, 3=Buy 100%, 4=Sell 25%, 5=Sell 50%, 6=Sell 100%
-        self.action_space = gym.spaces.Discrete(7)
+        # Action space: Must match the model being loaded (Discrete(3) from error)
+        # Original assumption: 0=Hold, 1=Buy 25%, 2=Buy 50%, 3=Buy 100%, 4=Sell 25%, 5=Sell 50%, 6=Sell 100%
+        self.action_space = gym.spaces.Discrete(3) # Match the model's expected action space
         
         # Observation space: Includes market indicators + portfolio state (capital, holdings)
-        # Shape needs to accommodate the 11 original indicators + 2 portfolio features + 1 sentiment
-        # TODO: Potentially adjust shape/content based on live data availability
-        observation_shape = (14,) # Correct shape accounting for sentiment
+        # Needs to match the shape the model was trained with.
+        observation_shape = (31,) # Match the shape from the error message
         self.observation_space = gym.spaces.Box(
-            low=-np.inf, 
-            high=np.inf, 
-            shape=(observation_shape,), 
+            low=-1.0, # Match the bounds from the error message
+            high=1.0, # Match the bounds from the error message
+            shape=observation_shape, # Pass the tuple directly
             dtype=np.float32
         )
         
@@ -140,12 +137,20 @@ class CryptoTradingEnvironment(gym.Env):
         self.historical_data = None
         if not self.live_trading: 
             if df is not None:
+                self.logger.info(f"Received DataFrame df. Shape: {df.shape}, Is empty: {df.empty}")
                 self.historical_data = df
+                log_shape = self.historical_data.shape if self.historical_data is not None else 'None'
+                log_empty = self.historical_data.empty if self.historical_data is not None else 'N/A'
+                self.logger.info(f"Assigned df to self.historical_data. Shape: {log_shape}, Is empty: {log_empty}")
             else:
+                self.logger.warning("No df passed, attempting internal fetch.") # Keep this line
                 self.historical_data = self._fetch_historical_data()
+            log_shape_check = self.historical_data.shape if self.historical_data is not None else 'None'
+            log_empty_check = self.historical_data.empty if self.historical_data is not None else 'N/A'
+            self.logger.info(f"Checking self.historical_data before raising error. Shape: {log_shape_check}, Is empty: {log_empty_check}")
             if self.historical_data is None or self.historical_data.empty:
-                 self.logger.error("Failed to load historical data for simulation.")
-                 raise ValueError("Historical data could not be loaded.")
+                self.logger.error("Failed to load historical data for simulation (self.historical_data is None or empty).") # Keep this line
+                raise ValueError("Historical data could not be loaded.")
             self.logger.info(f"Loaded historical data for simulation: {len(self.historical_data)} points.")
         else:
             # In live mode, we might fetch a small recent window in reset/step if needed for indicators
@@ -945,7 +950,7 @@ class CryptoTradingEnvironment(gym.Env):
             current_data_df = self.broker.get_historical_data(self.symbol, periods=self.lookback_window + 1, interval='1h') # +1 to have current point
             if current_data_df is None or current_data_df.empty or len(current_data_df) < self.lookback_window:
                  self.logger.error("Failed to get sufficient historical data for current observation.")
-                 # Return last known observation? Needs robust handling.
+                 # Return last valid observation? Needs robust handling.
                  # For logging purposes, we might need to skip this step if we can't form a state.
                  # Returning previous observation might make the log inconsistent.
                  # Let's return the initial observation for now, indicating an issue.
@@ -1063,22 +1068,23 @@ class CryptoTradingEnvironment(gym.Env):
             # ---------------------------------------
 
             # --- Log Experience --- TODO: Refine state updates based on actual fills before logging
-            experience = {
-                'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
-                'symbol': self.symbol,
-                'state': current_observation.tolist(), # Convert numpy array to list for JSON
-                'action': action,
-                'reward': reward, # Logged as 0, calculate actual reward during training if needed
-                'next_state': next_observation.tolist(),
-                'terminated': terminated,
-                'truncated': truncated,
-                'info': info
-            }
-            try:
-                with open(self.experience_log_file, 'a') as f:
-                    f.write(json.dumps(experience) + '\n')
-            except Exception as e:
-                self.logger.exception(f"Failed to write experience to {self.experience_log_file}")
+            if self.log_experience:
+                experience = {
+                    'timestamp': datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                    'symbol': self.symbol,
+                    'state': current_observation.tolist(), # Convert numpy array to list for JSON
+                    'action': action,
+                    'reward': reward, # Logged as 0, calculate actual reward during training if needed
+                    'next_state': next_observation.tolist(),
+                    'terminated': terminated,
+                    'truncated': truncated,
+                    'info': info
+                }
+                try:
+                    with open(self.experience_log_file, 'a') as f:
+                        f.write(json.dumps(experience) + '\n')
+                except Exception as e:
+                    self.logger.exception(f"Failed to write experience to {self.experience_log_file}")
             # ----------------------
 
             self.current_step += 1
@@ -1127,10 +1133,12 @@ class CryptoTradingEnvironment(gym.Env):
 
                 # --- Fetch Initial Live Data for Observation --- 
                 self.logger.info("Fetching recent market data for initial observation...")
-                # Use the broker's get_historical_data method
-                live_data_df = self.broker.get_historical_data(self.symbol, periods=self.lookback_window, interval='1h') # Example signature
+                # Use the DATA PROVIDER's fetch_price_history method, NOT the broker's
+                # Ensure the arguments match the fetch_price_history signature (symbol, days, interval)
+                live_data_df = self.data_provider.fetch_price_history(self.symbol, days=self.lookback_window, interval='1h')
+                
                 if live_data_df is None or live_data_df.empty or len(live_data_df) < self.lookback_window:
-                     msg = f"Failed to fetch sufficient live data ({len(live_data_df) if live_data_df is not None else 0}/{self.lookback_window}) for initial observation."
+                     msg = f"Failed to fetch sufficient live data via data_provider ({len(live_data_df) if live_data_df is not None else 0}/{self.lookback_window}) for initial observation."
                      self.logger.error(msg)
                      # Fallback? Or raise error? For now, raise.
                      raise ValueError(msg)

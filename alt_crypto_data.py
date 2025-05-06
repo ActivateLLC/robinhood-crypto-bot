@@ -20,6 +20,7 @@ import sys
 import yfinance as yf
 from pycoingecko import CoinGeckoAPI
 from config import YFINANCE_PERIOD, YFINANCE_INTERVAL
+from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_exception_type
 
 # Imports for Sentiment Analysis
 import nltk
@@ -168,89 +169,69 @@ class AltCryptoDataProvider:
             logger.error(f"Error during CoinGecko coin list search: {e}")
             return None
 
-    def _fetch_with_yfinance(self, symbol: str, days: int, interval: str) -> Optional[pd.DataFrame]: # Keep days param, add interval
+    @retry(stop=stop_after_attempt(3), wait=wait_fixed(5), retry=retry_if_exception_type(Exception))
+    def _fetch_with_yfinance(self, symbol: str, days: int, interval: str) -> Optional[pd.DataFrame]: 
         """Attempts to fetch data using yfinance, respecting config for period and using the passed interval."""
         yf_symbol = self._format_symbol_for_yfinance(symbol)
-        # Removed start/end date calculation based on 'days'
-        # end_date = datetime.now()
-        # start_date = end_date - timedelta(days=days)
+        # Calculate start/end date based on the 'days' parameter passed to the function
+        end_date = datetime.now(timezone.utc)
+        start_date = end_date - timedelta(days=days)
 
-        # Use period from config, but interval from parameter
-        fetch_period = YFINANCE_PERIOD
-        # fetch_interval = YFINANCE_INTERVAL # Don't use config interval
+        # Format dates for yfinance if needed (usually accepts datetime objects)
+        # start_date_str = start_date.strftime('%Y-%m-%d')
+        # end_date_str = end_date.strftime('%Y-%m-%d')
+
+        # Use interval from parameter, do not use period from config
+        # fetch_period = YFINANCE_PERIOD # Don't use config period
         fetch_interval = interval # Use the passed interval
 
-        logger.info(f"Fetching price history for {yf_symbol} from yfinance (Period: {fetch_period}, Interval: {fetch_interval})...")
+        logger.info(f"Fetching price history for {yf_symbol} from yfinance (Start: {start_date.date()}, End: {end_date.date()}, Interval: {fetch_interval})...")
+        
+        try:
+            ticker = yf.Ticker(yf_symbol)
+            # Use start/end dates derived from 'days' and the passed interval
+            hist = ticker.history(start=start_date, end=end_date, interval=fetch_interval)
 
-        for attempt in range(self.retries):
-            try:
-                ticker = yf.Ticker(yf_symbol)
-                # Use period from config and interval from parameter
-                hist = ticker.history(period=fetch_period, interval=fetch_interval)
+            if hist.empty:
+                logger.warning(f"yfinance returned no data for {yf_symbol} (Start: {start_date.date()}, End: {end_date.date()}, Interval: {fetch_interval}).")
+                # Continue to next retry if empty
+                raise Exception("yfinance returned empty data")
 
-                if hist.empty:
-                    logger.warning(f"yfinance returned no data for {yf_symbol} (Period: {fetch_period}, Interval: {fetch_interval}, Attempt {attempt + 1}/{self.retries}).")
-                    # Continue to next retry if empty
-                    if attempt < self.retries - 1:
-                         time.sleep(self.delay)
-                         continue
-                    else:
-                         return None # Return None after last attempt if still empty
+            # Select and rename columns
+            hist = hist[['Open', 'High', 'Low', 'Close', 'Volume']]
+            hist.rename(columns={
+                'Open': 'open',
+                'High': 'high',
+                'Low': 'low',
+                'Close': 'close',
+                'Volume': 'volume'
+            }, inplace=True)
 
-                # Select and rename columns
-                hist = hist[['Open', 'High', 'Low', 'Close', 'Volume']]
-                hist.rename(columns={
-                    'Open': 'open',
-                    'High': 'high',
-                    'Low': 'low',
-                    'Close': 'close',
-                    'Volume': 'volume'
-                }, inplace=True)
+            # Ensure index is DatetimeIndex and timezone-naive
+            if isinstance(hist.index, pd.DatetimeIndex):
+                if hist.index.tz is not None:
+                    hist.index = hist.index.tz_localize(None)
+            else:
+                 logger.warning(f"yfinance index for {yf_symbol} is not DatetimeIndex. Attempting conversion.")
+                 try:
+                     hist.index = pd.to_datetime(hist.index).tz_localize(None)
+                 except Exception as conv_err:
+                     logger.error(f"Failed to convert yfinance index to DatetimeIndex for {yf_symbol}: {conv_err}")
+                     raise Exception("Failed to convert yfinance index to DatetimeIndex")
 
-                # Ensure index is DatetimeIndex and timezone-naive
-                if isinstance(hist.index, pd.DatetimeIndex):
-                    if hist.index.tz is not None:
-                        hist.index = hist.index.tz_localize(None)
-                else:
-                     logger.warning(f"yfinance index for {yf_symbol} is not DatetimeIndex. Attempting conversion.")
-                     try:
-                         hist.index = pd.to_datetime(hist.index).tz_localize(None)
-                     except Exception as conv_err:
-                         logger.error(f"Failed to convert yfinance index to DatetimeIndex for {yf_symbol}: {conv_err} (Attempt {attempt + 1}/{self.retries})")
-                         # Continue to next retry on conversion error
-                         if attempt < self.retries - 1:
-                             time.sleep(self.delay)
-                             continue
-                         else:
-                             return None # Return None after last attempt if conversion fails
+            # Drop rows with NaN in critical columns
+            hist.dropna(subset=['open', 'high', 'low', 'close'], inplace=True)
 
-                # Drop rows with NaN in critical columns
-                hist.dropna(subset=['open', 'high', 'low', 'close'], inplace=True)
+            if hist.empty:
+                logger.warning(f"No valid OHLC data for {yf_symbol} from yfinance after cleaning.")
+                raise Exception("No valid OHLC data for symbol after cleaning")
 
-                if hist.empty:
-                    logger.warning(f"No valid OHLC data for {yf_symbol} from yfinance after cleaning (Attempt {attempt + 1}/{self.retries}).")
-                    # Continue to next retry if empty after cleaning
-                    if attempt < self.retries - 1:
-                         time.sleep(self.delay)
-                         continue
-                    else:
-                         return None # Return None after last attempt if empty after cleaning
+            logger.info(f"Successfully fetched {len(hist)} data points for {yf_symbol} from yfinance.")
+            return hist # Return successfully fetched data
 
-                logger.info(f"Successfully fetched {len(hist)} data points for {yf_symbol} from yfinance.")
-                return hist # Return successfully fetched data
-
-            except Exception as e:
-                logger.warning(f"Failed to fetch data for {yf_symbol} from yfinance: {e} (Attempt {attempt + 1}/{self.retries})")
-                if attempt < self.retries - 1:
-                    logger.info(f"Retrying yfinance fetch for {yf_symbol} in {self.delay} seconds...")
-                    time.sleep(self.delay)
-                else:
-                    logger.error(f"yfinance fetch failed for {yf_symbol} after {self.retries} attempts.")
-                    return None # Return None after last attempt if exception occurred
-                    
-        # Should not be reached if logic is correct, but as a safeguard
-        logger.error(f"yfinance fetch loop completed unexpectedly for {yf_symbol}.") 
-        return None # Return None if loop finishes without success
+        except Exception as e:
+            logger.error(f"Failed to fetch data for {yf_symbol} from yfinance: {e}")
+            raise Exception("Failed to fetch data from yfinance")
 
     def _fetch_with_coingecko(self, symbol: str, days: int) -> Optional[pd.DataFrame]:
          """Attempts to fetch data using CoinGecko (fallback)."""
@@ -259,13 +240,31 @@ class AltCryptoDataProvider:
              logger.error(f"Could not find CoinGecko ID for symbol {symbol}. Cannot fetch data.")
              return None
 
-         logger.info(f"Attempting fallback: Fetching price history for {symbol} ({coin_id}) from CoinGecko ({days} days)...")
+         # Determine valid CoinGecko 'days' parameter (must be 1, 7, 14, 30, 90, 180, 365, 'max')
+         valid_cg_days = [1, 7, 14, 30, 90, 180, 365]
+         cg_days = days # Default if days is already valid or for 'max'
+         if days not in valid_cg_days and days <= 365:
+             # Find the smallest valid period >= requested days
+             for valid_day in valid_cg_days:
+                 if valid_day >= days:
+                     cg_days = valid_day
+                     break
+             else: # If days > 365, consider using 'max'? For now, stick to 365 as max specific value
+                 cg_days = 365 
+                 logger.warning(f"Requested days ({days}) > 365, using CoinGecko max specific period 365 days.")
+         elif days > 365:
+             # Or potentially use 'max' if pycoingecko supports it, otherwise cap at 365
+             cg_days = 365 # Sticking to 365 for simplicity now
+             logger.warning(f"Requested days ({days}) > 365, using CoinGecko max specific period 365 days.")
+
+         logger.info(f"Attempting fallback: Fetching price history for {symbol} ({coin_id}) from CoinGecko (requesting {cg_days} days for {days} required days)...")
          for attempt in range(self.retries):
              try:
-                 # Fetch OHLC data
-                 ohlc_data = self.cg.get_coin_ohlc_by_id(id=coin_id, vs_currency='usd', days=days)
+                 # Fetch OHLC data using the adjusted cg_days
+                 ohlc_data = self.cg.get_coin_ohlc_by_id(id=coin_id, vs_currency='usd', days=cg_days)
                  # Fetch volume data separately (CoinGecko API structure)
-                 market_chart_data = self.cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=days, interval='daily')
+                 # Also use cg_days here for consistency, interval remains daily as market chart is daily beyond short periods
+                 market_chart_data = self.cg.get_coin_market_chart_by_id(id=coin_id, vs_currency='usd', days=cg_days, interval='daily')
 
                  if not ohlc_data:
                      logger.warning(f"CoinGecko returned no OHLC data for {coin_id} (Attempt {attempt + 1}/{self.retries})")
@@ -290,7 +289,8 @@ class AltCryptoDataProvider:
                      logger.warning(f"Could not fetch volume data for {coin_id} from CoinGecko.")
                      df['volume'] = 0 # Assign default volume if fetch fails
 
-                 df['volume'].fillna(0, inplace=True) # Fill any NaN volumes after join
+                 # Address FutureWarning: Avoid inplace on potentially copied series/slice
+                 df['volume'] = df['volume'].fillna(0)
 
                  # Ensure correct data types
                  for col in ['open', 'high', 'low', 'close', 'volume']:
@@ -302,6 +302,16 @@ class AltCryptoDataProvider:
                      logger.warning(f"No valid OHLC data for {coin_id} from CoinGecko after cleaning (Attempt {attempt + 1}/{self.retries})")
                      time.sleep(self.delay)
                      continue
+
+                 # Trim the dataframe to the originally requested number of days before returning
+                 # Use .last() which works well with DatetimeIndex if frequency can be inferred, 
+                 # otherwise, slice based on date after ensuring index is sorted.
+                 df.sort_index(inplace=True)
+                 # Use tail to get the last 'days' number of rows reliably
+                 df = df.tail(days)
+
+                 if len(df) < days:
+                     logger.warning(f"CoinGecko data for {coin_id} has only {len(df)} points after requesting {cg_days} and taking tail({days}).")
 
                  logger.info(f"Successfully fetched {len(df)} data points for {coin_id} from CoinGecko.")
                  return df
@@ -354,11 +364,24 @@ class AltCryptoDataProvider:
     ) -> Optional[pd.DataFrame]:
         """Fetches historical OHLCV data using yfinance first, then CoinGecko as fallback."""
 
-        # Attempt 1: yfinance
-        df = self._fetch_with_yfinance(symbol, days, interval) # Pass interval here
-        if df is not None and not df.empty:
-            return df
+        df = None # Initialize df to None
+        try:
+            # Attempt 1: yfinance
+            logger.info(f"Attempting to fetch data for {symbol} via yfinance...")
+            df = self._fetch_with_yfinance(symbol, days, interval) # Pass interval here
+            if df is not None and not df.empty:
+                logger.info(f"Successfully fetched data for {symbol} via yfinance.")
+                return df # Return if successful
+            else:
+                # Log if yfinance returned None or empty without raising an exception (shouldn't happen with current _fetch_with_yfinance)
+                logger.warning(f"yfinance fetch for {symbol} returned None or empty DataFrame.")
+            
+        except Exception as yf_error:
+            # Catch RetryError or other exceptions from _fetch_with_yfinance
+            logger.error(f"yfinance fetch attempt failed for {symbol} after retries: {yf_error}")
+            # df remains None, allowing fallback
 
+        # If yfinance failed (df is None or empty), try CoinGecko
         logger.warning(f"yfinance fetch failed or returned empty data for {symbol}. Falling back to CoinGecko.")
 
         # Attempt 2: CoinGecko (Fallback) - Note: CoinGecko fallback might not respect the interval

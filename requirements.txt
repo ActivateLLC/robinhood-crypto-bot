@@ -10,7 +10,7 @@ stable-baselines3
 # shimmy==2.0.0
 
 # Financial Data and Trading
-yfinance==0.2.18
+yfinance
 ccxt==4.0.84
 ta-lib>=0.4.20
 pandas-ta==0.3.14b0 # Added for advanced technical indicators
@@ -21,7 +21,7 @@ ta
 backtrader
 
 # Cryptocurrency and Financial Data
-yfinance==0.2.18
+yfinance
 ccxt==4.0.84
 ta-lib>=0.4.20
 requests==2.31.0
@@ -30,7 +30,7 @@ pycoingecko
 pynacl
 
 # Advanced Data Fetching Dependencies
-yfinance>=0.2.18
+yfinance
 ccxt>=4.0.0
 numpy>=1.22.0
 pandas>=2.0.0
@@ -75,3 +75,7 @@ ib_insync>=0.9 # For Interactive Brokers API integration
 # Sentiment Analysis
 nltk
 newsapi-python
+
+# AI Agents
+crewai
+crewai[tools]

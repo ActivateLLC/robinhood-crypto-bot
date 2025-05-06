@@ -20,13 +20,17 @@ from crew_agents.src.multi_agent_orchestrator import MultiAgentOrchestrator
 from crew_agents.src.alt_crypto_data import AltCryptoDataProvider
 from crew_agents.src.crypto_trading_env import CryptoTradingEnvironment as CryptoTradingEnv
 
+# Create logs directory if it doesn't exist
+log_dir = os.path.join(project_root, 'logs')
+os.makedirs(log_dir, exist_ok=True)
+
 # Configure comprehensive logging
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
     handlers=[
         logging.StreamHandler(sys.stdout),  # Console output
-        logging.FileHandler('crypto_trading_debug.log', mode='w')  # File logging
+        logging.FileHandler(os.path.join(log_dir, 'crypto_trading_bot.log'), mode='w')  # Use final log file path
     ]
 )
 
@@ -34,6 +38,9 @@ logging.basicConfig(
 logging.getLogger('CryptoTradingEnvironment').setLevel(logging.DEBUG)
 logging.getLogger('stable_baselines3').setLevel(logging.INFO)
 logging.getLogger('gymnasium').setLevel(logging.WARNING)
+
+logger = logging.getLogger(__name__) # Get root logger
+logger.info("--- Crypto Trading Bot Script Started ---")
 
 # Global exception handler
 def global_exception_handler(exc_type, exc_value, exc_traceback):
@@ -44,22 +51,6 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
     sys.__excepthook__(exc_type, exc_value, exc_traceback)
 
 sys.excepthook = global_exception_handler
-
-def setup_logging():
-    """
-    Configure comprehensive logging for the main application
-    """
-    log_dir = os.path.join(project_root, 'logs')
-    os.makedirs(log_dir, exist_ok=True)
-    
-    logging.basicConfig(
-        level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-        handlers=[
-            logging.FileHandler(os.path.join(log_dir, 'crypto_trading_bot.log')),
-            logging.StreamHandler(sys.stdout)
-        ]
-    )
 
 def signal_handler(signum, frame):
     """
@@ -153,10 +144,6 @@ def main():
     """
     Main entry point for the Crypto Trading Bot Backtesting
     """
-    # Setup logging
-    setup_logging()
-    logger = logging.getLogger('CryptoTradingBacktest')
-    
     # Symbols to backtest
     symbols = ['BTC-USD', 'ETH-USD', 'BNB-USD']
     

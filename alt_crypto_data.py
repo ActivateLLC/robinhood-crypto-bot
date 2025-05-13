@@ -173,39 +173,54 @@ class AltCryptoDataProvider:
     def _fetch_with_yfinance(self, symbol: str, days: int, interval: str) -> Optional[pd.DataFrame]: 
         """Attempts to fetch data using yfinance, respecting config for period and using the passed interval."""
         yf_symbol = self._format_symbol_for_yfinance(symbol)
-        # Calculate start/end date based on the 'days' parameter passed to the function
         end_date = datetime.now(timezone.utc)
         start_date = end_date - timedelta(days=days)
-
-        # Format dates for yfinance if needed (usually accepts datetime objects)
-        # start_date_str = start_date.strftime('%Y-%m-%d')
-        # end_date_str = end_date.strftime('%Y-%m-%d')
-
-        # Use interval from parameter, do not use period from config
-        # fetch_period = YFINANCE_PERIOD # Don't use config period
-        fetch_interval = interval # Use the passed interval
+        fetch_interval = interval
 
         logger.info(f"Fetching price history for {yf_symbol} from yfinance (Start: {start_date.date()}, End: {end_date.date()}, Interval: {fetch_interval})...")
         
         try:
             ticker = yf.Ticker(yf_symbol)
-            # Use start/end dates derived from 'days' and the passed interval
             hist = ticker.history(start=start_date, end=end_date, interval=fetch_interval)
 
             if hist.empty:
                 logger.warning(f"yfinance returned no data for {yf_symbol} (Start: {start_date.date()}, End: {end_date.date()}, Interval: {fetch_interval}).")
-                # Continue to next retry if empty
                 raise Exception("yfinance returned empty data")
 
-            # Select and rename columns
-            hist = hist[['Open', 'High', 'Low', 'Close', 'Volume']]
-            hist.rename(columns={
-                'Open': 'open',
-                'High': 'high',
-                'Low': 'low',
-                'Close': 'close',
-                'Volume': 'volume'
-            }, inplace=True)
+            logger.debug(f"_fetch_with_yfinance: Columns directly from yfinance for {yf_symbol}: {hist.columns.tolist()}")
+
+            # Standardize column names to uppercase
+            # This handles if yfinance returns 'open', 'Open', or other variations for the standard OHLCV columns.
+            rename_map = {}
+            for col in hist.columns:
+                col_lower = str(col).lower()
+                if col_lower == 'open':
+                    rename_map[col] = 'Open'
+                elif col_lower == 'high':
+                    rename_map[col] = 'High'
+                elif col_lower == 'low':
+                    rename_map[col] = 'Low'
+                elif col_lower == 'close':
+                    rename_map[col] = 'Close'
+                elif col_lower == 'volume':
+                    rename_map[col] = 'Volume'
+                # Add other common yfinance columns if needed, e.g., 'adj close'
+                elif col_lower == 'adj close':
+                    rename_map[col] = 'Adj Close'
+            
+            hist.rename(columns=rename_map, inplace=True)
+            logger.debug(f"_fetch_with_yfinance: Columns after renaming for {yf_symbol}: {hist.columns.tolist()}")
+
+            # Select only the essential columns, now that they should be reliably uppercase
+            essential_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+            
+            # Verify that all essential columns are present
+            missing_columns = [col for col in essential_columns if col not in hist.columns]
+            if missing_columns:
+                logger.error(f"_fetch_with_yfinance: Missing essential columns {missing_columns} for {yf_symbol} after renaming. Available columns: {hist.columns.tolist()}")
+                raise Exception(f"_fetch_with_yfinance: Missing essential columns {missing_columns} for {yf_symbol}. Data fetching failed integrity check.")
+            
+            hist = hist[essential_columns]
 
             # Ensure index is DatetimeIndex and timezone-naive
             if isinstance(hist.index, pd.DatetimeIndex):
@@ -220,13 +235,14 @@ class AltCryptoDataProvider:
                      raise Exception("Failed to convert yfinance index to DatetimeIndex")
 
             # Drop rows with NaN in critical columns
-            hist.dropna(subset=['open', 'high', 'low', 'close'], inplace=True)
+            hist.dropna(subset=['Open', 'High', 'Low', 'Close'], inplace=True)
 
             if hist.empty:
                 logger.warning(f"No valid OHLC data for {yf_symbol} from yfinance after cleaning.")
                 raise Exception("No valid OHLC data for symbol after cleaning")
 
             logger.info(f"Successfully fetched {len(hist)} data points for {yf_symbol} from yfinance.")
+            logger.debug(f"_fetch_with_yfinance returning df with columns: {hist.columns.tolist()}")
             return hist # Return successfully fetched data
 
         except Exception as e:
@@ -313,7 +329,18 @@ class AltCryptoDataProvider:
                  if len(df) < days:
                      logger.warning(f"CoinGecko data for {coin_id} has only {len(df)} points after requesting {cg_days} and taking tail({days}).")
 
+                 # Rename columns to uppercase to match yfinance and environment expectations
+                 rename_map = {
+                     'open': 'Open',
+                     'high': 'High',
+                     'low': 'Low',
+                     'close': 'Close',
+                     'volume': 'Volume'
+                 }
+                 df.rename(columns=rename_map, inplace=True)
+
                  logger.info(f"Successfully fetched {len(df)} data points for {coin_id} from CoinGecko.")
+                 logger.debug(f"_fetch_with_coingecko returning df with columns: {df.columns.tolist()}")
                  return df
 
              except Exception as e:
@@ -387,6 +414,7 @@ class AltCryptoDataProvider:
         # Attempt 2: CoinGecko (Fallback) - Note: CoinGecko fallback might not respect the interval
         df_fallback = self._fetch_with_coingecko(symbol, days)
         if df_fallback is not None and not df_fallback.empty:
+            logger.info(f"Successfully fetched data for {symbol} via CoinGecko fallback.") # Added log for clarity
             return df_fallback
 
         logger.error(f"Failed to fetch data for {symbol} from both yfinance and CoinGecko.")

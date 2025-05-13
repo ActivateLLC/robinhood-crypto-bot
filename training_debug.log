@@ -1,0 +1,294 @@
+2025-05-11 04:22:31,652 - matplotlib - DEBUG - matplotlib data path: /opt/homebrew/Caskroom/miniforge/base/lib/python3.10/site-packages/matplotlib/mpl-data
+2025-05-11 04:22:31,655 - matplotlib - DEBUG - CONFIGDIR=/Users/activate/.matplotlib
+2025-05-11 04:22:31,656 - matplotlib - DEBUG - interactive is False
+2025-05-11 04:22:31,656 - matplotlib - DEBUG - platform is darwin
+2025-05-11 04:22:31,694 - matplotlib - DEBUG - CACHEDIR=/Users/activate/.matplotlib
+2025-05-11 04:22:31,696 - matplotlib.font_manager - DEBUG - Using fontManager instance from /Users/activate/.matplotlib/fontlist-v330.json
+2025-05-11 04:22:32,914 - __main__ - INFO - Starting RL agent training for BTC-USD...
+2025-05-11 04:22:32,916 - __main__ - INFO - Fetching 180 days of historical data for BTC-USD...
+2025-05-11 04:22:32,916 - __main__ - INFO - Initializing data provider...
+2025-05-11 04:22:32,916 - alt_crypto_data - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-05-11 04:22:32,926 - alt_crypto_data - INFO - NewsApiClient initialized for sentiment analysis.
+2025-05-11 04:22:32,926 - alt_crypto_data - INFO - Attempting to fetch data for BTC-USD via yfinance...
+2025-05-11 04:22:32,927 - alt_crypto_data - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-05-11 04:22:32,927 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2024-11-12, End: 2025-05-11, Interval: 1h)...
+2025-05-11 04:22:32,927 - yfinance - DEBUG - Using User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/133.0.0.0 Safari/537.36
+2025-05-11 04:22:32,927 - yfinance - DEBUG - Entering history()
+2025-05-11 04:22:32,929 - peewee - DEBUG - ('CREATE TABLE IF NOT EXISTS "_kv" ("key" VARCHAR(255) NOT NULL PRIMARY KEY, "value" VARCHAR(255)) WITHOUT ROWID', [])
+2025-05-11 04:22:32,930 - peewee - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-05-11 04:22:32,930 - yfinance - DEBUG -  Entering history()
+2025-05-11 04:22:32,930 - yfinance - DEBUG - BTC-USD: Yahoo GET parameters: {'period1': '2024-11-12 09:22:32+00:00', 'period2': '2025-05-11 09:22:32+00:00', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-11 04:22:32,930 - yfinance - DEBUG -   Entering get()
+2025-05-11 04:22:32,930 - yfinance - DEBUG -    Entering _make_request()
+2025-05-11 04:22:32,930 - yfinance - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-05-11 04:22:32,930 - yfinance - DEBUG - params={'period1': 1731403352, 'period2': 1746955352, 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-11 04:22:32,930 - yfinance - DEBUG -     Entering _get_cookie_and_crumb()
+2025-05-11 04:22:32,930 - yfinance - DEBUG - cookie_mode = 'basic'
+2025-05-11 04:22:32,930 - yfinance - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-05-11 04:22:33,451 - yfinance - DEBUG - crumb = 'iTrykiFSUaj'
+2025-05-11 04:22:33,452 - yfinance - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-05-11 04:22:33,452 - yfinance - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-05-11 04:22:33,838 - yfinance - DEBUG - response code=200
+2025-05-11 04:22:33,839 - yfinance - DEBUG -    Exiting _make_request()
+2025-05-11 04:22:33,839 - yfinance - DEBUG -   Exiting get()
+2025-05-11 04:22:33,854 - yfinance - DEBUG - BTC-USD: yfinance received OHLC data: 2024-11-12 09:00:00 -> 2025-05-11 09:21:00
+2025-05-11 04:22:33,864 - yfinance - DEBUG - BTC-USD: OHLC after cleaning: 2024-11-12 09:00:00+00:00 -> 2025-05-11 09:21:00+00:00
+2025-05-11 04:22:33,867 - yfinance - DEBUG - BTC-USD: OHLC after combining events: 2024-11-12 09:00:00+00:00 -> 2025-05-11 09:21:00+00:00
+2025-05-11 04:22:33,874 - yfinance - DEBUG - BTC-USD: yfinance returning OHLC: 2024-11-12 09:00:00+00:00 -> 2025-05-11 09:00:00+00:00
+2025-05-11 04:22:33,875 - yfinance - DEBUG -  Exiting history()
+2025-05-11 04:22:33,875 - yfinance - DEBUG - Exiting history()
+2025-05-11 04:22:33,875 - alt_crypto_data - DEBUG - _fetch_with_yfinance: Columns directly from yfinance for BTC-USD: ['Open', 'High', 'Low', 'Close', 'Volume', 'Dividends', 'Stock Splits']
+2025-05-11 04:22:33,875 - alt_crypto_data - DEBUG - _fetch_with_yfinance: Columns after renaming for BTC-USD: ['Open', 'High', 'Low', 'Close', 'Volume', 'Dividends', 'Stock Splits']
+2025-05-11 04:22:33,876 - alt_crypto_data - INFO - Successfully fetched 4320 data points for BTC-USD from yfinance.
+2025-05-11 04:22:33,876 - alt_crypto_data - DEBUG - _fetch_with_yfinance returning df with columns: ['Open', 'High', 'Low', 'Close', 'Volume']
+2025-05-11 04:22:33,876 - alt_crypto_data - INFO - Successfully fetched data for BTC-USD via yfinance.
+2025-05-11 04:22:33,876 - __main__ - INFO - Initializing Crypto Trading Environment...
+2025-05-11 04:22:33,882 - alt_crypto_data - INFO - AltCryptoDataProvider initialized. Primary source: yfinance, Fallback: CoinGecko
+2025-05-11 04:22:33,887 - alt_crypto_data - INFO - NewsApiClient initialized for sentiment analysis.
+2025-05-11 04:22:33,887 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Period: 180 days, Interval: 1h)...
+2025-05-11 04:22:33,887 - alt_crypto_data - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-05-11 04:22:33,887 - alt_crypto_data - DEBUG - Formatting symbol 'BTC-USD' to 'BTC-USD' for yfinance.
+2025-05-11 04:22:33,887 - alt_crypto_data - INFO - Fetching price history for BTC-USD from yfinance (Start: 2024-11-12, End: 2025-05-11, Interval: 1h)...
+2025-05-11 04:22:33,887 - yfinance - DEBUG - Entering history()
+2025-05-11 04:22:33,887 - peewee - DEBUG - ('SELECT "t1"."key", "t1"."value" FROM "_kv" AS "t1" WHERE ("t1"."key" = ?) LIMIT ? OFFSET ?', ['BTC-USD', 1, 0])
+2025-05-11 04:22:33,887 - yfinance - DEBUG -  Entering history()
+2025-05-11 04:22:33,887 - yfinance - DEBUG - BTC-USD: Yahoo GET parameters: {'period1': '2024-11-12 09:22:33+00:00', 'period2': '2025-05-11 09:22:33+00:00', 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-11 04:22:33,888 - yfinance - DEBUG -   Entering get()
+2025-05-11 04:22:33,888 - yfinance - DEBUG -    Entering _make_request()
+2025-05-11 04:22:33,888 - yfinance - DEBUG - url=https://query2.finance.yahoo.com/v8/finance/chart/BTC-USD
+2025-05-11 04:22:33,888 - yfinance - DEBUG - params={'period1': 1731403353, 'period2': 1746955353, 'interval': '1h', 'includePrePost': False, 'events': 'div,splits,capitalGains'}
+2025-05-11 04:22:33,888 - yfinance - DEBUG -     Entering _get_cookie_and_crumb()
+2025-05-11 04:22:33,888 - yfinance - DEBUG - cookie_mode = 'basic'
+2025-05-11 04:22:33,888 - yfinance - DEBUG -      Entering _get_cookie_and_crumb_basic()
+2025-05-11 04:22:33,919 - yfinance - DEBUG - reusing crumb
+2025-05-11 04:22:33,919 - yfinance - DEBUG -      Exiting _get_cookie_and_crumb_basic()
+2025-05-11 04:22:33,919 - yfinance - DEBUG -     Exiting _get_cookie_and_crumb()
+2025-05-11 04:22:34,064 - yfinance - DEBUG - response code=200
+2025-05-11 04:22:34,064 - yfinance - DEBUG -    Exiting _make_request()
+2025-05-11 04:22:34,064 - yfinance - DEBUG -   Exiting get()
+2025-05-11 04:22:34,069 - yfinance - DEBUG - BTC-USD: yfinance received OHLC data: 2024-11-12 09:00:00 -> 2025-05-11 09:21:00
+2025-05-11 04:22:34,074 - yfinance - DEBUG - BTC-USD: OHLC after cleaning: 2024-11-12 09:00:00+00:00 -> 2025-05-11 09:21:00+00:00
+2025-05-11 04:22:34,076 - yfinance - DEBUG - BTC-USD: OHLC after combining events: 2024-11-12 09:00:00+00:00 -> 2025-05-11 09:21:00+00:00
+2025-05-11 04:22:34,081 - yfinance - DEBUG - BTC-USD: yfinance returning OHLC: 2024-11-12 09:00:00+00:00 -> 2025-05-11 09:00:00+00:00
+2025-05-11 04:22:34,081 - yfinance - DEBUG -  Exiting history()
+2025-05-11 04:22:34,082 - yfinance - DEBUG - Exiting history()
+2025-05-11 04:22:34,082 - alt_crypto_data - DEBUG - _fetch_with_yfinance: Columns directly from yfinance for BTC-USD: ['Open', 'High', 'Low', 'Close', 'Volume', 'Dividends', 'Stock Splits']
+2025-05-11 04:22:34,082 - alt_crypto_data - DEBUG - _fetch_with_yfinance: Columns after renaming for BTC-USD: ['Open', 'High', 'Low', 'Close', 'Volume', 'Dividends', 'Stock Splits']
+2025-05-11 04:22:34,083 - alt_crypto_data - INFO - Successfully fetched 4320 data points for BTC-USD from yfinance.
+2025-05-11 04:22:34,083 - alt_crypto_data - DEBUG - _fetch_with_yfinance returning df with columns: ['Open', 'High', 'Low', 'Close', 'Volume']
+2025-05-11 04:22:34,083 - rl_environment - DEBUG - _load_and_prepare_data returning df with columns: ['Open', 'High', 'Low', 'Close', 'Volume']
+2025-05-11 04:22:34,083 - rl_environment - DEBUG - _validate_data received df with columns: ['Open', 'High', 'Low', 'Close', 'Volume']
+2025-05-11 04:22:35,485 - __main__ - INFO - Environment created successfully.
+2025-05-11 04:22:35,485 - __main__ - INFO - Environment created successfully.
+2025-05-11 04:22:35,485 - __main__ - INFO - Applying custom hyperparameters: {'learning_rate': 0.0011398979077466161, 'batch_size': 32, 'n_steps': 9074, 'gamma': 0.985762576774885, 'gae_lambda': 0.810001434716043, 'ent_coef': 0.0021744055223654243, 'clip_range': 0.2929392092750005}
+2025-05-11 04:22:35,485 - __main__ - INFO - Using model parameters: {'policy': 'MlpPolicy', 'env': <stable_baselines3.common.vec_env.dummy_vec_env.DummyVecEnv object at 0x178f69f00>, 'verbose': 1, 'seed': 42, 'learning_rate': 0.0011398979077466161, 'batch_size': 32, 'n_steps': 9074, 'gamma': 0.985762576774885, 'gae_lambda': 0.810001434716043, 'ent_coef': 0.0021744055223654243, 'clip_range': 0.2929392092750005}
+2025-05-11 04:22:36,380 - __main__ - INFO - Training started
+2025-05-11 04:22:36,383 - urllib3.connectionpool - DEBUG - Starting new HTTPS connection (1): api.senticrypt.com:443
+2025-05-11 04:22:36,669 - urllib3.connectionpool - DEBUG - https://api.senticrypt.com:443 "GET /v2/all.json HTTP/1.1" 200 355877
+2025-05-11 04:22:37,400 - __main__ - INFO - Training Progress: 2.00%
+2025-05-11 04:22:37,400 - __main__ - INFO - Step 1000/50000
+2025-05-11 04:22:37,400 - __main__ - INFO - Elapsed Time: 1.02 seconds
+2025-05-11 04:22:37,400 - __main__ - INFO - Steps per Second: 979.65
+2025-05-11 04:22:37,791 - __main__ - INFO - Training Progress: 4.00%
+2025-05-11 04:22:37,791 - __main__ - INFO - Step 2000/50000
+2025-05-11 04:22:37,791 - __main__ - INFO - Elapsed Time: 1.41 seconds
+2025-05-11 04:22:37,791 - __main__ - INFO - Steps per Second: 1416.98
+2025-05-11 04:22:38,191 - __main__ - INFO - Training Progress: 6.00%
+2025-05-11 04:22:38,191 - __main__ - INFO - Step 3000/50000
+2025-05-11 04:22:38,191 - __main__ - INFO - Elapsed Time: 1.81 seconds
+2025-05-11 04:22:38,191 - __main__ - INFO - Steps per Second: 1655.99
+2025-05-11 04:22:38,611 - __main__ - INFO - Training Progress: 8.00%
+2025-05-11 04:22:38,611 - __main__ - INFO - Step 4000/50000
+2025-05-11 04:22:38,611 - __main__ - INFO - Elapsed Time: 2.23 seconds
+2025-05-11 04:22:38,611 - __main__ - INFO - Steps per Second: 1792.27
+2025-05-11 04:22:38,989 - __main__ - INFO - Training Progress: 10.00%
+2025-05-11 04:22:38,989 - __main__ - INFO - Step 5000/50000
+2025-05-11 04:22:38,990 - __main__ - INFO - Elapsed Time: 2.61 seconds
+2025-05-11 04:22:38,990 - __main__ - INFO - Steps per Second: 1915.71
+2025-05-11 04:22:39,378 - __main__ - INFO - Training Progress: 12.00%
+2025-05-11 04:22:39,378 - __main__ - INFO - Step 6000/50000
+2025-05-11 04:22:39,378 - __main__ - INFO - Elapsed Time: 3.00 seconds
+2025-05-11 04:22:39,378 - __main__ - INFO - Steps per Second: 2001.11
+2025-05-11 04:22:39,777 - __main__ - INFO - Training Progress: 14.00%
+2025-05-11 04:22:39,777 - __main__ - INFO - Step 7000/50000
+2025-05-11 04:22:39,777 - __main__ - INFO - Elapsed Time: 3.40 seconds
+2025-05-11 04:22:39,777 - __main__ - INFO - Steps per Second: 2060.22
+2025-05-11 04:22:40,183 - __main__ - INFO - Training Progress: 16.00%
+2025-05-11 04:22:40,183 - __main__ - INFO - Step 8000/50000
+2025-05-11 04:22:40,183 - __main__ - INFO - Elapsed Time: 3.80 seconds
+2025-05-11 04:22:40,183 - __main__ - INFO - Steps per Second: 2103.37
+2025-05-11 04:22:40,569 - __main__ - INFO - Training Progress: 18.00%
+2025-05-11 04:22:40,570 - __main__ - INFO - Step 9000/50000
+2025-05-11 04:22:40,570 - __main__ - INFO - Elapsed Time: 4.19 seconds
+2025-05-11 04:22:40,570 - __main__ - INFO - Steps per Second: 2147.92
+2025-05-11 04:22:43,756 - __main__ - INFO - Training Progress: 20.00%
+2025-05-11 04:22:43,756 - __main__ - INFO - Step 10000/50000
+2025-05-11 04:22:43,756 - __main__ - INFO - Elapsed Time: 7.38 seconds
+2025-05-11 04:22:43,756 - __main__ - INFO - Steps per Second: 1355.68
+2025-05-11 04:22:52,036 - __main__ - INFO - Training Progress: 22.00%
+2025-05-11 04:22:52,037 - __main__ - INFO - Step 11000/50000
+2025-05-11 04:22:52,037 - __main__ - INFO - Elapsed Time: 15.66 seconds
+2025-05-11 04:22:52,037 - __main__ - INFO - Steps per Second: 702.57
+2025-05-11 04:22:52,699 - __main__ - INFO - Training Progress: 24.00%
+2025-05-11 04:22:52,699 - __main__ - INFO - Step 12000/50000
+2025-05-11 04:22:52,700 - __main__ - INFO - Elapsed Time: 16.32 seconds
+2025-05-11 04:22:52,700 - __main__ - INFO - Steps per Second: 735.29
+2025-05-11 04:22:53,099 - __main__ - INFO - Training Progress: 26.00%
+2025-05-11 04:22:53,099 - __main__ - INFO - Step 13000/50000
+2025-05-11 04:22:53,099 - __main__ - INFO - Elapsed Time: 16.72 seconds
+2025-05-11 04:22:53,099 - __main__ - INFO - Steps per Second: 777.53
+2025-05-11 04:22:53,511 - __main__ - INFO - Training Progress: 28.00%
+2025-05-11 04:22:53,511 - __main__ - INFO - Step 14000/50000
+2025-05-11 04:22:53,511 - __main__ - INFO - Elapsed Time: 17.13 seconds
+2025-05-11 04:22:53,511 - __main__ - INFO - Steps per Second: 817.21
+2025-05-11 04:22:53,895 - __main__ - INFO - Training Progress: 30.00%
+2025-05-11 04:22:53,896 - __main__ - INFO - Step 15000/50000
+2025-05-11 04:22:53,896 - __main__ - INFO - Elapsed Time: 17.52 seconds
+2025-05-11 04:22:53,896 - __main__ - INFO - Steps per Second: 856.35
+2025-05-11 04:22:54,282 - __main__ - INFO - Training Progress: 32.00%
+2025-05-11 04:22:54,282 - __main__ - INFO - Step 16000/50000
+2025-05-11 04:22:54,282 - __main__ - INFO - Elapsed Time: 17.90 seconds
+2025-05-11 04:22:54,282 - __main__ - INFO - Steps per Second: 893.74
+2025-05-11 04:22:54,688 - __main__ - INFO - Training Progress: 34.00%
+2025-05-11 04:22:54,688 - __main__ - INFO - Step 17000/50000
+2025-05-11 04:22:54,689 - __main__ - INFO - Elapsed Time: 18.31 seconds
+2025-05-11 04:22:54,689 - __main__ - INFO - Steps per Second: 928.50
+2025-05-11 04:22:55,101 - __main__ - INFO - Training Progress: 36.00%
+2025-05-11 04:22:55,101 - __main__ - INFO - Step 18000/50000
+2025-05-11 04:22:55,101 - __main__ - INFO - Elapsed Time: 18.72 seconds
+2025-05-11 04:22:55,101 - __main__ - INFO - Steps per Second: 961.45
+2025-05-11 04:22:58,112 - __main__ - INFO - Training Progress: 38.00%
+2025-05-11 04:22:58,112 - __main__ - INFO - Step 19000/50000
+2025-05-11 04:22:58,112 - __main__ - INFO - Elapsed Time: 21.73 seconds
+2025-05-11 04:22:58,112 - __main__ - INFO - Steps per Second: 874.25
+2025-05-11 04:22:58,501 - __main__ - INFO - Training Progress: 40.00%
+2025-05-11 04:22:58,501 - __main__ - INFO - Step 20000/50000
+2025-05-11 04:22:58,501 - __main__ - INFO - Elapsed Time: 22.12 seconds
+2025-05-11 04:22:58,501 - __main__ - INFO - Steps per Second: 904.09
+2025-05-11 04:23:07,130 - __main__ - INFO - Training Progress: 42.00%
+2025-05-11 04:23:07,130 - __main__ - INFO - Step 21000/50000
+2025-05-11 04:23:07,130 - __main__ - INFO - Elapsed Time: 30.75 seconds
+2025-05-11 04:23:07,131 - __main__ - INFO - Steps per Second: 682.91
+2025-05-11 04:23:07,527 - __main__ - INFO - Training Progress: 44.00%
+2025-05-11 04:23:07,527 - __main__ - INFO - Step 22000/50000
+2025-05-11 04:23:07,527 - __main__ - INFO - Elapsed Time: 31.15 seconds
+2025-05-11 04:23:07,527 - __main__ - INFO - Steps per Second: 706.32
+2025-05-11 04:23:07,936 - __main__ - INFO - Training Progress: 46.00%
+2025-05-11 04:23:07,936 - __main__ - INFO - Step 23000/50000
+2025-05-11 04:23:07,936 - __main__ - INFO - Elapsed Time: 31.56 seconds
+2025-05-11 04:23:07,936 - __main__ - INFO - Steps per Second: 728.86
+2025-05-11 04:23:08,351 - __main__ - INFO - Training Progress: 48.00%
+2025-05-11 04:23:08,351 - __main__ - INFO - Step 24000/50000
+2025-05-11 04:23:08,351 - __main__ - INFO - Elapsed Time: 31.97 seconds
+2025-05-11 04:23:08,351 - __main__ - INFO - Steps per Second: 750.66
+2025-05-11 04:23:08,780 - __main__ - INFO - Training Progress: 50.00%
+2025-05-11 04:23:08,780 - __main__ - INFO - Step 25000/50000
+2025-05-11 04:23:08,780 - __main__ - INFO - Elapsed Time: 32.40 seconds
+2025-05-11 04:23:08,780 - __main__ - INFO - Steps per Second: 771.59
+2025-05-11 04:23:09,190 - __main__ - INFO - Training Progress: 52.00%
+2025-05-11 04:23:09,190 - __main__ - INFO - Step 26000/50000
+2025-05-11 04:23:09,190 - __main__ - INFO - Elapsed Time: 32.81 seconds
+2025-05-11 04:23:09,190 - __main__ - INFO - Steps per Second: 792.43
+2025-05-11 04:23:09,609 - __main__ - INFO - Training Progress: 54.00%
+2025-05-11 04:23:09,609 - __main__ - INFO - Step 27000/50000
+2025-05-11 04:23:09,609 - __main__ - INFO - Elapsed Time: 33.23 seconds
+2025-05-11 04:23:09,609 - __main__ - INFO - Steps per Second: 812.54
+2025-05-11 04:23:12,680 - __main__ - INFO - Training Progress: 56.00%
+2025-05-11 04:23:12,681 - __main__ - INFO - Step 28000/50000
+2025-05-11 04:23:12,681 - __main__ - INFO - Elapsed Time: 36.30 seconds
+2025-05-11 04:23:12,681 - __main__ - INFO - Steps per Second: 771.33
+2025-05-11 04:23:13,091 - __main__ - INFO - Training Progress: 58.00%
+2025-05-11 04:23:13,092 - __main__ - INFO - Step 29000/50000
+2025-05-11 04:23:13,092 - __main__ - INFO - Elapsed Time: 36.71 seconds
+2025-05-11 04:23:13,092 - __main__ - INFO - Steps per Second: 789.93
+2025-05-11 04:23:13,490 - __main__ - INFO - Training Progress: 60.00%
+2025-05-11 04:23:13,490 - __main__ - INFO - Step 30000/50000
+2025-05-11 04:23:13,490 - __main__ - INFO - Elapsed Time: 37.11 seconds
+2025-05-11 04:23:13,490 - __main__ - INFO - Steps per Second: 808.39
+2025-05-11 04:23:21,656 - __main__ - INFO - Training Progress: 62.00%
+2025-05-11 04:23:21,657 - __main__ - INFO - Step 31000/50000
+2025-05-11 04:23:21,657 - __main__ - INFO - Elapsed Time: 45.28 seconds
+2025-05-11 04:23:21,657 - __main__ - INFO - Steps per Second: 684.67
+2025-05-11 04:23:22,064 - __main__ - INFO - Training Progress: 64.00%
+2025-05-11 04:23:22,064 - __main__ - INFO - Step 32000/50000
+2025-05-11 04:23:22,064 - __main__ - INFO - Elapsed Time: 45.68 seconds
+2025-05-11 04:23:22,064 - __main__ - INFO - Steps per Second: 700.46
+2025-05-11 04:23:22,487 - __main__ - INFO - Training Progress: 66.00%
+2025-05-11 04:23:22,487 - __main__ - INFO - Step 33000/50000
+2025-05-11 04:23:22,487 - __main__ - INFO - Elapsed Time: 46.11 seconds
+2025-05-11 04:23:22,487 - __main__ - INFO - Steps per Second: 715.72
+2025-05-11 04:23:22,951 - __main__ - INFO - Training Progress: 68.00%
+2025-05-11 04:23:22,951 - __main__ - INFO - Step 34000/50000
+2025-05-11 04:23:22,951 - __main__ - INFO - Elapsed Time: 46.57 seconds
+2025-05-11 04:23:22,951 - __main__ - INFO - Steps per Second: 730.06
+2025-05-11 04:23:23,338 - __main__ - INFO - Training Progress: 70.00%
+2025-05-11 04:23:23,338 - __main__ - INFO - Step 35000/50000
+2025-05-11 04:23:23,338 - __main__ - INFO - Elapsed Time: 46.96 seconds
+2025-05-11 04:23:23,338 - __main__ - INFO - Steps per Second: 745.33
+2025-05-11 04:23:23,731 - __main__ - INFO - Training Progress: 72.00%
+2025-05-11 04:23:23,731 - __main__ - INFO - Step 36000/50000
+2025-05-11 04:23:23,731 - __main__ - INFO - Elapsed Time: 47.35 seconds
+2025-05-11 04:23:23,731 - __main__ - INFO - Steps per Second: 760.27
+2025-05-11 04:23:26,757 - __main__ - INFO - Training Progress: 74.00%
+2025-05-11 04:23:26,757 - __main__ - INFO - Step 37000/50000
+2025-05-11 04:23:26,757 - __main__ - INFO - Elapsed Time: 50.38 seconds
+2025-05-11 04:23:26,758 - __main__ - INFO - Steps per Second: 734.45
+2025-05-11 04:23:27,186 - __main__ - INFO - Training Progress: 76.00%
+2025-05-11 04:23:27,187 - __main__ - INFO - Step 38000/50000
+2025-05-11 04:23:27,187 - __main__ - INFO - Elapsed Time: 50.81 seconds
+2025-05-11 04:23:27,187 - __main__ - INFO - Steps per Second: 747.93
+2025-05-11 04:23:27,576 - __main__ - INFO - Training Progress: 78.00%
+2025-05-11 04:23:27,576 - __main__ - INFO - Step 39000/50000
+2025-05-11 04:23:27,576 - __main__ - INFO - Elapsed Time: 51.20 seconds
+2025-05-11 04:23:27,576 - __main__ - INFO - Steps per Second: 761.77
+2025-05-11 04:23:27,970 - __main__ - INFO - Training Progress: 80.00%
+2025-05-11 04:23:27,970 - __main__ - INFO - Step 40000/50000
+2025-05-11 04:23:27,970 - __main__ - INFO - Elapsed Time: 51.59 seconds
+2025-05-11 04:23:27,970 - __main__ - INFO - Steps per Second: 775.34
+2025-05-11 04:23:35,738 - __main__ - INFO - Training Progress: 82.00%
+2025-05-11 04:23:35,739 - __main__ - INFO - Step 41000/50000
+2025-05-11 04:23:35,739 - __main__ - INFO - Elapsed Time: 59.36 seconds
+2025-05-11 04:23:35,739 - __main__ - INFO - Steps per Second: 690.71
+2025-05-11 04:23:36,346 - __main__ - INFO - Training Progress: 84.00%
+2025-05-11 04:23:36,346 - __main__ - INFO - Step 42000/50000
+2025-05-11 04:23:36,346 - __main__ - INFO - Elapsed Time: 59.97 seconds
+2025-05-11 04:23:36,346 - __main__ - INFO - Steps per Second: 700.39
+2025-05-11 04:23:36,755 - __main__ - INFO - Training Progress: 86.00%
+2025-05-11 04:23:36,755 - __main__ - INFO - Step 43000/50000
+2025-05-11 04:23:36,755 - __main__ - INFO - Elapsed Time: 60.38 seconds
+2025-05-11 04:23:36,755 - __main__ - INFO - Steps per Second: 712.21
+2025-05-11 04:23:37,188 - __main__ - INFO - Training Progress: 88.00%
+2025-05-11 04:23:37,188 - __main__ - INFO - Step 44000/50000
+2025-05-11 04:23:37,188 - __main__ - INFO - Elapsed Time: 60.81 seconds
+2025-05-11 04:23:37,188 - __main__ - INFO - Steps per Second: 723.58
+2025-05-11 04:23:37,575 - __main__ - INFO - Training Progress: 90.00%
+2025-05-11 04:23:37,576 - __main__ - INFO - Step 45000/50000
+2025-05-11 04:23:37,576 - __main__ - INFO - Elapsed Time: 61.20 seconds
+2025-05-11 04:23:37,576 - __main__ - INFO - Steps per Second: 735.34
+2025-05-11 04:23:40,585 - __main__ - INFO - Training Progress: 92.00%
+2025-05-11 04:23:40,585 - __main__ - INFO - Step 46000/50000
+2025-05-11 04:23:40,585 - __main__ - INFO - Elapsed Time: 64.21 seconds
+2025-05-11 04:23:40,585 - __main__ - INFO - Steps per Second: 716.45
+2025-05-11 04:23:40,987 - __main__ - INFO - Training Progress: 94.00%
+2025-05-11 04:23:40,987 - __main__ - INFO - Step 47000/50000
+2025-05-11 04:23:40,987 - __main__ - INFO - Elapsed Time: 64.61 seconds
+2025-05-11 04:23:40,987 - __main__ - INFO - Steps per Second: 727.47
+2025-05-11 04:23:41,395 - __main__ - INFO - Training Progress: 96.00%
+2025-05-11 04:23:41,395 - __main__ - INFO - Step 48000/50000
+2025-05-11 04:23:41,395 - __main__ - INFO - Elapsed Time: 65.02 seconds
+2025-05-11 04:23:41,395 - __main__ - INFO - Steps per Second: 738.28
+2025-05-11 04:23:41,782 - __main__ - INFO - Training Progress: 98.00%
+2025-05-11 04:23:41,782 - __main__ - INFO - Step 49000/50000
+2025-05-11 04:23:41,782 - __main__ - INFO - Elapsed Time: 65.40 seconds
+2025-05-11 04:23:41,782 - __main__ - INFO - Steps per Second: 749.20
+2025-05-11 04:23:42,176 - __main__ - INFO - Training Progress: 100.00%
+2025-05-11 04:23:42,176 - __main__ - INFO - Step 50000/50000
+2025-05-11 04:23:42,176 - __main__ - INFO - Elapsed Time: 65.80 seconds
+2025-05-11 04:23:42,176 - __main__ - INFO - Steps per Second: 759.92
+2025-05-11 04:23:50,052 - __main__ - INFO - Training completed
+2025-05-11 04:23:50,060 - __main__ - INFO - Model saved to trained_models/BTC_USD_PPO_optimized_may3_50000steps.zip
+2025-05-11 04:23:50,060 - __main__ - INFO - Training Summary:
+2025-05-11 04:23:50,060 - __main__ - INFO - Total Training Steps: 50000
+2025-05-11 04:23:50,060 - __main__ - INFO - Total Training Episodes: 5
+2025-05-11 04:23:50,060 - __main__ - INFO - No episode rewards recorded.
+2025-05-11 04:23:50,060 - __main__ - INFO - Training script finished.

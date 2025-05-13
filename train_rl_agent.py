@@ -1,69 +1,68 @@
-import numpy as np
-import pandas as pd
 import logging
 import logging.handlers
 import sys
 import os
-import gymnasium as gym
+
+# Configure logging AS EARLY AS POSSIBLE
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', 
+    handlers=[
+        logging.StreamHandler(sys.stdout), 
+        logging.FileHandler('training_debug.log', mode='w', encoding='utf-8')
+    ]
+)
+
+import numpy as np
+import pandas as pd
+import gymnasium as gym 
 import traceback
 import time
-from stable_baselines3.common.callbacks import BaseCallback, CallbackList
+from stable_baselines3.common.callbacks import BaseCallback, CallbackList 
 
 # Add project root to path
 project_root = os.path.dirname(os.path.abspath(__file__))
-sys.path.insert(0, project_root)
+if project_root not in sys.path: 
+    sys.path.insert(0, project_root)
 
-# Import custom modules
+# Import custom modules AFTER basicConfig
 from alt_crypto_data import AltCryptoDataProvider
 from rl_environment import CryptoTradingEnv
 
-# Stable Baselines imports
+# Stable Baselines imports AFTER basicConfig
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv
 from stable_baselines3.common.callbacks import EvalCallback, StopTrainingOnNoModelImprovement
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler('training_debug.log', mode='w', encoding='utf-8')
-    ]
-)
+# Get the logger for the current module (__main__)
 logger = logging.getLogger(__name__)
 
-# Configure logging with file rotation
+# Configure additional logging for training_progress.log (specific to this main script's logger)
 log_file = 'training_progress.log'
 file_handler = logging.handlers.RotatingFileHandler(
     log_file, 
-    maxBytes=10*1024*1024,  # 10 MB
+    maxBytes=10*1024*1024,  
     backupCount=5
 )
 file_handler.setFormatter(logging.Formatter(
-    '%(asctime)s - %(levelname)s - %(message)s'
+    '%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 ))
 logger.addHandler(file_handler)
 
-# Ensure logging to console and file
-logger.setLevel(logging.INFO)
-
 # --- Configuration ---
-SYMBOL = "BTC-USD"  # Cryptocurrency trading pair
-DATA_DAYS = 180     # How many days of historical data to use for training
-INITIAL_BALANCE = 10000  # Starting balance for the training environment
-LOOKBACK_WINDOW = 30     # Lookback window for the environment's observation
-TRAINING_TIMESTEPS = 50000  # Number of training timesteps
-MODEL_ALGO = "PPO"        # Reinforcement Learning Algorithm
-TRANSACTION_FEE = 0.001   # Transaction fee percentage
-DSR_WINDOW = 30           # Dynamic Stop-Loss and Risk Window
+SYMBOL = "BTC-USD"  
+DATA_DAYS = 180     
+INITIAL_BALANCE = 10000  
+LOOKBACK_WINDOW = 30     
+TRAINING_TIMESTEPS = 50000  
+MODEL_ALGO = "PPO"        
+TRANSACTION_FEE = 0.001   
+DSR_WINDOW = 30           
 EVAL_EPISODES = 5
 SAVE_FREQ = 10000
 
 # Directory for saved RL models
 MODEL_SAVE_DIR = "trained_models"
-MODEL_FILENAME = f"{SYMBOL.replace('-','_')}_{MODEL_ALGO}_tuned_{TRAINING_TIMESTEPS}steps"
-model_save_path = os.path.join(MODEL_SAVE_DIR, MODEL_FILENAME)
 
 # Create save directory if it doesn't exist
 os.makedirs(MODEL_SAVE_DIR, exist_ok=True)
@@ -86,7 +85,7 @@ def create_environment(symbol='BTC-USD', use_sentiment=False):
     
     # Create environment
     env = CryptoTradingEnv(
-        symbol=symbol,
+        symbol=symbol, 
         initial_balance=initial_balance,
         transaction_fee_percent=transaction_fee,
         data_period='6mo',
@@ -95,25 +94,7 @@ def create_environment(symbol='BTC-USD', use_sentiment=False):
         lookback_window=lookback_window
     )
     
-    # Compute total number of features
-    total_features = (
-        6 +  # Price and Trend Features
-        4 +  # Heikin-Ashi Features
-        3 +  # TTM Scalper Features
-        4 +  # Momentum Indicators
-        4 +  # Volatility and Volume Features
-        6 +  # Bollinger and Keltner Channel Features
-        4    # Portfolio Features
-    )
-    
-    # Modify observation space to match total features
-    env.observation_space = gym.spaces.Box(
-        low=-1, 
-        high=1, 
-        shape=(total_features,), 
-        dtype=np.float32
-    )
-    
+    logger.info("Environment created successfully.")
     return env
 
 def train_ppo_agent(symbol='BTC-USD', total_timesteps=50000, use_sentiment=True):
@@ -152,10 +133,15 @@ def train_ppo_agent(symbol='BTC-USD', total_timesteps=50000, use_sentiment=True)
     
     return model
 
-def train_agent():
+def train_agent(symbol_to_train=SYMBOL, custom_hyperparams=None, model_name_suffix=""):
     """Fetches data, creates environment, trains, and saves the RL agent."""
-    logger.info(f"Starting RL agent training for {SYMBOL}...")
-    logger.info(f"Fetching {DATA_DAYS} days of historical data for {SYMBOL}...")
+    logger.info(f"Starting RL agent training for {symbol_to_train}...")
+    logger.info(f"Fetching {DATA_DAYS} days of historical data for {symbol_to_train}...")
+
+    # Define model filename and path within the function for clarity
+    _model_name_suffix = f"_{model_name_suffix}" if model_name_suffix else ""
+    model_filename = f"{symbol_to_train.replace('-', '_')}_{MODEL_ALGO}{_model_name_suffix}_{TRAINING_TIMESTEPS}steps.zip"
+    model_save_path = os.path.join(MODEL_SAVE_DIR, model_filename)
 
     try:
         # 1. Load Data
@@ -165,11 +151,11 @@ def train_agent():
         data_provider = AltCryptoDataProvider()
         
         try:
-            df_raw = data_provider.fetch_price_history(symbol=SYMBOL, days=DATA_DAYS)
+            df_raw = data_provider.fetch_price_history(symbol=symbol_to_train, days=DATA_DAYS)
             
             # Robust data validation
             if df_raw is None:
-                logger.error(f"Could not fetch sufficient data for {SYMBOL}. Generating synthetic data.")
+                logger.error(f"Could not fetch sufficient data for {symbol_to_train}. Generating synthetic data.")
                 # Create synthetic data
                 dates = pd.date_range(end=pd.Timestamp.now(), periods=500, freq='1h')
                 df_raw = pd.DataFrame({
@@ -190,7 +176,7 @@ def train_agent():
         # 2. Create Environment
         logger.info("Initializing Crypto Trading Environment...")
         try:
-            env = create_environment(SYMBOL, use_sentiment=True)
+            env = create_environment(symbol_to_train, use_sentiment=True)
             
             # Wrap in DummyVecEnv for Stable Baselines3
             env = DummyVecEnv([lambda: env])
@@ -222,19 +208,33 @@ def train_agent():
         )
 
         # 4. Model Configuration
-        model_params = {
+        base_model_params = {
             'policy': 'MlpPolicy',
             'env': env,
-            'learning_rate': 0.0008259,  # From Optuna tuning
+            'verbose': 1,
+            'seed': 42
+        }
+
+        # Default hyperparameters (can be overridden by custom_hyperparams)
+        default_hyperparams = {
+            'learning_rate': 0.0008259,  
             'batch_size': 128,
             'n_steps': 4096,
             'gamma': 0.920044,
             'gae_lambda': 0.835314,
             'ent_coef': 0.000284,
             'clip_range': 0.379411,
-            'verbose': 1,
-            'seed': 42
         }
+
+        model_params = {**base_model_params, **default_hyperparams}
+
+        if custom_hyperparams:
+            logger.info(f"Applying custom hyperparameters: {custom_hyperparams}")
+            # Ensure all required keys are present in custom_hyperparams or use defaults
+            # For PPO, essential ones like learning_rate, batch_size, n_steps etc. are typically tuned.
+            model_params.update(custom_hyperparams) 
+
+        logger.info(f"Using model parameters: {model_params}")
 
         # Create PPO model
         model = PPO(**model_params)
@@ -298,9 +298,15 @@ def train_agent():
             # Log final training summary
             logger.info("Training Summary:")
             logger.info(f"Total Training Steps: {TRAINING_TIMESTEPS}")
-            logger.info(f"Total Training Episodes: {detailed_callback.total_episodes}")
-            logger.info(f"Average Episode Reward: {np.mean(detailed_callback.episode_rewards):.2f}")
-            logger.info(f"Best Episode Reward: {np.max(detailed_callback.episode_rewards):.2f}")
+            if hasattr(detailed_callback, 'total_episodes'): 
+                logger.info(f"Total Training Episodes: {detailed_callback.total_episodes}")
+                if detailed_callback.episode_rewards: 
+                    logger.info(f"Average Episode Reward: {np.mean(detailed_callback.episode_rewards):.2f}")
+                    logger.info(f"Best Episode Reward: {np.max(detailed_callback.episode_rewards):.2f}")
+                else:
+                    logger.info("No episode rewards recorded.")
+            else:
+                logger.info("Detailed callback did not record episode information.")
             
         except Exception as e:
             logger.error(f"Training failed: {e}")
@@ -314,4 +320,20 @@ def train_agent():
         logger.error(traceback.format_exc())
 
 if __name__ == "__main__":
-    train_agent()
+    # Optimized hyperparameters for BTC-USD from May 3rd run
+    optimized_btc_hyperparams = {
+        "learning_rate": 0.0011398979077466161,
+        "batch_size": 32,  
+        "n_steps": 9074,
+        "gamma": 0.985762576774885,
+        "gae_lambda": 0.810001434716043,
+        "ent_coef": 0.0021744055223654243,
+        "clip_range": 0.2929392092750005
+        # 'policy' and other fixed params like 'verbose', 'seed', 'env' are handled in train_agent
+    }
+
+    train_agent(
+        symbol_to_train="BTC-USD", 
+        custom_hyperparams=optimized_btc_hyperparams, 
+        model_name_suffix="optimized_may3"
+    )

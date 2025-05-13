@@ -133,16 +133,28 @@ class CryptoTradingEnv(gym.Env):
         # Define action and observation spaces
         self.action_space = gym.spaces.Discrete(3)  # 0: Hold, 1: Buy, 2: Sell
         
-        # Observation space: technical indicators, portfolio state
-        observation_columns = [
-            'MA_50', 'MA_200', 'RSI', 'MACD', 'Signal_Line', 
-            'Volatility', 'log_returns'
-        ]
+        # Observation space: 27 technical indicators + 4 portfolio metrics
+        # Technical indicators generated in _preprocess_data:
+        self.technical_indicator_columns = [
+            'sma_10', 'sma_30', 'ema_10', 'ema_30', 'ema_50',             # 5 MAs/EMAs
+            'price_above_ema50',                                        # 1 Trend
+            'volatility_10', 'volatility_30',                            # 2 Volatility
+            'volume_sma_20', 'volume_ratio',                             # 2 Volume
+            'ha_close', 'ha_open', 'ha_high', 'ha_low',                 # 4 Heikin-Ashi
+            'rsi',                                                      # 1 RSI
+            'macd', 'macd_signal', 'macd_hist',                         # 3 MACD
+            'bb_middle', 'bb_upper', 'bb_lower',                         # 3 Bollinger Bands
+            'kc_middle', 'kc_upper', 'kc_lower',                         # 3 Keltner Channels
+            'ttm_squeeze', 'ttm_momentum', 'ttm_signal'                  # 3 TTM Squeeze/Scalper
+        ] # Total 27 technical indicators
+
+        self.portfolio_feature_count = 4 # balance, value, crypto_held, current_price (or normalized price)
+        observation_feature_count = len(self.technical_indicator_columns) + self.portfolio_feature_count # 27 + 4 = 31
         
         self.observation_space = gym.spaces.Box(
             low=-np.inf, 
             high=np.inf, 
-            shape=(len(observation_columns) + 2,),  # +2 for balance and portfolio value
+            shape=(observation_feature_count,), # Should be (31,)
             dtype=np.float32
         )
         
@@ -159,6 +171,7 @@ class CryptoTradingEnv(gym.Env):
         Returns:
             pd.DataFrame: Validated and processed market data
         """
+        self.logger.debug(f"_validate_data received df with columns: {df.columns.tolist() if df is not None else 'None'}")
         # Required columns with flexible validation
         required_columns = [
             'Open', 'High', 'Low', 'Close', 'Volume', 
@@ -261,6 +274,7 @@ class CryptoTradingEnv(gym.Env):
             df.ffill(inplace=True)
             df.fillna(0, inplace=True)
             
+            self.logger.debug(f"_load_and_prepare_data returning df with columns: {df.columns.tolist() if df is not None else 'None'}")
             return df
         except Exception as e:
             # Log and re-raise with context
@@ -859,26 +873,25 @@ class CryptoTradingEnv(gym.Env):
         # Update previous portfolio value
         self.previous_portfolio_value = self.portfolio_value
         
-        # Prepare observation vector with fixed size
-        observation_columns = [
-            'MA_50', 'MA_200', 'RSI', 'MACD', 'Signal_Line', 
-            'Volatility', 'Log_Returns'
-        ]
-        
-        # Find actual column names, case-insensitive
-        available_columns = {col.lower(): col for col in self.df_processed.columns}
-        matched_columns = []
-        
-        for col in observation_columns:
-            lower_col = col.lower()
-            if lower_col in available_columns:
-                matched_columns.append(available_columns[lower_col])
+        # Prepare observation vector
+        # Technical indicators are already in self.df_processed at current_row
+        # Portfolio features need to be appended
+
+        # Find actual column names for technical indicators, case-insensitive
+        available_columns_in_df = {col.lower(): col for col in self.df_processed.columns}
+        matched_technical_columns = []
+        for tc_col_name in self.technical_indicator_columns: # Use the list from __init__
+            lower_tc_col_name = tc_col_name.lower()
+            if lower_tc_col_name in available_columns_in_df:
+                matched_technical_columns.append(available_columns_in_df[lower_tc_col_name])
             else:
-                raise ValueError(f"Could not find column matching: {col}")
-        
-        # Construct observation vector with fixed size
-        observation_size = 9  # 7 technical indicators + 2 portfolio metrics
-        observation = np.zeros(observation_size, dtype=np.float32)
+                # This should ideally not happen if _preprocess_data ran correctly and all columns were generated
+                self.logger.error(f"Missing technical indicator column in df_processed: {tc_col_name}. Available: {list(available_columns_in_df.keys())}")
+                # Fallback: add a zero or NaN, or raise error. For now, let's log and it will likely result in NaN/0 from _extract_scalar
+                matched_technical_columns.append(tc_col_name) # Add the name, _extract_scalar might handle missing gracefully or error
+    
+        observation_feature_count = len(self.technical_indicator_columns) + self.portfolio_feature_count
+        observation = np.zeros(observation_feature_count, dtype=np.float32)
         
         # Extract scalar values, handling nested or complex data
         def _extract_scalar(value):
@@ -893,15 +906,21 @@ class CryptoTradingEnv(gym.Env):
                 except (TypeError, ValueError):
                     return 0.0
         
-        # Fill with available data
-        for i, col in enumerate(matched_columns[:7]):
-            observation[i] = _extract_scalar(current_row[col])
-        
-        # Add portfolio metrics
-        observation[7] = self.portfolio_balance
-        observation[8] = self.portfolio_value
-        
-        # Ensure observation matches observation_space
+        # Fill with technical indicator data
+        for i, col_name in enumerate(matched_technical_columns):
+            if col_name in current_row:
+                observation[i] = _extract_scalar(current_row[col_name])
+            else:
+                observation[i] = 0.0 # Fallback for missing columns after logging
+    
+        # Add portfolio metrics (last 4 features)
+        portfolio_offset = len(self.technical_indicator_columns)
+        observation[portfolio_offset + 0] = self.portfolio_balance
+        observation[portfolio_offset + 1] = self.portfolio_value
+        observation[portfolio_offset + 2] = self.crypto_held
+        observation[portfolio_offset + 3] = self.current_price # Or a normalized version if needed
+    
+        # Ensure observation matches observation_space (np.clip will use the space defined in __init__)
         observation = np.clip(
             observation, 
             self.observation_space.low, 
@@ -948,26 +967,25 @@ class CryptoTradingEnv(gym.Env):
         self.max_portfolio_value = self.initial_balance
         
         # Prepare initial observation
-        observation_columns = [
-            'MA_50', 'MA_200', 'RSI', 'MACD', 'Signal_Line', 
-            'Volatility', 'Log_Returns'
-        ]
-        
-        # Find actual column names, case-insensitive
-        available_columns = {col.lower(): col for col in self.df_processed.columns}
-        matched_columns = []
-        
-        for col in observation_columns:
-            lower_col = col.lower()
-            if lower_col in available_columns:
-                matched_columns.append(available_columns[lower_col])
+        # Technical indicators are in self.df_processed at the first row (self.current_step is 0)
+        # Portfolio features are based on initial state
+        current_row_for_reset = self.df_processed.iloc[self.current_step] # self.current_step is 0
+
+        # Find actual column names for technical indicators, case-insensitive
+        available_columns_in_df_reset = {col.lower(): col for col in self.df_processed.columns}
+        matched_technical_columns_reset = []
+        for tc_col_name_reset in self.technical_indicator_columns: # Use the list from __init__
+            lower_tc_col_name_reset = tc_col_name_reset.lower()
+            if lower_tc_col_name_reset in available_columns_in_df_reset:
+                matched_technical_columns_reset.append(available_columns_in_df_reset[lower_tc_col_name_reset])
             else:
-                raise ValueError(f"Could not find column matching: {col}")
+                self.logger.error(f"RESET: Missing technical indicator column in df_processed: {tc_col_name_reset}. Available: {list(available_columns_in_df_reset.keys())}")
+                matched_technical_columns_reset.append(tc_col_name_reset)
+
+        observation_feature_count_reset = len(self.technical_indicator_columns) + self.portfolio_feature_count
+        initial_observation = np.zeros(observation_feature_count_reset, dtype=np.float32)
         
-        # Select first row of data
-        current_row = self.df_processed.iloc[0]
-        
-        # Construct observation vector, handling nested or complex data
+        # Extract scalar values, handling nested or complex data
         def _extract_scalar(value):
             """Extract a scalar value from potentially nested data"""
             if isinstance(value, (list, np.ndarray)):
@@ -980,19 +998,21 @@ class CryptoTradingEnv(gym.Env):
                 except (TypeError, ValueError):
                     return 0.0
         
-        # Construct observation vector with fixed size
-        observation_size = 9  # 7 technical indicators + 2 portfolio metrics
-        initial_observation = np.zeros(observation_size, dtype=np.float32)
-        
-        # Fill with available data
-        for i, col in enumerate(matched_columns[:7]):
-            initial_observation[i] = _extract_scalar(current_row[col])
-        
-        # Add portfolio metrics
-        initial_observation[7] = self.portfolio_balance
-        initial_observation[8] = self.portfolio_value
-        
-        # Ensure observation matches observation_space
+        # Fill with technical indicator data from the first row
+        for i, col_name_reset in enumerate(matched_technical_columns_reset):
+            if col_name_reset in current_row_for_reset:
+                initial_observation[i] = _extract_scalar(current_row_for_reset[col_name_reset])
+            else:
+                initial_observation[i] = 0.0 # Fallback
+    
+        # Add initial portfolio metrics (last 4 features)
+        portfolio_offset_reset = len(self.technical_indicator_columns)
+        initial_observation[portfolio_offset_reset + 0] = self.portfolio_balance # initial_balance
+        initial_observation[portfolio_offset_reset + 1] = self.portfolio_value   # initial_balance
+        initial_observation[portfolio_offset_reset + 2] = self.crypto_held      # 0.0
+        initial_observation[portfolio_offset_reset + 3] = self.current_price    # price at step 0
+    
+        # Ensure observation matches observation_space (np.clip will use the space defined in __init__)
         initial_observation = np.clip(
             initial_observation, 
             self.observation_space.low, 

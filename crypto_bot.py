@@ -30,13 +30,23 @@ FEATURE_COLS = [
     'open', 'high', 'low', 'close' # Assuming model was trained only on OHLC
 ]
 
+# Define the 27 technical indicators our model expects (must match CryptoTradingEnv)
+TECHNICAL_INDICATOR_COLUMNS = [
+    'sma_10', 'sma_30', 'ema_10', 'ema_30', 'ema_50',
+    'price_above_ema50', 'volatility_10', 'volatility_30',
+    'volume_sma_20', 'volume_ratio', 'ha_close', 'ha_open',
+    'ha_high', 'ha_low', 'rsi', 'macd', 'macd_signal', 'macd_hist',
+    'bb_middle', 'bb_upper', 'bb_lower', 'kc_middle', 'kc_upper',
+    'kc_lower', 'ttm_squeeze', 'ttm_momentum', 'ttm_signal'
+]
+
 # Default mapping from RL integer actions to trade signals
 DEFAULT_RL_ACTIONS_MAP = {0: 'sell', 1: 'hold', 2: 'buy'}
 # Define the expected observation space shape for the RL model
 # This might include flattened historical data + current balance + current holding
 # Example: (lookback_window * num_features) + 2
 # Adjust this based on your actual feature engineering
-EXPECTED_OBS_SHAPE = (60 * 4) + 2 # Based on model error: 60 lookback * 4 features + 2 state vars
+EXPECTED_OBS_SHAPE = (31,) # Based on model error: 60 lookback * 4 features + 2 state vars
 
 class RobinhoodCryptoBot:
     """
@@ -158,7 +168,6 @@ class RobinhoodCryptoBot:
             # 4. Fetch initial historical data and calculate normalization stats if using RL
             if self.trading_strategy == 'rl':
                 logging.info("Calculating initial normalization statistics...")
-                # self.fetch_all_historical_data() # Make sure this method exists <- Incorrect name
                 self._calculate_and_store_norm_stats() # <-- Correct method to fetch data and calc stats
                 if not self.norm_stats:
                     logging.error("Failed to calculate initial normalization stats. RL may not function correctly.")
@@ -175,7 +184,6 @@ class RobinhoodCryptoBot:
         # 5. Fetch initial holdings (Requires API Client)
         if self.broker:
             logging.info("Fetching initial holdings...")
-            # self.fetch_holdings() # Make sure this method exists <- Incorrect name
             self.get_holdings() # <-- Correct method name (matches API client method)
         else:
             logging.warning("Skipping initial holdings fetch: API client not available or trading disabled.")
@@ -201,71 +209,65 @@ class RobinhoodCryptoBot:
 
     def _calculate_and_store_norm_stats(self):
         """
-        Calculates and stores normalization statistics (mean, std) for each symbol
-        based on the initial historical data fetched.
+        Calculates and stores normalization statistics (mean, std) for the 27 technical indicators.
         """
-        logging.info("Calculating initial normalization statistics for RL features...")
+        logging.info("Calculating initial normalization statistics for 27 RL technical indicators...")
         self.norm_stats = {} # Reset stats
 
-        min_required_data = self.rl_lookback_window + 35 # Lookback + buffer for indicators (e.g., MACD slow+signal)
+        # Min rows for indicators (e.g., longest lookback for any single indicator like EMA50 or Volatility30 + some buffer)
+        # This is for the data *before* passing to _add_all_technical_indicators
+        min_rows_for_ohlcv_fetch = 90 # Fetch enough raw data for all indicators to warm up (e.g. 60 for indicators + 30 for some stddev)
 
-        logging.info(f"Starting normalization loop for symbols: {self.symbols}")
+        logging.info(f"Starting normalization stats calculation for symbols: {self.symbols}")
         for symbol in self.symbols:
             logging.debug(f"Processing normalization stats for symbol: {symbol}")
             try:
-                # Fetch historical data for the symbol
-                lookback_days = 90 # Example: Fetch 90 days of data
+                # Fetch historical OHLCV data for the symbol
+                df_ohlcv_history = self.data_provider.fetch_price_history(symbol, lookback_days=min_rows_for_ohlcv_fetch)
 
-                df = self.data_provider.fetch_price_history(symbol, lookback_days) # Correct call
-
-                if df is None or df.empty:
-                    logging.warning(f"No historical data found for {symbol} via fetch_price_history. Skipping normalization stat calculation.") # Updated log message
+                if df_ohlcv_history is None or df_ohlcv_history.empty:
+                    logging.warning(f"No historical OHLCV data found for {symbol}. Skipping normalization stat calculation.")
+                    continue
+                
+                # It's good practice to ensure OHLCV_COLS are present before passing to helper, though helper also checks
+                if not all(col.lower() in [c.lower() for c in df_ohlcv_history.columns] for col in OHLCV_COLS):
+                    logging.warning(f"Fetched historical data for {symbol} is missing one or more OHLCV columns. Skipping normalization.")
+                    continue
+                
+                # Ensure df_ohlcv_history has enough rows for meaningful indicator calculation by the helper
+                # The helper itself needs a buffer; this check is for the input to the helper.
+                # A general rule could be min_rows_for_ohlcv_fetch / 2 or a fixed number like 50-60.
+                if len(df_ohlcv_history) < 60: # Arbitrary minimum, adjust based on longest indicator period in helper
+                    logging.warning(f"Insufficient historical OHLCV data points for {symbol} ({len(df_ohlcv_history)} points, need ~60). Skipping normalization.")
                     continue
 
-                if len(df) < min_required_data:
-                    logging.warning(f"Insufficient historical data for {symbol} ({len(df)} points, need {min_required_data}) to calculate robust normalization stats. Skipping.")
+                # Add all technical indicators using the helper. Pass a copy.
+                df_with_indicators = self._add_all_technical_indicators(df_ohlcv_history.copy())
+
+                # Select only the technical indicator columns for stat calculation
+                df_technical_features = df_with_indicators[TECHNICAL_INDICATOR_COLUMNS].copy()
+                
+                # Drop rows with any NaN values that might remain in technical features
+                # (e.g., from initial warm-up of the longest indicator, despite helper's bfill/fillna(0))
+                df_technical_features.dropna(inplace=True)
+
+                # Check if enough data remains AFTER dropping NaNs for robust statistics
+                # We need at least a few data points. rl_lookback_window is a good reference, or a fixed minimum (e.g., 30).
+                min_data_points_for_stats = max(30, self.rl_lookback_window) 
+                if len(df_technical_features) < min_data_points_for_stats:
+                    logging.warning(f"Insufficient data for {symbol} after indicator calculation & NaN drop ({len(df_technical_features)} points, need {min_data_points_for_stats}). Cannot calc norm stats.")
                     continue
 
-                try:
-                    # Work on a copy to avoid modifying the original historical data
-                    df_processed = df[OHLCV_COLS].copy()
+                means = df_technical_features.mean()
+                stds = df_technical_features.std()
+                stds[stds == 0] = 1e-8 # Avoid division by zero
 
-                    # Add indicators
-                    df_processed.ta.rsi(length=14, append=True)
-                    df_processed.ta.macd(fast=12, slow=26, signal=9, append=True)
-                    df_processed.ta.bbands(length=20, std=2, append=True)
-
-                    # Select only feature columns AFTER adding indicators
-                    df_processed = df_processed[FEATURE_COLS].copy()
-
-                    # Drop rows with NaN values (generated by indicators needing warmup)
-                    df_processed.dropna(inplace=True)
-
-                    # Check if enough data remains AFTER dropping NaNs
-                    if len(df_processed) < self.rl_lookback_window:
-                        logging.warning(f"Insufficient data for {symbol} after calculating indicators and dropping NaNs ({len(df_processed)} points, need {self.rl_lookback_window}). Cannot calculate normalization stats.")
-                        continue
-
-                    # Calculate mean and std deviation
-                    means = df_processed.mean()
-                    stds = df_processed.std()
-
-                    # Avoid division by zero if std is 0 for any feature
-                    stds[stds == 0] = 1e-8 # Replace 0 std with a very small number
-
-                    self.norm_stats[symbol] = {'means': means, 'stds': stds}
-                    logging.info(f"Successfully calculated normalization stats for {symbol}.")
-
-                except Exception as e:
-                    logging.exception(f"Error calculating normalization stats for {symbol}:")
-                    # Ensure partial results aren't stored if an error occurs
-                    if symbol in self.norm_stats:
-                        del self.norm_stats[symbol]
+                self.norm_stats[symbol] = {'means': means, 'stds': stds}
+                logging.info(f"Successfully calculated normalization stats for {symbol} using {len(df_technical_features)} data points.")
 
             except Exception as e:
-                logging.exception(f"Error fetching historical data for {symbol}:")
-                # Ensure partial results aren't stored if an error occurs
-                if symbol in self.norm_stats:
+                logging.exception(f"Error calculating/storing normalization stats for {symbol}:")
+                if symbol in self.norm_stats: # Clean up if partial calculation failed
                     del self.norm_stats[symbol]
 
         logging.info("Finished calculating initial normalization statistics.")
@@ -278,109 +280,203 @@ class RobinhoodCryptoBot:
              if missing_stats:
                  logging.warning(f"Could not calculate normalization stats for: {missing_stats}")
 
-    def _get_normalized_features(self, symbol, df):
-        """Adds indicators, normalizes a slice, and ensures correct shape."""
+    def _add_all_technical_indicators(self, df_ohlcv: pd.DataFrame) -> pd.DataFrame:
+        """
+        Adds all 27 required technical indicators to the input DataFrame.
+        Assumes df_ohlcv has 'open', 'high', 'low', 'close', 'volume' columns (case-insensitive, will be lowercased).
+        Returns DataFrame with added indicators and placeholders for any that failed.
+        """
+        df_processed = df_ohlcv.copy()
+        df_processed.columns = [col.lower() for col in df_processed.columns]
+
+        required_ohlcv = ['open', 'high', 'low', 'close', 'volume']
+        if not all(col in df_processed.columns for col in required_ohlcv):
+            missing_ohlcv = [col for col in required_ohlcv if col not in df_processed.columns]
+            logging.warning(f"Input to _add_all_technical_indicators missing OHLCV columns: {missing_ohlcv}. Adding placeholders.")
+            for col in missing_ohlcv:
+                df_processed[col] = 0.0 # Add placeholder for missing OHLCV
+        
+        # Ensure critical 'close' column exists for most indicators
+        if 'close' not in df_processed.columns or df_processed['close'].isnull().all():
+            logging.error("Critical 'close' column is missing or all NaN in _add_all_technical_indicators. Most indicators will fail.")
+            # Add placeholders for all technical indicators and return
+            for col_name in TECHNICAL_INDICATOR_COLUMNS:
+                if col_name not in df_processed.columns: df_processed[col_name] = 0.0
+            return df_processed
+
+        # Calculate indicators using pandas_ta
+        # Explicitly pass column names if they are not the pandas_ta defaults (e.g. if not all lowercase)
+        df_processed.ta.sma(length=10, close='close', append=True)
+        df_processed.ta.sma(length=30, close='close', append=True)
+        df_processed.ta.ema(length=10, close='close', append=True)
+        df_processed.ta.ema(length=30, close='close', append=True)
+        df_processed.ta.ema(length=50, close='close', append=True)
+        df_processed.ta.rsi(length=14, close='close', append=True)
+        df_processed.ta.macd(fast=12, slow=26, signal=9, close='close', append=True)
+        df_processed.ta.bbands(length=20, std=2, close='close', append=True)
+
+        rename_map = {
+            'SMA_10': 'sma_10', 'SMA_30': 'sma_30',
+            'EMA_10': 'ema_10', 'EMA_30': 'ema_30', 'EMA_50': 'ema_50',
+            'RSI_14': 'rsi',
+            'MACD_12_26_9': 'macd', 'MACDh_12_26_9': 'macd_hist', 'MACDs_12_26_9': 'macd_signal',
+            'BBM_20_2.0': 'bb_middle', 'BBU_20_2.0': 'bb_upper', 'BBL_20_2.0': 'bb_lower'
+        }
+        df_processed.rename(columns=rename_map, inplace=True)
+
+        # Volatility
+        df_processed['volatility_10'] = df_processed['close'].rolling(window=10).std()
+        df_processed['volatility_30'] = df_processed['close'].rolling(window=30).std()
+
+        # Volume Analysis
+        if 'volume' in df_processed.columns:
+            df_processed['volume_sma_20'] = df_processed['volume'].rolling(window=20).mean()
+            if 'volume_sma_20' in df_processed.columns and df_processed['volume_sma_20'].notna().any():
+                 df_processed['volume_ratio'] = df_processed['volume'] / df_processed['volume_sma_20']
+                 df_processed['volume_ratio'].replace([np.inf, -np.inf], 1.0, inplace=True)
+                 df_processed['volume_ratio'].fillna(1.0, inplace=True)
+            else:
+                df_processed['volume_ratio'] = 1.0 # Placeholder
+        else:
+            df_processed['volume_sma_20'] = 0.0 # Placeholder
+            df_processed['volume_ratio'] = 1.0 # Placeholder
+
+        # Heikin-Ashi
+        if all(c in df_processed.columns for c in ['open', 'high', 'low', 'close']):
+            df_processed.ta.ha(open='open', high='high', low='low', close='close', append=True)
+            ha_rename_map = {'HA_open': 'ha_open', 'HA_high': 'ha_high', 'HA_low': 'ha_low', 'HA_close': 'ha_close'}
+            df_processed.rename(columns=ha_rename_map, inplace=True)
+        
+        # Keltner Channels
+        if all(c in df_processed.columns for c in ['high', 'low', 'close']):
+            df_processed.ta.kc(length=20, scalar=1.5, mamode='ema', atr_length=20, high='high', low='low', close='close', append=True)
+            kc_rename_map_actual = {}
+            for col in df_processed.columns: # Robust renaming based on actual generated names
+                if col.startswith('KCU_'): kc_rename_map_actual[col] = 'kc_upper'
+                elif col.startswith('KCL_'): kc_rename_map_actual[col] = 'kc_lower'
+                elif col.startswith('KCM_'): kc_rename_map_actual[col] = 'kc_middle'
+            df_processed.rename(columns=kc_rename_map_actual, inplace=True)
+
+        # TTM Squeeze-like
+        if all(col in df_processed.columns for col in ['bb_lower', 'kc_lower', 'bb_upper', 'kc_upper']):
+            df_processed['ttm_squeeze'] = ((df_processed['bb_lower'] > df_processed['kc_lower']) & \
+                                           (df_processed['bb_upper'] < df_processed['kc_upper'])).astype(int)
+        
+        df_processed['ttm_momentum'] = df_processed['close'] - df_processed['close'].rolling(window=12).mean()
+        
+        if 'ttm_squeeze' in df_processed.columns and 'ttm_momentum' in df_processed.columns:
+            df_processed['ttm_signal'] = 0 # Default to 0
+            df_processed.loc[(df_processed['ttm_squeeze'] == 1) & (df_processed['ttm_momentum'] > 0), 'ttm_signal'] = 1
+            df_processed.loc[(df_processed['ttm_squeeze'] == 1) & (df_processed['ttm_momentum'] < 0), 'ttm_signal'] = -1
+        
+        # price_above_ema50
+        if 'ema_50' in df_processed.columns:
+             df_processed['price_above_ema50'] = (df_processed['close'] > df_processed['ema_50']).astype(int)
+        
+        # Ensure all TECHNICAL_INDICATOR_COLUMNS exist, add placeholder 0.0 if not & fill NaNs
+        for col_name in TECHNICAL_INDICATOR_COLUMNS:
+            if col_name not in df_processed.columns:
+                logging.debug(f"Helper: Indicator '{col_name}' missing. Adding placeholder 0.0.")
+                df_processed[col_name] = 0.0
+            else:
+                # Fill NaNs that might have occurred from rolling operations at the beginning
+                df_processed[col_name].fillna(method='bfill', inplace=True) # Backfill first
+                df_processed[col_name].fillna(0.0, inplace=True) # Then fill remaining NaNs with 0
+                
+        return df_processed
+
+    def _get_normalized_features(self, symbol: str, df_current_history: pd.DataFrame) -> Optional[np.ndarray]:
+        """Adds indicators, normalizes features, appends portfolio state for the 31-feature model.
+        
+        Args:
+            symbol: The trading symbol (e.g., 'BTC-USD').
+            df_current_history: DataFrame with current historical OHLCV data. 
+                                Must have enough rows for indicator calculation.
+                                (e.g., ~60 rows for indicators to mature before taking the latest readings)
+        Returns:
+            A 1D NumPy array of shape (31,) representing the normalized observation, or None if error.
+        """
         if symbol not in self.norm_stats:
-            logging.error(f"Normalization stats not found for {symbol}. Cannot normalize.")
+            logging.error(f"Normalization stats not found for {symbol}. Cannot normalize features.")
+            return None
+        
+        stats = self.norm_stats[symbol]
+        # Ensure means and stds are Series for proper alignment if they came from single-row DataFrame initially
+        means = pd.Series(stats['means']) if isinstance(stats['means'], dict) else stats['means']
+        stds = pd.Series(stats['stds']) if isinstance(stats['stds'], dict) else stats['stds']
+
+        # Min rows needed for indicator calculation before taking the latest reading.
+        # The input df_current_history should provide at least this many rows.
+        min_rows_for_indicator_calc = 60 # Should be consistent with buffer in _calculate_and_store_norm_stats / _add_all_technical_indicators
+        if df_current_history is None or len(df_current_history) < min_rows_for_indicator_calc:
+            logging.warning(f"Input df_current_history for {symbol} has {len(df_current_history) if df_current_history is not None else 0} rows, need at least {min_rows_for_indicator_calc} for indicator calc. Cannot get features.")
             return None
 
-        stats = self.norm_stats[symbol]
-        try:
-            # Check: Ensure input df has enough data for lookback + indicators
-            min_required_data = self.rl_lookback_window + 35 # ~65 rows
-            if df is None or len(df) < min_required_data:
-                logging.warning(f"Input DataFrame for {symbol} has only {len(df)} rows, need {min_required_data} for reliable indicator calculation + lookback. Cannot normalize.")
-                return None
+        # 1. Add all technical indicators using the helper
+        # df_current_history should be OHLCV data.
+        df_with_indicators = self._add_all_technical_indicators(df_current_history.copy())
 
-            # --- Revised Indicator Calculation Logic ---
-            # 1. Take a larger slice for indicator calculation (includes warm-up)
-            df_indicator_input = df.iloc[-min_required_data:].copy()
-            logging.debug(f"Shape of df_indicator_input for {symbol}: {df_indicator_input.shape}")
+        # 2. Select the LATEST row of technical features after indicators are calculated.
+        # The indicators themselves (like SMA_30) incorporate the lookback period.
+        if df_with_indicators.empty or not all(col in df_with_indicators.columns for col in TECHNICAL_INDICATOR_COLUMNS):
+            logging.warning(f"Not enough data or missing columns for {symbol} after adding indicators. Columns: {df_with_indicators.columns.tolist()}")
+            return None
+            
+        latest_technical_features_unnormalized = df_with_indicators[TECHNICAL_INDICATOR_COLUMNS].iloc[-1].copy()
 
-            # 2. Ensure necessary columns exist in this larger slice
-            if not all(col in df_indicator_input.columns for col in OHLCV_COLS):
-                logging.error(f"Indicator input slice for {symbol} is missing required OHLCV columns.")
-                return None
+        # 3. Normalize the selected latest technical features
+        # Ensure all columns expected by norm_stats (means/stds Series) are present
+        for col in TECHNICAL_INDICATOR_COLUMNS:
+            if col not in latest_technical_features_unnormalized.index: # It's a Series now
+                logging.error(f"Missing technical feature column '{col}' in latest_technical_features_unnormalized for {symbol}. Adding placeholder 0.0.")
+                latest_technical_features_unnormalized[col] = 0.0
+            if col not in means.index or col not in stds.index: # Check against Series index
+                logging.error(f"Normalization stats (mean/std Series) missing for feature '{col}' for {symbol}. Using 0 for mean, 1 for std.")
+                # Ensure the key exists in means/stds Series before assignment if it's truly missing
+                if col not in means.index: means[col] = 0.0
+                if col not in stds.index: stds[col] = 1.0
+        
+        # Reorder to match means/stds (which should be in TECHNICAL_INDICATOR_COLUMNS order)
+        latest_technical_features_unnormalized = latest_technical_features_unnormalized.reindex(TECHNICAL_INDICATOR_COLUMNS, fill_value=0.0)
+        means = means.reindex(TECHNICAL_INDICATOR_COLUMNS, fill_value=0.0)
+        stds = stds.reindex(TECHNICAL_INDICATOR_COLUMNS, fill_value=1.0).replace(0, 1e-8) # ensure no zero std
 
-            # 3. Add indicators to the larger slice
-            logging.debug(f"Calculating indicators on {len(df_indicator_input)} rows for {symbol}...")
-            df_indicator_input.ta.rsi(length=14, append=True)
-            df_indicator_input.ta.macd(fast=12, slow=26, signal=9, append=True)
-            df_indicator_input.ta.bbands(length=20, std=2, append=True)
-            logging.debug(f"Indicators calculated. Shape after indicators: {df_indicator_input.shape}")
-            logging.debug(f"Tail of df_indicator_input after indicators:\n{df_indicator_input.tail()}")
+        normalized_technical_features_latest = (latest_technical_features_unnormalized - means) / stds
+        normalized_technical_features_latest.fillna(0.0, inplace=True) # Fill any NaNs from division by tiny std
 
-            # 4. Take the final lookback window slice *after* indicators are calculated
-            df_final_slice = df_indicator_input.iloc[-self.rl_lookback_window:].copy()
-            logging.debug(f"Shape of final slice for normalization: {df_final_slice.shape}")
-            # --- End Revised Logic ---
+        # 4. Get current portfolio state (4 features)
+        base_asset = symbol.split('-')[0]
+        current_balance_usd = self.get_balance_usd() 
+        current_holding_crypto = self.get_holding_crypto(base_asset) # This should return Decimal
+        
+        latest_close_price_series = df_current_history['close'] if 'close' in df_current_history else pd.Series([0.0])
+        latest_close_price = latest_close_price_series.iloc[-1] if not latest_close_price_series.empty else 0.0
+        
+        total_portfolio_value = current_balance_usd + (current_holding_crypto * Decimal(str(latest_close_price)))
 
-            # 5. Select features and handle potential NaNs in the final slice
-            #    (NaNs might be present at the start due to indicator warm-up)
-            logging.debug(f"Selecting FEATURE_COLS: {FEATURE_COLS}") # Log the columns we intend to select
-            if not all(col in df_final_slice.columns for col in FEATURE_COLS):
-                 missing_cols = [col for col in FEATURE_COLS if col not in df_final_slice.columns]
-                 logging.error(f"Final slice for {symbol} is missing required FEATURE_COLS: {missing_cols}. Available: {df_final_slice.columns.tolist()}")
-                 return None
-            df_final_slice = df_final_slice[FEATURE_COLS].copy()
-            logging.debug(f"Shape of df_final_slice after selecting features: {df_final_slice.shape}") # Log shape after selection
-            logging.debug(f"Columns of df_final_slice after selecting features: {df_final_slice.columns.tolist()}") # Log columns after selection
+        portfolio_features = np.array([
+            float(current_balance_usd),
+            float(current_holding_crypto),
+            float(latest_close_price), 
+            float(total_portfolio_value)
+        ], dtype=np.float32)
 
-            original_rows = len(df_final_slice)
-            df_final_slice.dropna(inplace=True)
-            rows_after_dropna = len(df_final_slice)
-            if rows_after_dropna < original_rows:
-                 logging.debug(f"Dropped {original_rows - rows_after_dropna} rows with NaNs from final slice for {symbol}.")
+        # 5. Concatenate technical and portfolio features
+        # Ensure normalized_technical_features_latest is a NumPy array for concatenation
+        final_observation = np.concatenate((normalized_technical_features_latest.values, portfolio_features))
 
-            # 6. Check final shape AFTER dropna
-            expected_rows = self.rl_lookback_window
-            if df_final_slice.shape[0] != expected_rows:
-                 logging.warning(f"Final data slice shape for {symbol} after indicators and dropna is {df_final_slice.shape}, expected ({expected_rows}, {len(FEATURE_COLS)}). Cannot normalize.")
-                 return None
+        if final_observation.shape != self.EXPECTED_OBS_SHAPE:
+            logging.error(f"Shape mismatch for {symbol}: Expected {self.EXPECTED_OBS_SHAPE}, got {final_observation.shape}. Tech features: {normalized_technical_features_latest.values.shape}, Portfolio: {portfolio_features.shape}")
+            return None 
 
-            # 7. Normalize using stored stats
-            df_normalized = (df_final_slice - stats['means']) / stats['stds']
-            logging.debug(f"Shape of normalized data BEFORE RETURN for {symbol}: {df_normalized.shape}") # Log shape before return
+        logging.debug(f"Generated normalized features for {symbol}. Shape: {final_observation.shape}")
+        return final_observation
 
-            # 8. Flatten the DataFrame to a 1D NumPy array for the RL agent
-            flattened_features = df_normalized.values.flatten()
-            logging.debug(f"Shape of FLATTENED normalized data for {symbol}: {flattened_features.shape}") # Log shape before return
+    def get_current_price(self, symbol: str) -> Optional[Decimal]:
+        # Implement this method as needed
+        pass
 
-            # --- Append Portfolio State Features --- 
-            # Fetch current holdings and balance needed for the observation space (expected shape 242)
-            # NOTE: This assumes the model was trained with these 2 extra features appended.
-            # NOTE: These values are NOT normalized here, which might differ from training!
-            try:
-                symbol_base = symbol.split('-')[0] # e.g., 'BTC' from 'BTC-USD'
-                current_holding_qty_decimal = self.holdings.get(symbol_base, Decimal('0.0'))
-                current_holding_qty = float(current_holding_qty_decimal)
-                current_balance_usd = float(self.holdings.get('USD', Decimal('0.0')))
-
-            except Exception as e:
-                logging.exception(f"Error accessing self.holdings within _get_normalized_features for {symbol}: {e}. Setting state features to 0.")
-                current_holding_qty = 0.0
-                current_balance_usd = 0.0
-
-            # Append the two state features
-            state_features = np.array([current_balance_usd, current_holding_qty])
-            final_observation = np.concatenate((flattened_features, state_features))
-            logging.debug(f"Shape after appending state features for {symbol}: {final_observation.shape}")
-
-            # --- Final Shape Check ---
-            # Now expecting 240 (market) + 2 (state) = 242
-            expected_final_size = (self.rl_lookback_window * len(FEATURE_COLS)) + 2 
-            if final_observation.shape[0] != expected_final_size:
-                logging.error(f"Final observation shape {final_observation.shape} does not match expected {expected_final_size}. Returning None.")
-                return None
-
-            return final_observation
-
-        except Exception as e:
-             # Log the specific slice that caused the error if possible
-             logging.exception(f"Error adding indicators/normalizing data slice for {symbol}:")
-             return None
-
-    def _get_signal(self, symbol: str, analysis_data: pd.DataFrame) -> str:
+    def _get_signal(self, symbol: str, analysis_data: pd.DataFrame):
         """
         Determine trading signal for a given cryptocurrency
         
@@ -403,7 +499,7 @@ class RobinhoodCryptoBot:
                     return 'hold'
 
                 # Check observation shape (optional but good practice)
-                if obs.shape[0] != EXPECTED_OBS_SHAPE:
+                if obs.shape[0] != EXPECTED_OBS_SHAPE[0]:
                     logging.warning(f"Observation shape mismatch for {symbol}. Expected {EXPECTED_OBS_SHAPE}, Got {obs.shape}. Defaulting to 'hold'.")
                     # Potentially pad or handle this case depending on model requirements
                     return 'hold'

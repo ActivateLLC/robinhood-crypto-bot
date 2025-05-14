@@ -6,6 +6,8 @@ import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import multiprocessing
 import traceback
+import pandas as pd
+import json
 
 # Add project root to Python path
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -17,7 +19,10 @@ from crew_agents.src.crew_optimization_manager import CrewOptimizationAgent
 from crew_agents.src.continuous_optimization_agent import ContinuousOptimizationAgent
 from crew_agents.src.unified_optimization_agent import UnifiedOptimizationAgent
 from crew_agents.src.btc_popcat_research_agent import BTCPopCatResearchAgent
-from crew_agents.src.agent_communication_hub import communication_hub
+from crew_agents.src.agent_communication_hub import AgentCommunicationHub
+from crew_agents.src.trade_execution_agent import TradeExecutionAgent
+from crew_agents.src.crypto_agents import CryptoTradingAgents
+from crewai import Crew
 
 # Configure comprehensive logging
 log_dir = os.path.join(project_root, 'logs')
@@ -63,75 +68,28 @@ def global_exception_handler(exc_type, exc_value, exc_traceback):
 sys.excepthook = global_exception_handler
 
 class MultiAgentOrchestrator:
-    def __init__(
-        self, 
-        symbols=['BTC-USD', 'ETH-USD', 'BNB-USD']
-    ):
-        """
-        Initialize and coordinate multiple crypto trading agents
-        
-        Args:
-            symbols (List[str]): Cryptocurrency symbols to track
-        """
-        self.symbols = symbols
-        
-        # Initialize communication hub with project goals
-        communication_hub.update_project_context({
-            'primary_objectives': [
-                'Optimize cryptocurrency trading strategies',
-                'Develop adaptive reinforcement learning models',
-                'Minimize risk and maximize returns'
-            ],
-            'target_cryptocurrencies': symbols,
-            'risk_tolerance': 0.2,
-            'investment_horizon': 'Long-term',
-            'rebalancing_strategy': 'Quarterly'
-        })
-        
-        # Initialize agents with their specific configurations
-        self.market_intelligence_agent = MarketIntelligenceAgent(
-            symbols=symbols, 
-            exchanges=['binance', 'coinbase', 'kraken']
-        )
-        
-        self.crew_optimization_agent = CrewOptimizationAgent(
-            symbol='BTC-USD', 
-            initial_capital=100000
-        )
-        
-        self.continuous_optimization_agent = ContinuousOptimizationAgent(
-            symbols=symbols,
-            optimization_interval=3600,
-            initial_capital=100000
-        )
-        
-        self.unified_optimization_agent = UnifiedOptimizationAgent(
-            symbols=symbols
-        )
-        
-        self.btc_popcat_research_agent = BTCPopCatResearchAgent(
-            primary_symbol='BTC-USD',
-            social_sentiment_sources=['twitter', 'reddit', 'telegram']
-        )
-        
-        # Tracking flags
-        self.is_running = False
-        self.agent_threads = []
-    
+    def __init__(self):
+        # These instances are for other potential threaded jobs within the orchestrator itself.
+        # They will NOT be passed to the launch_crypto_agents process.
+        self.crypto_agents_local_instance = CryptoTradingAgents() 
+        self.communication_hub = AgentCommunicationHub()
+        self.trade_executor_local_instance = TradeExecutionAgent()   
+        logger.info("MultiAgentOrchestrator initialized its own local agent instances (if any are used by its direct methods).")
+
     def _market_intelligence_job(self):
         """
         Market Intelligence Agent's primary job
         Continuously gather and analyze market data
         """
         logger.info("🌐 Market Intelligence Agent Activated")
-        while self.is_running:
+        while True:
             try:
                 # Comprehensive market trend analysis
-                market_insights = self.market_intelligence_agent.analyze_market_trends()
+                market_insights = MarketIntelligenceAgent().analyze_market_trends()
                 
                 # Detect arbitrage opportunities
-                for symbol in self.symbols:
-                    arbitrage_ops = self.market_intelligence_agent._detect_arbitrage(symbol)
+                for symbol in ['BTC-USD', 'ETH-USD', 'BNB-USD']:
+                    arbitrage_ops = MarketIntelligenceAgent()._detect_arbitrage(symbol)
                     if arbitrage_ops:
                         logger.info(f"🔍 Arbitrage Opportunities for {symbol}: {arbitrage_ops}")
                 
@@ -147,11 +105,11 @@ class MultiAgentOrchestrator:
         Continuous strategy optimization and portfolio management
         """
         logger.info("🚀 Crew Optimization Agent Activated")
-        while self.is_running:
+        while True:
             try:
                 # Run optimization pipeline for each symbol
-                for symbol in self.symbols:
-                    optimization_results = self.crew_optimization_agent.run_optimization_pipeline(symbol)
+                for symbol in ['BTC-USD', 'ETH-USD', 'BNB-USD']:
+                    optimization_results = CrewOptimizationAgent(symbol=symbol, initial_capital=100000).run_optimization_pipeline(symbol)
                     logger.info(f"📊 Optimization Results for {symbol}: {optimization_results}")
                 
                 time.sleep(86400)  # Daily optimization
@@ -166,10 +124,10 @@ class MultiAgentOrchestrator:
         Real-time trading strategy adjustments
         """
         logger.info("⚡ Continuous Optimization Agent Activated")
-        while self.is_running:
+        while True:
             try:
                 # Run continuous optimization
-                self.continuous_optimization_agent.run_continuous_optimization()
+                ContinuousOptimizationAgent(symbols=['BTC-USD', 'ETH-USD', 'BNB-USD'], optimization_interval=3600, initial_capital=100000).run_continuous_optimization()
                 
                 time.sleep(1800)  # Every 30 minutes
             
@@ -183,10 +141,10 @@ class MultiAgentOrchestrator:
         Unified optimization pipeline
         """
         logger.info("📈 Unified Optimization Agent Activated")
-        while self.is_running:
+        while True:
             try:
                 # Run unified optimization pipeline
-                optimization_results = self.unified_optimization_agent.run_optimization_pipeline()
+                optimization_results = UnifiedOptimizationAgent(symbols=['BTC-USD', 'ETH-USD', 'BNB-USD']).run_optimization_pipeline()
                 
                 # Log optimization results
                 for symbol, results in optimization_results.items():
@@ -204,10 +162,10 @@ class MultiAgentOrchestrator:
         Social sentiment and trend analysis
         """
         logger.info("🐱 Popcat Research Agent Activated")
-        while self.is_running:
+        while True:
             try:
                 # Analyze popcat trends
-                popcat_insights = self.btc_popcat_research_agent.analyze_popcat_trends()
+                popcat_insights = BTCPopCatResearchAgent(primary_symbol='BTC-USD', social_sentiment_sources=['twitter', 'reddit', 'telegram']).analyze_popcat_trends()
                 logger.info(f"🌈 Popcat Trend Insights: {popcat_insights}")
                 
                 time.sleep(43200)  # Every 12 hours
@@ -216,36 +174,17 @@ class MultiAgentOrchestrator:
                 logger.error(f"Popcat Research Job Error: {e}")
                 time.sleep(1800)  # Wait 30 minutes before retry
     
-    def _data_provider_job(self):
-        """
-        Alt Crypto Data Provider's primary job
-        Continuous data collection and preprocessing
-        """
-        logger.info("📡 Alt Crypto Data Provider Activated")
-        while self.is_running:
-            try:
-                # Fetch and preprocess crypto data
-                for symbol in self.symbols:
-                    crypto_data = self.alt_crypto_data_provider.fetch_crypto_data(symbol)
-                    logger.info(f"📊 Data Fetched for {symbol}")
-                
-                time.sleep(7200)  # Every 2 hours
-            
-            except Exception as e:
-                logger.error(f"Data Provider Job Error: {e}")
-                time.sleep(1200)  # Wait 20 minutes before retry
-    
     def _periodic_insight_aggregation(self):
         """
         Periodically aggregate and broadcast collaborative insights
         """
         logger.info("🤝 Collaborative Insights Aggregation Started")
-        while self.is_running:
+        while True:
             try:
                 # Generate and broadcast collaborative insights
-                collaborative_insights = communication_hub.generate_collaborative_insights()
+                collaborative_insights = AgentCommunicationHub().generate_collaborative_insights()
                 
-                communication_hub.broadcast_message(
+                AgentCommunicationHub().broadcast_message(
                     sender='multi_agent_orchestrator',
                     message_type='collaborative_insights',
                     content=collaborative_insights
@@ -264,10 +203,9 @@ class MultiAgentOrchestrator:
         Start all agent jobs with their specific responsibilities
         """
         logger.info("🌟 Multi-Agent System Initializing")
-        self.is_running = True
         
         # Create and start threads for each agent's job
-        self.agent_threads = [
+        agent_threads = [
             threading.Thread(target=self._market_intelligence_job, daemon=True),
             threading.Thread(target=self._optimization_job, daemon=True),
             threading.Thread(target=self._continuous_trading_job, daemon=True),
@@ -276,7 +214,7 @@ class MultiAgentOrchestrator:
             threading.Thread(target=self._periodic_insight_aggregation, daemon=True)
         ]
         
-        for thread in self.agent_threads:
+        for thread in agent_threads:
             thread.start()
         
         logger.info("🚀 All Agent Jobs Launched")
@@ -286,51 +224,78 @@ class MultiAgentOrchestrator:
         Gracefully stop all agent jobs
         """
         logger.info("🛑 Stopping Multi-Agent System")
-        self.is_running = False
         
-        for thread in self.agent_threads:
-            thread.join(timeout=10)
+        # for thread in agent_threads:
+        #     thread.join(timeout=10)
         
         logger.info("✅ All Agent Jobs Stopped")
 
-def launch_crypto_agents():
+def launch_crypto_agents(): # Removed orchestrator_instance parameter
     """
-    Launch crypto trading agents as a separate process
+    Launch crypto trading agents as a separate process.
+    This function handles the full flow from analysis to execution.
     """
     try:
-        from crew_agents.src.crypto_agents import CryptoTradingAgents
-        logger.info("🚀 Launching Crypto Trading Agents")
+        logger.info(f"🚀 Launching Self-Contained Crypto Analysis & Execution Flow (Process ID: {os.getpid()})")
+        
+        # Create agent instances locally within this process
         crypto_agents = CryptoTradingAgents()
-        # Add any specific initialization or method calls here
-    except Exception as e:
-        logger.error(f"Failed to launch Crypto Trading Agents: {e}")
-        logger.error(traceback.format_exc())
+        trade_executor = TradeExecutionAgent()
 
-def launch_crew_optimization():
-    """
-    Launch crew optimization process
-    """
-    try:
-        from crew_agents.src.crew_optimization_manager import main as crew_optimization_main
-        logger.info("🔧 Launching Crew Optimization")
-        crew_optimization_main()
-    except Exception as e:
-        logger.error(f"Failed to launch Crew Optimization: {e}")
-        logger.error(traceback.format_exc())
+        # Create dummy historical data (can be replaced with actual data fetching)
+        data = {
+            'timestamp': pd.to_datetime(['2023-01-01', '2023-01-02', '2023-01-03', '2023-01-04', '2023-01-05']),
+            'open': [20000, 20100, 20050, 20200, 20150],
+            'high': [20200, 20150, 20250, 20300, 20250],
+            'low': [19900, 20000, 20000, 20100, 20050],
+            'close': [20100, 20050, 20200, 20150, 20200],
+            'volume': [1000, 1200, 1100, 1300, 1050]
+        }
+        historical_data = pd.DataFrame(data)
+        historical_data.set_index('timestamp', inplace=True)
+        
+        # Step 1: Perform Market Analysis using local CryptoTradingAgents
+        logger.info(f"Feeding historical data to local CryptoTradingAgents for analysis (Symbol: {crypto_agents.symbol}):\n{historical_data.head()}")
+        analysis_result = crypto_agents.analyze_market(historical_data)
+        
+        logger.info("--- RAW MARKET ANALYSIS RESULT (within launch_crypto_agents) ---")
+        logger.info(json.dumps(analysis_result, indent=2))
+        print("--- START OF MARKET ANALYSIS RESULT (from launch_crypto_agents) ---")
+        print(f"Symbol: {crypto_agents.symbol}")
+        print(analysis_result)
+        print("--- END OF MARKET ANALYSIS RESULT (from launch_crypto_agents) ---")
 
-def launch_btc_roi_optimizer():
-    """
-    Launch BTC ROI Optimizer process
-    """
-    try:
-        from crew_agents.src.btc_roi_optimizer import main as roi_optimizer_main
-        logger.info("📊 Launching BTC ROI Optimizer")
-        roi_optimizer_main()
-    except Exception as e:
-        logger.error(f"Failed to launch BTC ROI Optimizer: {e}")
-        logger.error(traceback.format_exc())
+        # Step 2: Execute Trading Strategy using local TradeExecutionAgent
+        logger.info("Proceeding to Trade Execution Agent (within launch_crypto_agents)...")
+        trading_strategy_text = analysis_result.get('trading_strategy')
 
-def launch_btc_popcat_research():
+        if not trade_executor or not trade_executor.broker:
+            logger.error("Local TradeExecutionAgent or its broker is not initialized. Skipping trade execution.")
+            # This error will appear if RH_API_KEY/RH_PRIVATE_KEY are missing, which is fine.
+        elif trading_strategy_text:
+            logger.info("Trading strategy found. Creating execution task with local TradeExecutionAgent.")
+            execution_task = trade_executor.execute_trade_task(trading_strategy_text)
+            
+            execution_crew = Crew(
+                agents=[trade_executor.agent],
+                tasks=[execution_task],
+                verbose=True 
+            )
+            
+            logger.info("Kicking off trade execution crew (within launch_crypto_agents)...")
+            execution_result = execution_crew.kickoff()
+            
+            logger.info("--- TRADE EXECUTION RESULT (within launch_crypto_agents) ---")
+            logger.info(execution_result)
+        else:
+            logger.warning("No trading strategy string found in analysis_result. Skipping trade execution (within launch_crypto_agents).")
+
+        logger.info(f"✅ Self-Contained Crypto Analysis & Execution Flow completed (Process ID: {os.getpid()}).")
+        
+    except Exception as e:
+        logger.exception(f"Error in launch_crypto_agents process (PID: {os.getpid()}): {e}")
+
+def launch_popcat_research_agent():
     """
     Launch BTC PopCat Research Agent process
     """
@@ -347,15 +312,14 @@ def launch_all_agents_multiprocess():
     Launch all agents using multiprocessing
     """
     agents = [
-        launch_crypto_agents,
-        launch_crew_optimization,
-        launch_btc_roi_optimizer,
-        launch_btc_popcat_research
+        launch_crypto_agents, # No longer needs orchestrator_instance
+        # launch_popcat_research_agent, 
+        # launch_unified_optimization_agent, 
     ]
     
     processes = []
-    for agent_launcher in agents:
-        p = multiprocessing.Process(target=agent_launcher)
+    for agent_launcher_func in agents:
+        p = multiprocessing.Process(target=agent_launcher_func)
         p.start()
         processes.append(p)
     
@@ -367,8 +331,6 @@ def main():
     """
     Launch and manage multi-agent crypto trading system
     """
-    orchestrator = MultiAgentOrchestrator()
-    
     try:
         # orchestrator.start()
         launch_all_agents_multiprocess()

@@ -19,7 +19,7 @@ project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..
 if project_root not in sys.path:
     sys.path.insert(0, project_root)
 
-from .utils import setup_logger # Corrected: utils.py is in the same directory (src)
+from crew_agents.src.utils import setup_logger # Corrected: utils.py is in the same directory (src)
 # from ..src.feature_engineering import AdvancedFeatureEngineer # Module/Class not found
 from alt_crypto_data import AltCryptoDataProvider # Corrected: alt_crypto_data.py is at project root
 # from ..src.data_providers.base_data_provider import BaseDataProvider # Module/Class not found

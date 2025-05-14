@@ -255,6 +255,60 @@ class RobinhoodCryptoBot:
         else:
             logging.info("Trading is disabled in the configuration. Broker will not be initialized.")
 
+        # If broker initialization was successful, try to connect and fetch initial balance
+        if self.broker and self.enable_trading: # Check enable_trading again in case it was set to False by unsupported type
+            logging.info(f"Broker {broker_type} initialized. Attempting to connect and fetch account info...")
+            if self.broker.connect():
+                logging.info(f"Broker {broker_type} connected successfully.")
+                account_info = self.broker.get_account_info()
+                if account_info and 'cash_usd' in account_info:
+                    self.current_balance = account_info['cash_usd']
+                    logging.info(f"Initial account balance fetched: ${self.current_balance:.2f} USD")
+                    _log_structured_event(
+                        level=logging.INFO,
+                        event_type="ACCOUNT_BALANCE_FETCHED",
+                        message="Successfully fetched initial account balance.",
+                        details={"balance_usd": float(self.current_balance), "broker": broker_type}
+                    )
+                else:
+                    logging.error(f"Failed to fetch account balance after successful connection to {broker_type}. Trading will be disabled.")
+                    _log_structured_event(
+                        level=logging.ERROR,
+                        event_type="ACCOUNT_BALANCE_FETCH_FAILED",
+                        message="Failed to fetch account balance post-connection.",
+                        details={"broker": broker_type, "account_info_received": bool(account_info)},
+                        severity="ERROR"
+                    )
+                    self.enable_trading = False # Disable trading if balance can't be fetched
+            else:
+                logging.error(f"Failed to connect to broker {broker_type}. Trading will be disabled.")
+                _log_structured_event(
+                    level=logging.CRITICAL, # This is critical as trading cannot proceed
+                    event_type="BROKER_CONNECT_FAILED",
+                    message=f"Failed to connect to broker: {broker_type}.",
+                    details={"broker_type": broker_type},
+                    severity="CRITICAL"
+                )
+                self.enable_trading = False # Disable trading if connection fails
+        elif self.enable_trading: # This means self.broker is None but enable_trading was true initially
+            # This case is mostly covered by the self.broker is None check below, 
+            # but adding explicit log if somehow enable_trading is true but broker is None here.
+            logging.error(f"Broker object is None despite trading being enabled for {broker_type}. Trading disabled.")
+            self.enable_trading = False
+
+        # Final check on broker initialization and connection status
+        if self.broker is None and self.enable_trading: # Catches cases where _initialize_broker returned None
+            error_message = "Broker object is None despite trading being enabled. Trading will be disabled."
+            logging.error(error_message) # Keep a simple log too
+            _log_structured_event(
+                level=logging.CRITICAL,
+                event_type="BROKER_INIT_FAILURE_CRITICAL", # More specific event type
+                message=error_message,
+                details={"reason": "Broker object is None"},
+                severity="CRITICAL"
+            )
+            self.enable_trading = False # Explicitly disable trading
+
         # 3. Initialize Data Provider
         try:
             logging.info(f"Initializing data provider (Preference: {self.config.DATA_PROVIDER_PREFERENCE})...")

@@ -1,10 +1,13 @@
 import os
 import sys
 import logging
+from decimal import Decimal
 from dotenv import load_dotenv
-from crewai import Agent, Task
+from pydantic import ConfigDict
+from crewai import Agent, Task, Crew
+from crewai_tools import BaseTool
 from langchain_openai import ChatOpenAI
-from typing import Optional
+from typing import Optional, Type
 
 # Add project root to Python path to allow importing broker logic
 project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
@@ -16,6 +19,48 @@ from brokers.robinhood_broker import RobinhoodBroker
 
 # Load environment variables from .env file
 load_dotenv()
+
+# --- Tool Definitions ---
+class PlaceMarketOrderTool(BaseTool):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    name: str = "Place Market Order"
+    description: str = "Places a real market order (buy or sell) for a given crypto symbol and quantity. Input: symbol, side (buy/sell), quantity (string)."
+    broker: Optional[RobinhoodBroker] = None # Will be set by TradeExecutionAgent
+
+    def _run(self, symbol: str, side: str, quantity: str) -> str:
+        if not self.broker:
+            return "Error: Broker not initialized for PlaceMarketOrderTool."
+        try:
+            order_quantity = Decimal(quantity)
+            self.broker.logger.info(f"[Tool] Attempting to place market order: {side} {order_quantity} {symbol}")
+            result = self.broker.place_market_order(symbol=symbol, side=side, quantity=order_quantity)
+            return f"Market order placement result: {result}"
+        except ValueError as ve:
+            return f"Error: Invalid quantity '{quantity}'. Must be a valid number. Details: {ve}"
+        except Exception as e:
+            self.broker.logger.exception(f"[Tool] Exception in PlaceMarketOrderTool: {e}")
+            return f"Error placing market order: {e}"
+
+class PlaceLimitOrderTool(BaseTool):
+    model_config = ConfigDict(arbitrary_types_allowed=True)
+    name: str = "Place Limit Order"
+    description: str = "Places a real limit order (buy or sell) for a given crypto symbol, quantity, and limit price. Input: symbol, side (buy/sell), quantity (string), limit_price (string)."
+    broker: Optional[RobinhoodBroker] = None # Will be set by TradeExecutionAgent
+
+    def _run(self, symbol: str, side: str, quantity: str, limit_price: str) -> str:
+        if not self.broker:
+            return "Error: Broker not initialized for PlaceLimitOrderTool."
+        try:
+            order_quantity = Decimal(quantity)
+            price_limit = Decimal(limit_price)
+            self.broker.logger.info(f"[Tool] Attempting to place limit order: {side} {order_quantity} {symbol} @ {price_limit}")
+            result = self.broker.place_limit_order(symbol=symbol, side=side, quantity=order_quantity, limit_price=price_limit)
+            return f"Limit order placement result: {result}"
+        except ValueError as ve:
+            return f"Error: Invalid quantity '{quantity}' or limit_price '{limit_price}'. Must be valid numbers. Details: {ve}"
+        except Exception as e:
+            self.broker.logger.exception(f"[Tool] Exception in PlaceLimitOrderTool: {e}")
+            return f"Error placing limit order: {e}"
 
 class TradeExecutionAgent:
     def __init__(self):
@@ -34,6 +79,19 @@ class TradeExecutionAgent:
             max_tokens=2048
         )
         
+        # Initialize broker connection FIRST, as tools need it
+        self.broker = self._initialize_broker()
+
+        # Initialize tools if broker is available
+        self.place_market_order_tool = None
+        self.place_limit_order_tool = None
+        if self.broker:
+            self.place_market_order_tool = PlaceMarketOrderTool(broker=self.broker)
+            self.place_limit_order_tool = PlaceLimitOrderTool(broker=self.broker)
+            self.logger.info("Order placement tools initialized.")
+        else:
+            self.logger.error("Broker not initialized. Order placement tools cannot be created.")
+
         self.agent = Agent(
             role='Trade Execution Specialist',
             goal='Precisely execute trading decisions based on provided strategies, manage orders, and interact with brokerage APIs.',
@@ -44,12 +102,10 @@ class TradeExecutionAgent:
             ),
             verbose=True,
             llm=self.llm,
-            allow_delegation=False
+            allow_delegation=False,
+            # Tools will be dynamically added in execute_trade_task if available
         )
         
-        # Initialize broker connection
-        self.broker = self._initialize_broker()
-
     def _initialize_broker(self) -> Optional[RobinhoodBroker]:
         """
         Initializes and connects the RobinhoodBroker.
@@ -84,104 +140,156 @@ class TradeExecutionAgent:
     def execute_trade_task(self, strategy_document: str, symbol: str = "BTC-USD"):
         self.logger.info(f"🤖 TradeExecutionAgent received task for {symbol} with strategy:\n{strategy_document[:500]}...") # Log first 500 chars
 
+        # Prepare tools list
+        available_tools = []
+        if self.place_market_order_tool:
+            available_tools.append(self.place_market_order_tool)
+        if self.place_limit_order_tool:
+            available_tools.append(self.place_limit_order_tool)
+
+        if not self.broker or not available_tools:
+            self.logger.error("Broker or essential trading tools are not available. Cannot execute trades.")
+            # Optionally, create a specialist agent that can only report this fact
+            error_specialist_agent = Agent(
+                role='Trade Execution Monitor',
+                goal='Report inability to execute trades due to system issues.',
+                backstory='An agent that alerts when trading systems are offline or misconfigured.',
+                verbose=True, llm=self.llm, allow_delegation=False
+            )
+            error_task_description = (
+                f"The trading system for {symbol} is currently unable to place orders because the brokerage connection "
+                f"or trading tools failed to initialize. Please inform the user that no trades can be executed at this time."
+            )
+            error_task = Task(
+                description=error_task_description,
+                expected_output="A clear message stating that trades cannot be executed and why.",
+                agent=error_specialist_agent
+            )
+            error_crew = Crew(agents=[error_specialist_agent], tasks=[error_task], verbose=True)
+            result = error_crew.kickoff()
+            self.logger.info(f"Trade execution specialist (error mode) for {symbol} finished. Raw output: {result.raw}")
+            return result.raw
+
         # Fetch and log portfolio data
         try:
-            account_info = self.broker.get_account()
+            account_info = self.broker.get_account_info() # Changed from get_account()
             if account_info and isinstance(account_info, list) and len(account_info) > 0:
-                # Assuming the first account in the list is the relevant one
                 acc_data = account_info[0]
-                buying_power = acc_data.get('buying_power', {}).get('amount', 'N/A')
-                cash_held_for_orders = acc_data.get('cash_held_for_orders', {}).get('amount', 'N/A')
-                withdrawable_cash = acc_data.get('withdrawable_cash', {}).get('amount', 'N/A')
-                self.logger.info(f"💰 Account Info: Buying Power: ${buying_power}, Cash Held for Orders: ${cash_held_for_orders}, Withdrawable Cash: ${withdrawable_cash}")
+                self.logger.info(f"DEBUG: Full acc_data structure: {acc_data}") 
+                buying_power = acc_data.get('buying_power', 'N/A') # Direct access
+                # Assuming portfolio_value might also be a direct key if present, or needs calculation
+                total_equity = acc_data.get('portfolio_value', 'N/A') # Direct access or placeholder
+                self.logger.info(f"💰 Portfolio: Buying Power: ${buying_power}, Total Equity: ${total_equity}")
             elif account_info:
-                 self.logger.info(f"💰 Account Info (raw): {account_info}") # Log raw if structure is unexpected
+                self.logger.info(f"💰 Account Info (raw): {account_info}")
             else:
                 self.logger.warning("⚠️ Could not retrieve detailed account information.")
         except Exception as e:
             self.logger.error(f"Error fetching account information: {e}")
 
         try:
-            # Extract the base currency from the symbol (e.g., BTC from BTC-USD)
             asset_code_to_fetch = symbol.split('-')[0] if '-' in symbol else symbol
-            holdings_info = self.broker.get_holdings(asset_code_to_fetch)
+            holdings_info = self.broker.get_holdings(asset_code=asset_code_to_fetch)
             if holdings_info and isinstance(holdings_info, list) and len(holdings_info) > 0:
-                # Assuming the API returns a list and the first item is our asset if found
-                asset_holding = holdings_info[0] # This might need adjustment based on actual API response for a single queried asset
-                quantity = asset_holding.get('quantity', {}).get('amount', 'N/A')
-                avg_cost = asset_holding.get('average_cost', {}).get('amount', 'N/A') # If available
-                market_value = asset_holding.get('market_value', {}).get('amount', 'N/A') # If available
+                asset_holding_wrapper = holdings_info[0] # This is the dict with 'results'
+                self.logger.info(f"DEBUG: Full asset_holding_wrapper structure for {asset_code_to_fetch}: {asset_holding_wrapper}")
+                
+                quantity = 'N/A'
+                avg_cost = 'N/A'
+                market_value = 'N/A'
+
+                if isinstance(asset_holding_wrapper.get('results'), list) and len(asset_holding_wrapper['results']) > 0:
+                    actual_holding = asset_holding_wrapper['results'][0]
+                    self.logger.info(f"DEBUG: Actual holding data for {asset_code_to_fetch}: {actual_holding}")
+                    quantity = actual_holding.get('total_quantity', 'N/A') # Or 'quantity_available_for_trading'
+                    # avg_cost and market_value are not in this API response, will remain N/A
+                else:
+                    self.logger.warning(f"'results' key missing or empty in asset_holding_wrapper for {asset_code_to_fetch}.")
+
                 self.logger.info(f"📊 {asset_code_to_fetch} Holdings: Quantity: {quantity}, Avg Cost: ${avg_cost}, Market Value: ${market_value}")
-            elif holdings_info: # It might return an empty list if no holdings for that asset
-                 self.logger.info(f"📊 {asset_code_to_fetch} Holdings (raw): {holdings_info}")
-            else:
-                self.logger.info(f"ℹ️ No specific holdings found for {asset_code_to_fetch} or API returned no data.")
+            elif holdings_info:
+                self.logger.warning(f"Holdings for {asset_code_to_fetch} received but not in expected list format or empty: {holdings_info}")
         except Exception as e:
             self.logger.error(f"Error fetching {asset_code_to_fetch} holdings: {e}")
 
-        return Task(
-            description=(
-                f"Review the following trading strategy document carefully:\n\n"
-                f"-- STRATEGY DOCUMENT START --\n{strategy_document}\n-- STRATEGY DOCUMENT END --\n\n"
-                f"Your tasks are to:\n"
-                f"1. Parse this strategy to identify concrete, actionable trading orders (e.g., BUY/SELL, symbol, quantity, order type, price limits if any)."
-                f"2. If clear, actionable orders are found, prepare to execute them using the brokerage interface (self.broker)."
-                f"3. For each intended order, confirm the action (e.g., 'Attempting to BUY 0.1 BTC-USD at market using self.broker.place_market_order(...)')."
-                f"4. (Simulated) Execute the trade. For now, log the trade details. In a real scenario, you would call the appropriate self.broker method."
-                f"5. Report the outcome of each attempted trade (e.g., 'Simulated BUY order for 0.1 BTC-USD placed successfully')."
-                f"If the strategy is unclear, or no actionable trades can be derived, state that clearly."
+        # Create the specialist agent for this task, now with tools
+        specialist_agent = Agent(
+            role='Trade Execution Specialist',
+            goal='Precisely execute trading decisions based on provided strategies using available brokerage tools, manage orders, and report outcomes.',
+            backstory=(
+                'A meticulous and highly reliable execution agent, specializing in translating trading strategies '
+                'into actionable orders on cryptocurrency exchanges. Ensures accuracy, monitors execution, '
+                'and handles order management with precision using provided tools.'
             ),
-            agent=self.agent,
-            expected_output=(
-                "A summary of actions taken: For each trade, include the intended action (BUY/SELL, symbol, quantity, type), "
-                "confirmation of attempt, and the (simulated) execution status. If no trades were actionable, provide a clear statement."
-            )
+            verbose=True,
+            llm=self.llm,
+            allow_delegation=False,
+            tools=available_tools # Pass the instantiated tools
         )
 
+        execution_task_description = (
+            f"You are the Trade Execution Specialist for {symbol}. "
+            f"Your primary brokerage interface is `self.broker` (which you will interact with via provided tools). "
+            f"Review the following trading strategy document carefully:\n\n"
+            f"-- STRATEGY DOCUMENT START --\n{strategy_document}\n-- STRATEGY DOCUMENT END --\n\n"
+            f"Your tasks are to:\n"
+            f"1. Parse this strategy to identify concrete, actionable trading orders (e.g., BUY/SELL, symbol, quantity, order type, price limits if any). Symbol is always {symbol}.\n"
+            f"2. If clear, actionable orders are found, YOU MUST USE THE PROVIDED TOOLS ('Place Market Order' or 'Place Limit Order') to execute them. Do NOT simulate.\n"
+            f"3. For each intended order, confirm the action by stating what tool you are using and with what parameters (e.g., 'Using Place Market Order tool: symbol={symbol}, side=buy, quantity=0.1').\n"
+            f"4. Execute the trade using the appropriate tool.\n"
+            f"5. Report the OUTCOME of each trade as returned by the tool (e.g., 'Market order placement result: {{{{...order details...}}}}').\n"
+            f"If the strategy is unclear, no actionable trades can be derived, or if market conditions for an order are not met (e.g. price not at limit), state that clearly and do not attempt to place an order.\n"
+            f"Ensure quantities and prices are passed as strings to the tools."
+        )
+        
+        task = Task(
+            description=execution_task_description,
+            expected_output="A summary of actions taken, including trade confirmations or a statement if no actions could be derived.",
+            agent=specialist_agent,
+            # context = any relevant context from portfolio if needed, or fetched live data
+        )
+
+        # Create and kickoff the execution crew
+        execution_crew = Crew(
+            agents=[specialist_agent],
+            tasks=[task],
+            verbose=True, # Set to True for detailed crew output
+            # process=Process.sequential # If you have multiple tasks for the specialist
+        )
+
+        self.logger.info(f"Kicking off trade execution specialist for {symbol}...")
+        try:
+            result = execution_crew.kickoff(inputs={'trading_strategy_document': strategy_document})
+            self.logger.info(f"Trade execution specialist for {symbol} finished. Raw output: {result.raw}")
+            return result.raw # Return the raw string output
+        except Exception as e:
+            self.logger.error(f"Error during trade execution specialist kickoff for {symbol}: {e}", exc_info=True)
+            return f"Error during trade execution: {e}"
+
 # Example usage (for testing this agent standalone - will be integrated into orchestrator later)
-if __name__ == '__main__':
-    execution_agent_handler = TradeExecutionAgent()
-    
-    if execution_agent_handler.broker:
-        execution_agent_handler.logger.info("TradeExecutionAgent initialized with a connected broker.")
-    else:
-        execution_agent_handler.logger.error("TradeExecutionAgent failed to initialize broker. Trading functions will not work.")
+if __name__ == "__main__":
+    load_dotenv()
+    # Configure logging
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
-    sample_strategy = ("""
-    **Trading Strategy for BTC-USD - May 14, 2025**
-
-    **Market Overview:**
-    The market shows consolidation around $60,000. Key support at $58,000, resistance at $62,000.
-    Sentiment is cautiously optimistic due to upcoming ETF news.
-
-    **Technical Signals:**
-    - RSI (14): 55 (Neutral)
-    - MACD: Bullish crossover on 4H chart.
-    - Moving Averages: Price is above 50-period MA, below 200-period MA on daily.
+    sample_strategy_document = """
+    **Trading Strategy for BTC-USD - Immediate Limit Order Test**
 
     **Recommended Actions:**
-    1. **Entry Long:** If BTC-USD breaks above $62,500 with strong volume, consider a long position.
-       Target: $65,000. Stop-loss: $61,500. Allocate 25% of trading capital.
-    2. **Short Opportunity:** If BTC-USD breaks below $57,500, consider a short position.
-       Target: $55,000. Stop-loss: $58,500. Allocate 15% of trading capital.
-    3. **Hold:** If price remains between $58,000 and $62,000, maintain current positions and observe.
+    1. **Execute Limit Buy:** Immediately place a limit buy order for 0.0001 BTC-USD at a price of $10000.00.
+       This is a test order and is not expected to fill.
+    """
 
-    **Risk Management:**
-    - Do not risk more than 2% of total portfolio on any single trade.
-    - Adjust stop-losses if volatility increases significantly.
-    """)
+    trade_agent = TradeExecutionAgent()
+    
+    if trade_agent.broker:
+        trade_agent.logger.info("TradeExecutionAgent initialized with a connected broker.")
+    else:
+        trade_agent.logger.error("TradeExecutionAgent failed to initialize broker. Trading functions will not work.")
 
-    trade_task = execution_agent_handler.execute_trade_task(sample_strategy)
+    trade_task_result = trade_agent.execute_trade_task(sample_strategy_document)
     
     # To run this task, you'd typically add it to a Crew and kickoff.
     # For now, just printing the task description:
-    print("--- Trade Execution Task Description ---")
-    print(trade_task.description)
-    print("--- Expected Output --- ")
-    print(trade_task.expected_output)
-    # In a real scenario: 
-    # from crewai import Crew
-    # crew = Crew(agents=[execution_agent_handler.agent], tasks=[trade_task], verbose=True)
-    # result = crew.kickoff()
-    # print("\n--- Execution Result ---")
-    # print(result)
+    print("--- Trade Execution Task Result ---")
+    print(trade_task_result)

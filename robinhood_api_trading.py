@@ -11,16 +11,12 @@ from dotenv import load_dotenv
 # Load environment variables
 load_dotenv()
 
-# Use environment variables for keys
-API_KEY = os.getenv("ROBINHOOD_API_KEY")
-BASE64_PRIVATE_KEY = os.getenv("ROBINHOOD_PRIVATE_KEY")
-
 class CryptoAPITrading:
-    def __init__(self):
-        if not API_KEY or not BASE64_PRIVATE_KEY:
-            raise ValueError("API Key and Private Key must be set in the environment.")
-        self.api_key = API_KEY
-        private_key_seed = base64.b64decode(BASE64_PRIVATE_KEY)
+    def __init__(self, api_key: str, base64_private_key: str):
+        if not api_key or not base64_private_key:
+            raise ValueError("API Key and Private Key must be set.")
+        self.api_key = api_key
+        private_key_seed = base64.b64decode(base64_private_key)
         self.private_key = SigningKey(private_key_seed)
         self.base_url = "https://trading.robinhood.com"
 
@@ -117,7 +113,9 @@ class CryptoAPITrading:
 # Example usage (optional, can be commented out or removed)
 # if __name__ == '__main__':
 #     try:
-#         trader = CryptoAPITrading()
+#         api_key = os.getenv("ROBINHOOD_API_KEY")
+#         base64_private_key = os.getenv("ROBINHOOD_PRIVATE_KEY")
+#         trader = CryptoAPITrading(api_key, base64_private_key)
 #         print("Fetching account info...")
 #         account_info = trader.get_account()
 #         print(account_info)

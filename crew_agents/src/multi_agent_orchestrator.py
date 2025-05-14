@@ -273,20 +273,11 @@ def launch_crypto_agents(): # Removed orchestrator_instance parameter
             logger.error("Local TradeExecutionAgent or its broker is not initialized. Skipping trade execution.")
             # This error will appear if RH_API_KEY/RH_PRIVATE_KEY are missing, which is fine.
         elif trading_strategy_text:
-            logger.info("Trading strategy found. Creating execution task with local TradeExecutionAgent.")
-            execution_task = trade_executor.execute_trade_task(trading_strategy_text)
-            
-            execution_crew = Crew(
-                agents=[trade_executor.agent],
-                tasks=[execution_task],
-                verbose=True 
-            )
-            
-            logger.info("Kicking off trade execution crew (within launch_crypto_agents)...")
-            execution_result = execution_crew.kickoff()
+            logger.info("Trading strategy found. Executing task with local TradeExecutionAgent.")
+            execution_result = trade_executor.execute_trade_task(trading_strategy_text)
             
             logger.info("--- TRADE EXECUTION RESULT (within launch_crypto_agents) ---")
-            logger.info(execution_result)
+            logger.info(execution_result) # execution_result is now the string output
         else:
             logger.warning("No trading strategy string found in analysis_result. Skipping trade execution (within launch_crypto_agents).")
 

@@ -1,4 +1,30 @@
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file in the project root
+dotenv_path = os.path.join(os.path.dirname(__file__), '..', '..', '.env') # Go up two levels from src
+if not os.path.exists(dotenv_path):
+    # Fallback for when script might be run from root or crew_agents directly
+    dotenv_path_alt = os.path.join(os.path.dirname(__file__), '..', '.env') 
+    if os.path.exists(dotenv_path_alt):
+        dotenv_path = dotenv_path_alt
+    else: # If still not found, try project root assuming script is in project_root/crew_agents/src
+        # This is a bit of a guess, ideally the script is run from project root
+        dotenv_path_current_level = os.path.join(os.path.dirname(__file__), '.env')
+        if os.path.exists(dotenv_path_current_level):
+            dotenv_path = dotenv_path_current_level
+        else: # Final fallback to assuming script is run from the project root
+             dotenv_path = os.path.join(os.getcwd(), '.env')
+
+
+load_dotenv(dotenv_path=dotenv_path, override=True)
+# Add a print statement to confirm which .env is being used
+print(f"Attempting to load .env from: {os.path.abspath(dotenv_path)}")
+if os.getenv('OPENAI_API_KEY'):
+    print("OPENAI_API_KEY found in environment after dotenv load.")
+else:
+    print("WARNING: OPENAI_API_KEY NOT found after dotenv load. Please check .env path and content.")
+
 import pandas as pd
 import numpy as np
 from crewai import Agent, Task, Crew
@@ -86,7 +112,7 @@ class CryptoTradingAgents:
             historical_data (pd.DataFrame): Historical price and indicator data
         
         Returns:
-            dict: Analysis results from different agents (strings)
+            dict: Analysis results from different agents (strings), including 'recommended_action'
         """
         # Create market analysis crew
         market_crew = self.create_market_analysis_crew(historical_data)
@@ -94,78 +120,85 @@ class CryptoTradingAgents:
         # Kickoff the crew and get results
         crew_kickoff_result = market_crew.kickoff() # This is a CrewOutput object
 
-        # --- Start Debug Prints ---
+        # --- Start Debug Prints --- (Consider using logging for production)
         print(f"\n--- DEBUGGING CryptoTradingAgents.analyze_market ---")
         print(f"DEBUG: crew_kickoff_result raw object: {crew_kickoff_result}")
         if crew_kickoff_result:
             print(f"DEBUG: type(crew_kickoff_result): {type(crew_kickoff_result)}")
-            # Try to access common attributes of CrewOutput if they exist
-            print(f"DEBUG: crew_kickoff_result.description: {getattr(crew_kickoff_result, 'description', 'N/A')}")
-            print(f"DEBUG: crew_kickoff_result.raw (if any): {getattr(crew_kickoff_result, 'raw', 'N/A')}")
-            print(f"DEBUG: crew_kickoff_result.tasks_output: {getattr(crew_kickoff_result, 'tasks_output', 'N/A')}")
-            
-            tasks_outputs_attr = getattr(crew_kickoff_result, 'tasks_output', None)
-            if tasks_outputs_attr:
-                print(f"DEBUG: Number of tasks_output items: {len(tasks_outputs_attr)}")
-                for i, task_out in enumerate(tasks_outputs_attr):
-                    print(f"  DEBUG: Task {i} output object: {task_out}")
-                    print(f"  DEBUG: Task {i} type: {type(task_out)}")
-                    print(f"  DEBUG: Task {i} description: {getattr(task_out, 'description', 'N/A')}")
-                    print(f"  DEBUG: Task {i} raw_output: {getattr(task_out, 'raw_output', 'N/A')}")
-                    # Also check for 'exported_output' or 'output' if raw_output is consistently N/A
-                    print(f"  DEBUG: Task {i} exported_output: {getattr(task_out, 'exported_output', 'N/A')}")
-                    print(f"  DEBUG: Task {i} agent_id: {getattr(task_out, 'agent_id', 'N/A')}") # Might be agent_id or agent
-            else:
-                print(f"DEBUG: crew_kickoff_result.tasks_output is None or empty.")
-        else:
-            print(f"DEBUG: crew_kickoff_result is None.")
-        print(f"--- END DEBUGGING CryptoTradingAgents.analyze_market ---\n")
+            # Try to access common attributes of CrewOutput if it's an object
+            if hasattr(crew_kickoff_result, 'raw'):
+                print(f"DEBUG: crew_kickoff_result.raw: {crew_kickoff_result.raw[:500]}...") # Print first 500 chars
+            if hasattr(crew_kickoff_result, 'tasks_output'):
+                print(f"DEBUG: crew_kickoff_result has tasks_output. Count: {len(crew_kickoff_result.tasks_output) if crew_kickoff_result.tasks_output else 0}")
+                if crew_kickoff_result.tasks_output:
+                    # Assuming the last task's output is the most relevant for the final strategy document
+                    last_task_output = crew_kickoff_result.tasks_output[-1]
+                    if hasattr(last_task_output, 'raw_output'):
+                         print(f"DEBUG: Last task raw_output: {last_task_output.raw_output[:500]}...")
+                    elif isinstance(last_task_output, str):
+                        print(f"DEBUG: Last task output (str): {last_task_output[:500]}...")
+        print(f"--- END DEBUGGING CryptoTradingAgents.analyze_market ---")
         # --- End Debug Prints ---
 
-        analysis = {
-            'market_research': "N/A - Market Research Output Missing",
-            'technical_analysis': "N/A - Technical Analysis Output Missing",
-            'risk_assessment': "N/A - Risk Assessment Output Missing",
-            'trading_strategy': "N/A - Trading Strategy Output Missing"
-        }
+        results = {}
+        final_decision_text = ""
 
-        tasks_outputs = crew_kickoff_result.tasks_output if crew_kickoff_result and hasattr(crew_kickoff_result, 'tasks_output') else []
+        # Extract the raw text output from the last task, which should contain the strategy document
+        if crew_kickoff_result:
+            if hasattr(crew_kickoff_result, 'tasks_output') and crew_kickoff_result.tasks_output:
+                # The last task in the sequential crew is the strategy_generator
+                last_task_output_obj = crew_kickoff_result.tasks_output[-1]
+                if hasattr(last_task_output_obj, 'exported_output') and last_task_output_obj.exported_output:
+                     final_decision_text = last_task_output_obj.exported_output
+                elif hasattr(last_task_output_obj, 'raw_output') and last_task_output_obj.raw_output: # Fallback to raw_output
+                     final_decision_text = last_task_output_obj.raw_output
+                elif isinstance(last_task_output_obj, str): # If the task output itself is a string
+                    final_decision_text = last_task_output_obj
+            elif hasattr(crew_kickoff_result, 'raw') and crew_kickoff_result.raw: # Fallback for older crewai versions or different structures
+                final_decision_text = crew_kickoff_result.raw
+            elif isinstance(crew_kickoff_result, str):
+                final_decision_text = crew_kickoff_result
 
-        key_map = ['market_research', 'technical_analysis', 'risk_assessment', 'trading_strategy']
+        # Store the full strategy document if needed, and other agent outputs if parsed
+        # For now, we are primarily interested in the final_decision_text from the strategy generator
+        results['strategy_document'] = final_decision_text 
 
-        for i, task_key in enumerate(key_map):
-            if i < len(tasks_outputs) and tasks_outputs[i]:
-                task_out = tasks_outputs[i]
-                extracted_text = None
-
-                # Try exported_output
-                if hasattr(task_out, 'exported_output') and isinstance(task_out.exported_output, str):
-                    candidate = task_out.exported_output.strip()
-                    if candidate:
-                        extracted_text = candidate
+        # Simple parsing for "Recommended immediate action: [ACTION]"
+        parsed_action = 'hold' # Default action
+        action_line_prefix = "Recommended immediate action:"
+        
+        found_action_line = False
+        for line in final_decision_text.lower().splitlines():
+            if action_line_prefix.lower() in line:
+                action_part = line.split(action_line_prefix.lower())[-1].strip() # Get text after the prefix
+                # Remove any potential markdown like ** or trailing characters like . or !
+                action_part = action_part.replace('*','').replace('[','').replace(']','').split('.')[0].split('!')[0].strip()
                 
-                # Try raw_output if exported_output wasn't usable
-                if extracted_text is None and hasattr(task_out, 'raw_output') and isinstance(task_out.raw_output, str):
-                    candidate = task_out.raw_output.strip()
-                    if candidate:
-                        extracted_text = candidate
+                if 'buy' in action_part:
+                    parsed_action = 'buy'
+                    found_action_line = True
+                    break
+                elif 'sell' in action_part:
+                    parsed_action = 'sell'
+                    found_action_line = True
+                    break
+                elif 'hold' in action_part: # Explicit hold might be stated
+                    parsed_action = 'hold'
+                    found_action_line = True
+                    break
+        
+        results['recommended_action'] = parsed_action
+        # Use logging, but keep print for direct script runs during testing
+        # logging.info(f"CrewAI recommended action parsed: {parsed_action}. Found in text: {found_action_line}") 
+        print(f"DEBUG: Parsed recommended_action: {parsed_action}. Found in text: {found_action_line}")
+        print(f"DEBUG: Full decision text for parsing was (first 500 chars): {final_decision_text[:500]}...")
 
-                # Try str(task_out) as a last resort if others failed
-                if extracted_text is None:
-                    try:
-                        candidate = str(task_out).strip()
-                        # Avoid generic object representations like '<crewai.tasks.task_output.TaskOutput object at 0x...>' or similar
-                        if candidate and not (candidate.startswith('<') and 'object at 0x' in candidate and candidate.endswith('>')):
-                           # Further check to ensure it's not just the default repr if it's very short or contains the class name prominently
-                            if len(candidate) > 50 or not task_out.__class__.__name__ in candidate[:len(task_out.__class__.__name__)+10]: 
-                                extracted_text = candidate
-                    except Exception:
-                        pass # Ignore errors from str(task_out)
+        # Placeholder for other agent outputs if they were individually retrievable and structured
+        # results['market_research'] = "..."
+        # results['technical_analysis'] = "..."
+        # results['risk_assessment'] = "..."
 
-                if extracted_text:
-                    analysis[task_key] = extracted_text
-            
-        return analysis
+        return results
 
     def create_market_analysis_crew(self, historical_data):
         """
@@ -177,22 +210,22 @@ class CryptoTradingAgents:
         Returns:
             Crew: Configured CrewAI crew for market analysis.
         """
-        # Instantiate agents
-        market_researcher = self.market_researcher
-        technical_analyst = self.technical_analyst
-        risk_manager = self.risk_manager
-        strategy_generator = self.strategy_generator
+        # Create instances of agents to be used in this crew
+        # This ensures fresh state if agents were modified or had memory in other crews
+        market_researcher = self._create_market_researcher()
+        technical_analyst = self._create_technical_analyst()
+        risk_manager = self._create_risk_manager()
+        strategy_generator = self._create_strategy_generator()
 
-        # Define tasks for each agent
+        # Define Tasks for each agent
         # Task for Market Researcher
         market_research_task = Task(
             description=(
-                f"Analyze current market conditions for {self.symbol}. "
-                f"Consider macroeconomic factors, news, sentiment, and overall crypto market trends. "
-                f"Focus on data from the last {30} days."
+                f"Analyze current market conditions for {self.symbol}. Focus on news, sentiment, macroeconomic factors, "
+                f"and any specific events relevant to {self.symbol}. Provide a concise summary."
             ),
             expected_output=(
-                f"A comprehensive report on market conditions for {self.symbol}, including key influencing factors, "
+                f"A summary of current market conditions, sentiment analysis, and key influencing factors for {self.symbol}. "
                 f"recent trends, and potential upcoming catalysts. Highlight any significant bullish or bearish signals."
             ),
             agent=market_researcher
@@ -234,13 +267,14 @@ class CryptoTradingAgents:
             description=(
                 f"Generate a refined trading strategy for {self.symbol}. Integrate the findings from market research, "
                 f"technical analysis, and risk assessment. Define clear entry and exit criteria, target profit levels, "
-                f"and an overall strategic approach (e.g., trend-following, range-trading)."
+                f"and an overall strategic approach. Based on all this, conclude with an immediate recommended trading action for the current moment."
             ),
             expected_output=(
                 f"A comprehensive trading strategy document for {self.symbol}. Should include: "
                 f"1. Summary of integrated analysis. 2. Defined entry criteria (conditions for buy/sell). "
                 f"3. Defined exit criteria (take-profit and stop-loss levels). 4. Recommended position sizing. "
-                f"5. Overall strategic approach and confidence level."
+                f"5. Overall strategic approach and confidence level. "
+                f"6. **Recommended immediate action: [BUY/SELL/HOLD]** based on the current synthesis of information."
             ),
             agent=strategy_generator,
             context=[market_research_task, technical_analysis_task, risk_management_task]  # Depends on all previous

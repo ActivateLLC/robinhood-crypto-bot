@@ -6,10 +6,7 @@ import pandas as pd
 import optuna
 from stable_baselines3 import PPO
 from stable_baselines3.common.vec_env import DummyVecEnv, VecCheckNan
-from stable_baselines3.common.evaluation import evaluate_policy
 from stable_baselines3.common.env_checker import check_env
-from stable_baselines3.common.callbacks import EvalCallback, ProgressBarCallback
-from stable_baselines3.common.vec_env import DummyVecEnv
 import gymnasium as gym
 import json
 
@@ -21,9 +18,6 @@ sys.path.insert(0, project_root)
 from alt_crypto_data import AltCryptoDataProvider
 from rl_environment import CryptoTradingEnv
 
-# Ensure the current directory is in the Python path
-sys.path.append(os.getcwd())
-
 # Configure logging
 logging.basicConfig(level=logging.INFO, 
                     format='%(asctime)s - %(levelname)s - %(message)s',
@@ -34,42 +28,7 @@ logging.basicConfig(level=logging.INFO,
 logger = logging.getLogger(__name__)
 
 # Supported cryptocurrencies for multi-asset training
-CRYPTO_SYMBOLS = ['BTC-USD']  # Simplified to BTC-only
-
-def create_env(df, symbol='BTC-USD', training=True):
-    """
-    Create a vectorized environment with additional safety checks
-    """
-    def env_creator():
-        # Temporarily modify global data loading
-        import rl_environment
-        original_load_method = rl_environment.CryptoTradingEnv._load_and_prepare_data
-        
-        def mock_load_data(self, symbol=None, period=None, interval=None):
-            self.df_processed = df.copy()
-            return self.df_processed
-        
-        rl_environment.CryptoTradingEnv._load_and_prepare_data = mock_load_data
-        
-        env = CryptoTradingEnv(
-            symbol=symbol, 
-            initial_balance=10000,
-            transaction_fee_percent=0.001,
-            data_period='6mo',
-            data_interval='1h'
-        )
-        
-        # Restore original method
-        rl_environment.CryptoTradingEnv._load_and_prepare_data = original_load_method
-        
-        return env
-    
-    env = DummyVecEnv([env_creator])
-    
-    # Add NaN checking wrapper for numerical stability
-    env = VecCheckNan(env)
-    
-    return env
+CRYPTO_SYMBOLS = ['BTC-USD']  
 
 def objective(trial):
     """
@@ -79,98 +38,115 @@ def objective(trial):
         trial (optuna.Trial): Optuna trial object for hyperparameter suggestion
     
     Returns:
-        float: Evaluation metric (total portfolio value or Sharpe ratio)
+        float: Evaluation metric (e.g., Sharpe Ratio)
     """
-    # Hyperparameters to optimize with more robust sampling
-    learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
-    batch_size = trial.suggest_int('batch_size', 64, 256, log=True)
-    n_steps = trial.suggest_int('n_steps', 1024, 4096, log=True)
-    gamma = trial.suggest_float('gamma', 0.9, 0.9999)
-    gae_lambda = trial.suggest_float('gae_lambda', 0.8, 1.0)
-    ent_coef = trial.suggest_float('ent_coef', 1e-4, 1.0, log=True)
-    clip_range = trial.suggest_float('clip_range', 0.1, 0.4)
-    
-    # Configuration parameters
-    symbol = 'BTC-USD'
-    initial_balance = 10000
-    
-    # Create environment
-    def create_env(symbol, training=True):
-        env = CryptoTradingEnv(
+    logger.info(f"Starting Trial {trial.number}")
+    try:
+        # Hyperparameters to optimize
+        learning_rate = trial.suggest_float('learning_rate', 1e-5, 1e-3, log=True)
+        batch_size = trial.suggest_int('batch_size', 32, 512, log=True) 
+        n_steps = trial.suggest_int('n_steps', 512, 4096, log=True) 
+        gamma = trial.suggest_float('gamma', 0.9, 0.9999)
+        gae_lambda = trial.suggest_float('gae_lambda', 0.8, 1.0)
+        ent_coef = trial.suggest_float('ent_coef', 1e-8, 0.1, log=True) 
+        vf_coef = trial.suggest_float('vf_coef', 0.1, 0.9)             
+        n_epochs = trial.suggest_int('n_epochs', 3, 20)                
+        clip_range = trial.suggest_float('clip_range', 0.1, 0.4)
+        lookback_window = trial.suggest_int('lookback_window', 10, 90) 
+
+        # Configuration parameters
+        symbol = 'BTC-USD' 
+        initial_balance = 10000
+        transaction_fee_percent = 0.001
+        data_period = '1y' 
+        data_interval = '1h'
+
+        # Create environment
+        env_lambda = lambda: CryptoTradingEnv(
             symbol=symbol,
             initial_balance=initial_balance,
-            transaction_fee_percent=0.001,
-            data_period='6mo',
-            data_interval='1h'
+            transaction_fee_percent=transaction_fee_percent,
+            data_period=data_period,
+            data_interval=data_interval,
+            lookback_window=lookback_window 
         )
-        return env
-    
-    # Vectorize environment
-    env = DummyVecEnv([lambda: create_env(symbol)])
-    
-    # Create PPO model
-    model = PPO(
-        "MlpPolicy", 
-        env, 
-        learning_rate=learning_rate,
-        n_steps=n_steps,
-        batch_size=batch_size,
-        n_epochs=10,
-        gamma=gamma,
-        gae_lambda=gae_lambda,
-        ent_coef=ent_coef,
-        clip_range=clip_range,
-        verbose=0,
-        seed=42
-    )
-    
-    # Train model
-    try:
-        model.learn(total_timesteps=50000)
+        env = DummyVecEnv([env_lambda])
+        env = VecCheckNan(env, raise_exception=True) 
         
-        # Evaluate model
+        # Create PPO model
+        model = PPO(
+            "MlpPolicy", 
+            env, 
+            learning_rate=learning_rate,
+            n_steps=n_steps,
+            batch_size=batch_size,
+            n_epochs=n_epochs, 
+            gamma=gamma,
+            gae_lambda=gae_lambda,
+            ent_coef=ent_coef,
+            vf_coef=vf_coef,   
+            clip_range=clip_range,
+            verbose=0, 
+            seed=42 
+        )
+        
+        # Train model 
+        total_timesteps_train = 50000 
+        model.learn(total_timesteps=total_timesteps_train, progress_bar=False) 
+        
+        # Evaluate model: run for one full episode
         obs = env.reset()
         done = False
-        total_reward = 0
-        steps = 0
-        
-        while not done and steps < 1000:
-            action, _ = model.predict(obs)
-            obs, reward, done, info = env.step(action)
-            total_reward += reward[0]
-            steps += 1
-        
-        # Close environment
+        final_info = None
+        actual_env = env.envs[0]
+        max_episode_steps = len(actual_env.df_processed) - actual_env.lookback_window -1
+
+        for step_num in range(max_episode_steps):
+            action, _ = model.predict(obs, deterministic=True)
+            obs, reward, dones, infos = env.step(action) 
+            if dones[0]:
+                final_info = infos[0]
+                break
+        if not final_info: 
+             final_info = infos[0] if infos else {'sharpe_ratio': -float('inf')} 
+
         env.close()
         
-        # Return negative total reward for minimization
-        return -total_reward
+        sharpe_ratio = final_info.get('sharpe_ratio', -float('inf')) 
+        logger.info(f"Trial {trial.number} finished. Sharpe Ratio: {sharpe_ratio:.4f}. Params: {json.dumps(trial.params)}")
+        return sharpe_ratio
+
     except Exception as e:
-        # Log the error for debugging
-        print(f"Trial {trial.number} failed: {e}")
-        return float('inf')  # Penalize failed trials
+        logger.error(f"Trial {trial.number} failed: {e}", exc_info=True)
+        return -float('inf')  
 
 def main():
     # Create a study object and specify the direction is 'maximize'
     study = optuna.create_study(
-        study_name='PPO_Crypto_Tuning', 
+        study_name='PPO_Crypto_Tuning_v2', 
         direction='maximize',
-        storage='sqlite:///optuna_crypto_study.db',
+        storage='sqlite:///optuna_crypto_study_v2.db', 
         load_if_exists=True
     )
     
     # Run the optimization
-    study.optimize(objective, n_trials=50)  # Increased trials
+    study.optimize(objective, n_trials=50) 
     
     # Print best trial details
-    print('Number of finished trials:', len(study.trials))
-    print('Best trial:')
-    trial = study.best_trial
-    
-    print('  Value: ', trial.value)
-    print('  Params: ')
-    for key, value in trial.params.items():
-        print(f'    {key}: {value}')
+    logger.info(f"Study completed. Number of finished trials: {len(study.trials)}")
+    if study.best_trial:
+        logger.info('Best trial:')
+        trial = study.best_trial
+        logger.info(f'  Value (Sharpe Ratio): {trial.value:.4f}')
+        logger.info('  Params: ')        
+        for key, value in trial.params.items():
+            logger.info(f'    {key}: {value}')
+        
+        # You could save the best model here if needed
+        # Example: best_params = trial.params
+        # (recreate env, model with best_params, train longer, save model)
+    else:
+        logger.info("No successful trials completed.")
 
 if __name__ == '__main__':
     main()

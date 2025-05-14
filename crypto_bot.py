@@ -106,6 +106,7 @@ class RobinhoodCryptoBot:
         self.check_interval = self.config.INTERVAL_MINUTES
         self.trading_strategy = self.config.TRADING_STRATEGY
         self.rl_model_path = self.config.RL_MODEL_PATH
+        self.rl_lookback_window = self.config.RL_LOOKBACK_WINDOW
         self.EXPECTED_OBS_SHAPE = (31,) # Expected shape for RL agent observations
         self.interval = self.check_interval # Assign self.interval = self.check_interval
         self.plot_enabled = self.config.PLOT_ENABLED # Added from view
@@ -117,12 +118,9 @@ class RobinhoodCryptoBot:
         self.data_provider = None
         self.symbol_map = {}
         self.historical_data = {}
-        self.holdings = {'USD': {'quantity': Decimal('0')}}
-        self.rl_lookback_window = self.config.RL_LOOKBACK_WINDOW # Added from view
-        self.rl_features_mean = None # Added from view
-        self.rl_features_std = None # Added from view
-        self.norm_stats = {} # Initialize dict to store normalization stats per symbol
-        self.current_holdings: Dict[str, Decimal] = {symbol.split('-')[0]: Decimal('0.0') for symbol in self.config.SYMBOLS_TO_TRADE} # Initialize holdings keyed by base asset (e.g., 'BTC') using SYMBOLS_TO_TRADE
+        self.portfolio_state: Dict[str, Dict[str, Decimal]] = { 
+            # symbol_base: {'quantity': Decimal, 'average_cost': Decimal, 'initial_investment': Decimal}
+        }
         self.current_balance: Decimal = Decimal('0.0') # Initialize current_balance
         self.data_cache = {}
 
@@ -248,7 +246,7 @@ class RobinhoodCryptoBot:
                     level=logging.CRITICAL,
                     event_type="BROKER_INIT_FAILURE_CRITICAL", # More specific event type
                     message=error_message,
-                    details={"selected_broker_type": broker_type},
+                    details={"reason": "Broker object is None"},
                     severity="CRITICAL"
                 )
                 self.enable_trading = False # Explicitly disable trading
@@ -383,10 +381,10 @@ class RobinhoodCryptoBot:
         # 5. Fetch initial holdings (Requires API Client)
         if self.broker:
             logging.info("Fetching initial holdings...")
-            self.get_holdings() # <-- Correct method name (matches API client method)
+            self.get_holdings() # This will now populate self.portfolio_state
         else:
             logging.warning("Skipping initial holdings fetch: API client not available or trading disabled.")
-            self.holdings = {} # Initialize as empty if not fetched
+            # self.portfolio_state remains as is or empty if never populated
         logging.info(f"RobinhoodCryptoBot __init__ finished. Trading Enabled: {self.enable_trading}")
 
     def _initialize_broker(self, broker_class: type[BaseBroker], broker_config: Dict[str, Any]) -> Optional[BaseBroker]:
@@ -740,24 +738,56 @@ class RobinhoodCryptoBot:
                 current_balance_normalized = float(current_balance_usd / Decimal(str(balance_norm_divisor)))
                 _log_structured_event(logging.DEBUG, "PLACEHOLDER_NORMALIZATION_USED", f"Using placeholder normalization for balance for {symbol}. Divisor: {balance_norm_divisor}", details={"symbol": symbol, "feature": "balance", "divisor": balance_norm_divisor})
 
-                current_holding_qty = self.holdings.get(base_asset, Decimal('0.0'))
+                current_asset_state = self.portfolio_state.get(base_asset, {})
+                current_holding_qty = current_asset_state.get('quantity', Decimal('0.0'))
+                average_cost_basis = current_asset_state.get('average_cost', Decimal('0.0'))
+                initial_investment = current_asset_state.get('initial_investment', Decimal('0.0'))
+
                 holding_norm_divisor = self.config.get('rl_holding_norm_divisor', 100.0) # e.g. max expected holding qty for a less valuable asset
                 current_holding_qty_normalized = float(current_holding_qty / Decimal(str(holding_norm_divisor)))
                 _log_structured_event(logging.DEBUG, "PLACEHOLDER_NORMALIZATION_USED", f"Using placeholder normalization for holding quantity for {symbol}. Divisor: {holding_norm_divisor}", details={"symbol": symbol, "feature": "holding_qty", "divisor": holding_norm_divisor})
 
-                pnl_normalized = 0.0  # Placeholder
-                _log_structured_event(logging.DEBUG, "PLACEHOLDER_FEATURE_USED", f"Using placeholder 0.0 for PNL feature for {symbol}.", details={"symbol": symbol, "feature": "pnl"})
-                price_change_since_buy_normalized = 0.0 # Placeholder
-                _log_structured_event(logging.DEBUG, "PLACEHOLDER_FEATURE_USED", f"Using placeholder 0.0 for price_change_since_buy feature for {symbol}.", details={"symbol": symbol, "feature": "price_change_since_buy"})
+                # Calculate PNL and Price Change if position is held
+                pnl_normalized = 0.0
+                price_change_normalized = 0.0
+
+                if not analysis_data['close'].empty:
+                    current_price = Decimal(str(analysis_data['close'].iloc[-1]))
+                    if current_holding_qty > Decimal('1e-8') and average_cost_basis > Decimal('1e-8'): # Position exists and has valid cost
+                        unrealized_pnl = (current_price - average_cost_basis) * current_holding_qty
+                        price_change_percentage = ((current_price - average_cost_basis) / average_cost_basis) # This is a ratio, e.g., 0.05 for 5%
+                        
+                        # Normalize PNL (e.g., as a ratio of initial investment for this position)
+                        if initial_investment > Decimal('1e-8'):
+                            pnl_normalized = float(unrealized_pnl / initial_investment)
+                        else: # Should not happen if holding qty > 0 and avg_cost > 0, but defensive
+                            pnl_normalized = 0.0 
+                        
+                        # Normalize Price Change (already a ratio, can be scaled or clipped if necessary)
+                        # For example, clipping to +/- 100% (ratio +/- 1.0) then using as is.
+                        price_change_normalized = float(max(-1.0, min(1.0, price_change_percentage))) # Clipped to +/- 100%
+                        
+                        _log_structured_event(logging.DEBUG, "PNL_PRICE_CHANGE_CALCULATED", 
+                                            f"{symbol}: PNL_Norm={pnl_normalized:.4f}, PriceChange_Norm={price_change_normalized:.4f}",
+                                            details={"symbol":symbol, "current_price":float(current_price), "avg_cost":float(average_cost_basis), 
+                                                     "qty":float(current_holding_qty), "unrealized_pnl":float(unrealized_pnl),
+                                                     "price_change_perc_raw": float(price_change_percentage), "initial_investment_for_pos": float(initial_investment)})
+                    else:
+                        _log_structured_event(logging.DEBUG, "PNL_PRICE_CHANGE_ZERO_NO_POSITION",
+                                            f"{symbol}: PNL and PriceChange are 0 (no tracked position or zero cost basis).",
+                                            details={"symbol":symbol, "current_price":float(current_price), "avg_cost":float(average_cost_basis), "qty":float(current_holding_qty)})
+                else:
+                    _log_structured_event(logging.WARNING, "PNL_PRICE_CHANGE_ZERO_NO_CURRENT_PRICE",
+                                        f"{symbol}: PNL and PriceChange are 0 (no current price from analysis_data).",
+                                        details={"symbol":symbol})
 
                 additional_features = np.array([
                     current_balance_normalized,
                     current_holding_qty_normalized,
-                    pnl_normalized,
-                    price_change_since_buy_normalized
-                ], dtype=np.float32)
+                    pnl_normalized,  # Replaces 0.0 placeholder
+                    price_change_normalized  # Replaces 0.0 placeholder
+                ])
 
-                obs = np.concatenate((normalized_latest_indicators, additional_features))
                 # --- End: Inlined _get_normalized_features logic ---
 
             except Exception as e_feature_gen:
@@ -875,7 +905,7 @@ class RobinhoodCryptoBot:
         quantity = Decimal('0.0')
         trade_amount = Decimal(str(self.trade_amount_usd))
         symbol_base = symbol.split('-')[0]
-        current_holding_qty = Decimal(self.holdings.get(symbol_base, Decimal('0.0')))
+        current_holding_qty = Decimal(self.portfolio_state.get(symbol_base, {}).get('quantity', Decimal('0.0'))) # Updated to use portfolio_state
 
         trade_params.update({
             "trade_amount_usd": float(trade_amount),
@@ -973,6 +1003,99 @@ class RobinhoodCryptoBot:
                     details={"order_details": order_details},
                     **trade_params
                 )
+                action_taken = True 
+
+                if order_details and order_details.get('status') not in ['failed', 'rejected', 'cancelled', None, ''] and order_details.get('order_id'): # Basic check for success
+                    _log_structured_event(
+                        logging.INFO,
+                        "TRADE_SUBMITTED_SUCCESS",
+                        f"Trade submitted successfully via broker for {symbol}. Side: {side}, Qty: {quantity:.8f}. Order ID: {order_details.get('order_id')}",
+                        details={"order_details": order_details},
+                        **trade_params
+                    )
+                    # --- Update portfolio_state based on successful trade --- 
+                    filled_price = latest_price # Assume fill at latest_price for now
+                    filled_quantity = quantity # Use the requested quantity for calculation initially
+
+                    # Try to use actual fill details if available from broker response
+                    if order_details.get('avg_fill_price') and order_details.get('filled_qty'):
+                        try:
+                            # Ensure these are valid numbers before converting to Decimal
+                            avg_fill_price_str = str(order_details['avg_fill_price'])
+                            filled_qty_str = str(order_details['filled_qty'])
+                            if avg_fill_price_str and filled_qty_str: # Check they are not empty or None
+                                filled_price = Decimal(avg_fill_price_str)
+                                filled_quantity = Decimal(filled_qty_str)
+                                _log_structured_event(logging.INFO, "FILL_DETAILS_USED", f"Using actual fill details for {symbol}: Price={filled_price}, Qty={filled_quantity}", details=order_details)
+                        except (InvalidOperation, TypeError, ValueError) as e_fill_parse: # Catch conversion errors
+                            _log_structured_event(logging.WARNING, "FILL_DETAILS_PARSE_ERROR", f"Could not parse fill details from order_details for {symbol}: {e_fill_parse}. Reverting to estimated price/qty.", details=order_details)
+                            # filled_price and filled_quantity remain as initially assumed
+
+                    asset_base = symbol.split('-')[0]
+                    current_asset_state = self.portfolio_state.get(
+                        asset_base, 
+                        {'quantity': Decimal('0'), 'average_cost': Decimal('0'), 'initial_investment': Decimal('0')}
+                    )
+                    
+                    current_qty = current_asset_state['quantity']
+                    current_avg_cost = current_asset_state['average_cost']
+                    current_initial_investment = current_asset_state['initial_investment']
+
+                    if side == 'buy':
+                        new_total_qty = current_qty + filled_quantity
+                        new_investment_this_trade = filled_price * filled_quantity
+                        new_total_initial_investment = current_initial_investment + new_investment_this_trade
+                        
+                        if new_total_qty > Decimal('1e-12'): # Avoid division by zero if qty is effectively zero
+                            new_avg_cost = new_total_initial_investment / new_total_qty
+                        else:
+                            new_avg_cost = Decimal('0') # Or keep old avg_cost if preferred when qty is zero
+                        
+                        self.portfolio_state[asset_base] = {
+                            'quantity': new_total_qty,
+                            'average_cost': new_avg_cost,
+                            'initial_investment': new_total_initial_investment
+                        }
+                        _log_structured_event(logging.INFO, "PORTFOLIO_STATE_BUY_UPDATE", 
+                                            f"Updated portfolio for BUY {asset_base}: Qty={new_total_qty:.8f}, AvgCost={new_avg_cost:.2f}, InitInv={new_total_initial_investment:.2f}", 
+                                            details=self.portfolio_state[asset_base])
+                    
+                    elif side == 'sell':
+                        proceeds_this_trade = filled_price * filled_quantity
+                        # Reduce initial investment proportionally to the quantity sold relative to average cost
+                        # This recognizes the cost of goods sold (COGS)
+                        cost_of_goods_sold = current_avg_cost * filled_quantity 
+                        # Cap COGS at current initial investment to prevent negative investment
+                        cost_of_goods_sold = min(cost_of_goods_sold, current_initial_investment) 
+
+                        new_total_qty = current_qty - filled_quantity
+                        new_total_initial_investment = current_initial_investment - cost_of_goods_sold
+
+                        # Average cost of remaining shares does not change
+                        new_avg_cost = current_avg_cost 
+
+                        if new_total_qty <= Decimal('1e-8'): # Effectively zero or less
+                            _log_structured_event(logging.INFO, "PORTFOLIO_STATE_SELL_CLOSE", 
+                                                f"Closing portfolio position for {asset_base} due to sell. Qty became {new_total_qty:.8f}. Proceeds: {proceeds_this_trade:.2f}, COGS: {cost_of_goods_sold:.2f}", 
+                                                details={'asset': asset_base, 'remaining_qty': float(new_total_qty)})
+                            # Option 1: Remove the asset from portfolio_state
+                            # if asset_base in self.portfolio_state: del self.portfolio_state[asset_base]
+                            # Option 2: Keep the entry but with zero quantity and adjusted investment (potentially zero or very small)
+                            self.portfolio_state[asset_base] = {
+                                'quantity': Decimal('0.0'), # Ensure it's explicitly zero
+                                'average_cost': new_avg_cost, # Keep avg cost for record, or set to 0
+                                'initial_investment': max(Decimal('0.0'), new_total_initial_investment) # Ensure not negative
+                            }
+                        else:
+                            self.portfolio_state[asset_base] = {
+                                'quantity': new_total_qty,
+                                'average_cost': new_avg_cost, # Remains the same
+                                'initial_investment': new_total_initial_investment
+                            }
+                            _log_structured_event(logging.INFO, "PORTFOLIO_STATE_SELL_UPDATE", 
+                                                f"Updated portfolio for SELL {asset_base}: Qty={new_total_qty:.8f}, AvgCost={new_avg_cost:.2f}, InitInv={new_total_initial_investment:.2f}. Proceeds: {proceeds_this_trade:.2f}, COGS: {cost_of_goods_sold:.2f}",
+                                                details=self.portfolio_state[asset_base])
+
             else:
                 _log_structured_event(
                     logging.ERROR,
@@ -991,7 +1114,7 @@ class RobinhoodCryptoBot:
             )
 
     def get_holdings(self):
-        """Fetches current crypto holdings using the broker client and updates self.holdings."""
+        """Fetches current crypto holdings using the broker client and updates self.portfolio_state."""
         _log_structured_event(logging.INFO, "HOLDINGS_FETCH_ATTEMPT", "Attempting to fetch current holdings.")
 
         if not self.broker:
@@ -1000,52 +1123,89 @@ class RobinhoodCryptoBot:
                 "BROKER_UNAVAILABLE_FOR_HOLDINGS_ERROR",
                 "Broker is not initialized. Cannot fetch holdings."
             )
-            self.holdings = {}
+            # self.portfolio_state remains as is or empty if never populated
             return
 
         try:
-            holdings_data = self.broker.get_holdings() # Assumes this returns Dict[str, Decimal] or None
+            # broker_holdings is expected to be Dict[str (asset_code), str (quantity)]
+            broker_holdings = self.broker.get_holdings()
             
-            if holdings_data is not None and isinstance(holdings_data, dict):
-                # Ensure values are Decimal, or can be converted, for consistency
-                processed_holdings = {}
-                for asset, qty_str in holdings_data.items():
+            if broker_holdings is not None and isinstance(broker_holdings, dict):
+                processed_assets = set()
+                for asset_code, qty_str in broker_holdings.items():
+                    processed_assets.add(asset_code)
                     try:
-                        processed_holdings[asset] = Decimal(str(qty_str))
-                    except InvalidOperation:
+                        current_qty_from_broker = Decimal(str(qty_str))
+                        if asset_code not in self.portfolio_state:
+                            # New asset detected from broker, not tracked by bot's trades yet
+                            self.portfolio_state[asset_code] = {
+                                'quantity': current_qty_from_broker,
+                                'average_cost': Decimal('0.0'),
+                                'initial_investment': Decimal('0.0')
+                            }
+                            _log_structured_event(
+                                logging.WARNING,
+                                "UNTRACKED_ASSET_DETECTED",
+                                f"Asset {asset_code} detected from broker but not previously tracked by bot. Cost basis unknown, initialized to 0.",
+                                details={"asset_code": asset_code, "quantity": float(current_qty_from_broker)}
+                            )
+                        else:
+                            # Asset already tracked, just update quantity from broker
+                            # This assumes broker's quantity is the source of truth for current quantity
+                            self.portfolio_state[asset_code]['quantity'] = current_qty_from_broker
+                    except Exception as e_conv: # Broader exception for Decimal conversion or other issues
                         _log_structured_event(
                             logging.WARNING,
                             "INVALID_HOLDING_QUANTITY_FORMAT",
-                            f"Could not convert holding quantity '{qty_str}' for asset '{asset}' to Decimal. Skipping this asset.",
-                            details={"asset": asset, "invalid_quantity": str(qty_str)}
+                            f"Could not process holding quantity '{qty_str}' for asset '{asset_code}': {e_conv}. Skipping this asset.",
+                            details={"asset_code": asset_code, "invalid_quantity": str(qty_str)}
                         )
                 
-                self.holdings = processed_holdings
+                # For assets in portfolio_state but NOT in broker_holdings (e.g., sold outside bot, or broker error for that asset)
+                # set their quantity to zero, but keep avg_cost and initial_investment for potential PNL calc if needed for other logic.
+                # Or, if bot assumes it controls all, then it implies it was sold.
+                assets_in_state = list(self.portfolio_state.keys())
+                for asset_code_in_state in assets_in_state:
+                    if asset_code_in_state not in processed_assets and asset_code_in_state != 'USD': # Don't zero out USD if we ever put it here
+                        _log_structured_event(
+                            logging.INFO,
+                            "ASSET_REMOVED_OR_ZEROED",
+                            f"Asset {asset_code_in_state} was in portfolio_state but not in broker's current holdings. Setting quantity to 0.",
+                            details={"asset_code": asset_code_in_state, "previous_quantity": float(self.portfolio_state[asset_code_in_state]['quantity'])}
+                        )
+                        self.portfolio_state[asset_code_in_state]['quantity'] = Decimal('0.0')
+                        # Note: average_cost and initial_investment are kept. If quantity is 0, PNL should be 0.
+
                 _log_structured_event(
                     logging.INFO,
                     "HOLDINGS_FETCH_SUCCESS",
-                    f"Successfully retrieved and processed {len(self.holdings)} holdings.",
+                    f"Successfully processed {len(broker_holdings)} holdings from broker.",
                     details={
-                        "holdings_count": len(self.holdings),
-                        "assets_held": list(self.holdings.keys())
+                        "portfolio_state_assets": list(self.portfolio_state.keys()),
+                        "assets_from_broker_count": len(broker_holdings)
                     }
                 )
-            elif holdings_data is None:
+            elif broker_holdings is None:
                 _log_structured_event(
                     logging.WARNING,
                     "NO_HOLDINGS_DATA_RETURNED_WARNING",
-                    "Broker returned None when fetching holdings. Assuming no holdings or API issue."
-                    # No specific details needed beyond the message itself here
+                    "Broker returned None when fetching holdings. Assuming no crypto holdings or API issue."
                 )
-                self.holdings = {}
+                # Set all quantities in portfolio_state to 0 if broker says none
+                for asset_code_in_state in list(self.portfolio_state.keys()):
+                    if asset_code_in_state != 'USD':
+                        self.portfolio_state[asset_code_in_state]['quantity'] = Decimal('0.0')
             else: # Unexpected data type
                 _log_structured_event(
                     logging.WARNING,
                     "UNEXPECTED_HOLDINGS_DATA_FORMAT_WARNING",
-                    f"Broker returned unexpected data type for holdings: {type(holdings_data)}. Expected dict or None.",
-                    details={"received_type": str(type(holdings_data))}
+                    f"Broker returned unexpected data type for holdings: {type(broker_holdings)}. Expected dict or None.",
+                    details={"received_type": str(type(broker_holdings))}
                 )
-                self.holdings = {}
+                # Potentially zero out quantities in portfolio_state as data is unreliable
+                for asset_code_in_state in list(self.portfolio_state.keys()):
+                    if asset_code_in_state != 'USD':
+                        self.portfolio_state[asset_code_in_state]['quantity'] = Decimal('0.0')
 
         except Exception as e:
             _log_structured_event(
@@ -1054,7 +1214,8 @@ class RobinhoodCryptoBot:
                 f"Failed to fetch holdings due to broker API error: {e}",
                 details={"error_message": str(e), "exc_info": True}
             )
-            self.holdings = {} # Ensure holdings is defined even on error
+            # Don't wipe portfolio_state here, could be temporary API issue.
+            # Let existing tracked values persist, but they might be stale.
 
     def _fetch_latest_data(self):
         """Fetches the latest market data for tracked symbols."""
@@ -1074,7 +1235,7 @@ class RobinhoodCryptoBot:
                     logging.DEBUG,
                     "HOLDINGS_UPDATE_COMPLETE",
                     "Holdings update process finished.",
-                    details={"holdings": self.holdings}
+                    details={"holdings": self.portfolio_state}
                 )
             except Exception as e_holdings:
                 _log_structured_event(

@@ -85,7 +85,7 @@ COINGECKO_VS_CURRENCY = os.getenv("COINGECKO_VS_CURRENCY", "usd") # Currency for
 PLOT_ENABLED = os.getenv("PLOT_ENABLED", "False").lower() == "true"
 PLOT_OUTPUT_DIR = os.getenv("PLOT_OUTPUT_DIR", "plots") # Directory to save plots
 
-# --- Validation ---
+# --- Validation ---d
 if not SYMBOLS:
     raise ValueError("SYMBOLS environment variable cannot be empty.")
 if ENABLE_TRADING and not ROBINHOOD_API_KEY:

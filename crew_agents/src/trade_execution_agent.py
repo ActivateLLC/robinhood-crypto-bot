@@ -273,11 +273,11 @@ if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
 
     sample_strategy_document = """
-    **Trading Strategy for BTC-USD - Immediate Limit Order Test**
+    **Trading Strategy for BTC-USD - Standalone Test Mode**
 
     **Recommended Actions:**
-    1. **Execute Limit Buy:** Immediately place a limit buy order for 0.0001 BTC-USD at a price of $10000.00.
-       This is a test order and is not expected to fill.
+    No specific trading actions defined for standalone execution.
+    This agent is designed to receive strategies from an orchestrator.
     """
 
     trade_agent = TradeExecutionAgent()

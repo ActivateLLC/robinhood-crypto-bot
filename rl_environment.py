@@ -10,6 +10,7 @@ import logging
 import numpy as np
 import pandas as pd
 import gymnasium as gym
+import ta # Add import for TA-Lib
 from alt_crypto_data import AltCryptoDataProvider
 from ta import *
 try:
@@ -96,6 +97,30 @@ class CryptoTradingEnv(gym.Env):
         # Logging setup
         self.logger = logging.getLogger('rl_environment')
         
+        # Initialize technical indicators list. This must be done *before* _preprocess_data is called.
+        self.technical_indicators = [
+            'adi', 'obv', 'cmf', 'fi', 'em', 'nvi', 'atr', 
+            'bb_bbm', 'bb_bbw', 'bb_bbp', 
+            'kc_kcc', 
+            'macd', 'macd_signal', 'macd_diff', 
+            'adx', 
+            'rsi', 
+            'tsi', 
+            'uo', 
+            'stoch', 'stoch_signal', 
+            'williams_r', 
+            'ao', 
+            'ema_10', 
+            'sma_50', 
+            'log_returns', 
+            'squeeze_on', 
+            'ttm_momentum'
+        ]
+        if len(self.technical_indicators) != 27:
+            # This is a critical error, indicates a mismatch in design.
+            self.logger.error(f"FATAL: Technical indicators list MUST contain 27 items for a 31-feature observation space. Found {len(self.technical_indicators)}. Check definition in __init__.")
+            raise ValueError(f"Technical indicators list must contain 27 items. Found {len(self.technical_indicators)}.")
+
         # Load and prepare historical data
         if market_data is None:
             # Fetch default market data if not provided
@@ -135,21 +160,8 @@ class CryptoTradingEnv(gym.Env):
         
         # Observation space: 27 technical indicators + 4 portfolio metrics
         # Technical indicators generated in _preprocess_data:
-        self.technical_indicator_columns = [
-            'sma_10', 'sma_30', 'ema_10', 'ema_30', 'ema_50',             # 5 MAs/EMAs
-            'price_above_ema50',                                        # 1 Trend
-            'volatility_10', 'volatility_30',                            # 2 Volatility
-            'volume_sma_20', 'volume_ratio',                             # 2 Volume
-            'ha_close', 'ha_open', 'ha_high', 'ha_low',                 # 4 Heikin-Ashi
-            'rsi',                                                      # 1 RSI
-            'macd', 'macd_signal', 'macd_hist',                         # 3 MACD
-            'bb_middle', 'bb_upper', 'bb_lower',                         # 3 Bollinger Bands
-            'kc_middle', 'kc_upper', 'kc_lower',                         # 3 Keltner Channels
-            'ttm_squeeze', 'ttm_momentum', 'ttm_signal'                  # 3 TTM Squeeze/Scalper
-        ] # Total 27 technical indicators
-
         self.portfolio_feature_count = 4 # balance, value, crypto_held, current_price (or normalized price)
-        observation_feature_count = len(self.technical_indicator_columns) + self.portfolio_feature_count # 27 + 4 = 31
+        observation_feature_count = len(self.technical_indicators) + self.portfolio_feature_count # 27 + 4 = 31
         
         self.observation_space = gym.spaces.Box(
             low=-np.inf, 
@@ -161,7 +173,7 @@ class CryptoTradingEnv(gym.Env):
         # Reset environment to initial state
         self.reset()
 
-    def _validate_data(self, df):
+    def _validate_data(self, df: pd.DataFrame) -> pd.DataFrame:
         """
         Validate and preprocess market data for trading environment
         
@@ -171,61 +183,44 @@ class CryptoTradingEnv(gym.Env):
         Returns:
             pd.DataFrame: Validated and processed market data
         """
-        self.logger.debug(f"_validate_data received df with columns: {df.columns.tolist() if df is not None else 'None'}")
-        # Required columns with flexible validation
-        required_columns = [
-            'Open', 'High', 'Low', 'Close', 'Volume', 
-            'MA_50', 'MA_200', 'RSI', 'MACD', 'Signal_Line'
-        ]
+        if df is None or df.empty:
+            self.logger.error("Market data is None or empty after loading.")
+            raise ValueError("Market data cannot be None or empty.")
+
+        # Expected columns (use lowercase as per _load_and_prepare_data normalization)
+        expected_cols = {'open', 'high', 'low', 'close', 'volume'}
+        if not expected_cols.issubset(df.columns):
+            missing_cols = expected_cols - set(df.columns)
+            self.logger.error(f"Missing expected columns: {missing_cols}. Available: {df.columns.tolist()}")
+            raise ValueError(f"DataFrame must include {expected_cols}")
+
+        # Ensure data types are correct
+        for col in ['open', 'high', 'low', 'close', 'volume']:
+            df[col] = pd.to_numeric(df[col], errors='coerce')
+
+        # Handle NaNs: forward fill then backfill for robustness
+        df.ffill(inplace=True)
+        df.bfill(inplace=True)
+
+        # Drop any rows that still have NaNs in critical columns (should be rare after ffill/bfill)
+        df.dropna(subset=['open', 'high', 'low', 'close', 'volume'], inplace=True)
         
-        # Optional columns
-        optional_columns = [
-            'Dividends', 'Stock Splits', 'Volatility', 'log_returns'
-        ]
+        if df.empty:
+            self.logger.error("DataFrame became empty after NaN handling in _validate_data.")
+            raise ValueError("DataFrame empty after NaN handling.")
+
+        # Feature engineering for validation (example: moving averages)
+        # Ensure these use lowercase 'close' as well
+        if hasattr(self, 'config') and hasattr(self.config, 'MOVING_AVERAGES'):
+            for col, window in self.config.MOVING_AVERAGES.items():
+                # Ensure the source column for rolling operations is 'close' (lowercase)
+                df[col] = df['close'].rolling(window=window).mean()
         
-        # Add missing required columns with default values
-        for col in required_columns:
-            if col not in df.columns:
-                if col.startswith('MA_'):
-                    # Moving averages
-                    window = int(col.split('_')[1])
-                    df[col] = df['Close'].rolling(window=window).mean()
-                elif col == 'RSI':
-                    # RSI calculation
-                    delta = df['Close'].diff()
-                    gain = (delta.where(delta > 0, 0)).rolling(window=14).mean()
-                    loss = (-delta.where(delta < 0, 0)).rolling(window=14).mean()
-                    rs = gain / loss
-                    df[col] = 100.0 - (100.0 / (1.0 + rs))
-                elif col == 'MACD':
-                    # MACD calculation
-                    exp1 = df['Close'].ewm(span=12, adjust=False).mean()
-                    exp2 = df['Close'].ewm(span=26, adjust=False).mean()
-                    df[col] = exp1 - exp2
-                elif col == 'Signal_Line':
-                    # Signal line calculation
-                    df[col] = df['MACD'].ewm(span=9, adjust=False).mean()
+        # Re-fill NaNs that might have been introduced by rolling operations
+        df.ffill(inplace=True)
+        df.bfill(inplace=True)
         
-        # Add optional columns if missing
-        for col in optional_columns:
-            if col not in df.columns:
-                if col == 'Dividends':
-                    df[col] = 0
-                elif col == 'Stock Splits':
-                    df[col] = 0
-                elif col == 'Volatility':
-                    df[col] = df['Close'].pct_change().rolling(window=30).std()
-                elif col == 'log_returns':
-                    df[col] = np.log(df['Close'] / df['Close'].shift(1))
-        
-        # Drop NaN values
-        df.dropna(inplace=True)
-        
-        # Verify columns after processing
-        missing_columns = [col for col in required_columns if col not in df.columns]
-        if missing_columns:
-            raise ValueError(f"Could not generate required columns: {missing_columns}")
-        
+        self.logger.info("Data validation and initial processing complete.")
         return df
 
     def _load_and_prepare_data(
@@ -281,150 +276,77 @@ class CryptoTradingEnv(gym.Env):
             self.logger.error(f"Data loading error for {symbol}: {e}")
             raise
 
-    def _preprocess_data(self, df_raw):
+    def _preprocess_data(self, df_raw: pd.DataFrame) -> pd.DataFrame:
         """
         Advanced preprocessing of raw price data with comprehensive technical indicators
         
         Args:
-            df_raw (pd.DataFrame): Raw price data from data provider
+            df_raw (pd.DataFrame): Raw price data from data provider, 
+                                   assumed to have lowercase columns ('open', 'high', 'low', 'close', 'volume')
         
         Returns:
             pd.DataFrame: Processed dataframe with extensive technical indicators
         """
-        # Create a copy to avoid modifying original data
+        self.logger.info(f"Starting data preprocessing for {self.symbol}...")
+        # Use a copy to avoid SettingWithCopyWarning
         df = df_raw.copy()
-        
-        # Standardize column names to uppercase for case-insensitive matching
-        df.columns = [col.upper() for col in df.columns]
-        
-        # Mapping of expected columns
-        column_mapping = {
-            'OPEN': 'Open',
-            'HIGH': 'High', 
-            'LOW': 'Low', 
-            'CLOSE': 'Close', 
-            'VOLUME': 'Volume'
-        }
-        
-        # Rename columns if they exist in a different case
-        for old_col, new_col in column_mapping.items():
-            if old_col in df.columns:
-                df.rename(columns={old_col: new_col}, inplace=True)
-        
-        # Check for required columns, create if missing
-        required_cols = ['Open', 'High', 'Low', 'Close', 'Volume']
-        for col in required_cols:
+
+        # Ensure necessary columns are present
+        required_ohlcv = ['open', 'high', 'low', 'close', 'volume']
+        for col in required_ohlcv:
             if col not in df.columns:
-                # If column is missing, try to derive from existing columns
-                if col == 'Open' and 'MA10' in df.columns:
-                    df[col] = df['MA10']  # Use moving average as fallback
-                elif col == 'Close' and 'MA30' in df.columns:
-                    df[col] = df['MA30']
-                else:
-                    # Last resort: generate synthetic data
-                    df[col] = np.linspace(100, 200, len(df))
+                self.logger.error(f"Missing required column {col} in raw data for preprocessing.")
+                # Fill with 0 or handle error appropriately, for now, raise error if critical
+                raise ValueError(f"Missing critical OHLCV column: {col}")
+
+        # Calculate Log Returns robustly
+        # Replace 0s with a very small number to avoid log(0) or division by zero
+        safe_close = df['close'].replace(0, 1e-9) # 1e-9 is a tiny number
+        safe_close_shifted = safe_close.shift(1).replace(0, 1e-9)
+        df['log_returns'] = np.log(safe_close / safe_close_shifted)
+
+        # Calculate Heikin-Ashi candlesticks
+        df['ha_close'] = (df['open'] + df['high'] + df['low'] + df['close']) / 4
+        df['ha_open'] = (df['open'].shift(1) + df['close'].shift(1)) / 2 # Note: First ha_open will be NaN
+        df.loc[df.index[0], 'ha_open'] = (df['open'].iloc[0] + df['close'].iloc[0]) / 2 # Initialize first ha_open
+        df['ha_high'] = df[['high', 'ha_open', 'ha_close']].max(axis=1)
+        df['ha_low'] = df[['low', 'ha_open', 'ha_close']].min(axis=1)
+
+        # TTM Squeeze specific features (ensure column names are correct)
+        bb = ta.volatility.BollingerBands(close=df['close'], window=20, window_dev=2)
+        kc = ta.volatility.KeltnerChannel(high=df['high'], low=df['low'], close=df['close'], window=20, window_atr=1.5)
+        df['bb_upperband'] = bb.bollinger_hband()
+        df['bb_lowerband'] = bb.bollinger_lband()
+        df['kc_upperband'] = kc.keltner_channel_hband()
+        df['kc_lowerband'] = kc.keltner_channel_lband()
+        df['squeeze_on'] = (df['bb_lowerband'] > df['kc_lowerband']) & (df['bb_upperband'] < df['kc_upperband'])
+        df['squeeze_off'] = (df['bb_lowerband'] < df['kc_lowerband']) & (df['bb_upperband'] > df['kc_upperband'])
+        # Momentum for TTM - using a simple 12-period momentum for 'close'
+        df['ttm_momentum'] = df['close'].diff(12)
+
+        # Features from config.py (ensure consistency)
+        if hasattr(self, 'config') and self.config:
+            feature_config = self.config.RL_AGENT_FEATURES
+            # ... (ensure any df access here uses lowercase columns)
+
+        # --- Clean all generated indicator columns for NaNs and Infs ---
+        # List of all columns that are considered technical indicators based on self.technical_indicators
+        # This ensures we only clean the ones we intend to use.
+        indicator_cols_to_clean = self.technical_indicators # these are defined in __init__
         
-        # 1. Basic Moving Averages and Exponential Moving Averages
-        df['sma_10'] = df['Close'].rolling(window=10).mean()
-        df['sma_30'] = df['Close'].rolling(window=30).mean()
-        df['ema_10'] = df['Close'].ewm(span=10, adjust=False).mean()
-        df['ema_30'] = df['Close'].ewm(span=30, adjust=False).mean()
-        df['ema_50'] = df['Close'].ewm(span=50, adjust=False).mean()
-        
-        # 2. Trend Confirmation Indicator
-        df['price_above_ema50'] = (df['Close'] > df['ema_50']).astype(int)
-        
-        # 3. Volatility Indicators
-        df['volatility_10'] = df['Close'].rolling(window=10).std()
-        df['volatility_30'] = df['Close'].rolling(window=30).std()
-        
-        # 4. Volume Analysis
-        df['volume_sma_20'] = df['Volume'].rolling(window=20).mean()
-        df['volume_ratio'] = df['Volume'] / df['volume_sma_20']
-        
-        # 5. Heikin-Ashi Candles Calculation
-        df['ha_close'] = (df['Open'] + df['High'] + df['Low'] + df['Close']) / 4
-        
-        # Initialize Heikin-Ashi columns
-        df['ha_open'] = df['Open'].copy()
-        df['ha_high'] = df['High'].copy()
-        df['ha_low'] = df['Low'].copy()
-        
-        # Recalculate Heikin-Ashi Open, High, Low
-        for i in range(1, len(df)):
-            prev_ha_open = df.loc[df.index[i-1], 'ha_open']
-            prev_ha_close = df.loc[df.index[i-1], 'ha_close']
-            
-            # Heikin-Ashi Open
-            df.loc[df.index[i], 'ha_open'] = (prev_ha_open + prev_ha_close) / 2
-            
-            # Heikin-Ashi High and Low
-            df.loc[df.index[i], 'ha_high'] = max(
-                df.loc[df.index[i], 'High'], 
-                df.loc[df.index[i], 'ha_open'], 
-                df.loc[df.index[i], 'ha_close']
-            )
-            df.loc[df.index[i], 'ha_low'] = min(
-                df.loc[df.index[i], 'Low'], 
-                df.loc[df.index[i], 'ha_open'], 
-                df.loc[df.index[i], 'ha_close']
-            )
-        
-        # 6. Momentum Indicators
-        # RSI Calculation
-        delta = df['Close'].diff()
-        gain = delta.clip(lower=0)
-        loss = -delta.clip(upper=0)
-        
-        avg_gain = gain.ewm(com=13, adjust=False).mean()
-        avg_loss = loss.ewm(com=13, adjust=False).mean()
-        
-        relative_strength = avg_gain / avg_loss
-        df['rsi'] = 100.0 - (100.0 / (1.0 + relative_strength))
-        
-        # MACD Calculation
-        exp1 = df['Close'].ewm(span=12, adjust=False).mean()
-        exp2 = df['Close'].ewm(span=26, adjust=False).mean()
-        df['macd'] = exp1 - exp2
-        df['macd_signal'] = df['macd'].ewm(span=9, adjust=False).mean()
-        df['macd_hist'] = df['macd'] - df['macd_signal']
-        
-        # 7. TTM Scalper-like Indicators
-        # Bollinger Bands
-        df['bb_middle'] = df['Close'].rolling(window=20).mean()
-        df['bb_upper'] = df['bb_middle'] + 2 * df['Close'].rolling(window=20).std()
-        df['bb_lower'] = df['bb_middle'] - 2 * df['Close'].rolling(window=20).std()
-        
-        # Keltner Channels
-        atr = df['High'] - df['Low']
-        df['kc_middle'] = df['Close'].ewm(span=20, adjust=False).mean()
-        df['kc_upper'] = df['kc_middle'] + 1.5 * atr.rolling(window=20).mean()
-        df['kc_lower'] = df['kc_middle'] - 1.5 * atr.rolling(window=20).mean()
-        
-        # Squeeze Detection (Simplified)
-        df['ttm_squeeze'] = ((df['bb_lower'] > df['kc_lower']) & (df['bb_upper'] < df['kc_upper'])).astype(int)
-        
-        # Momentum for Squeeze
-        df['ttm_momentum'] = df['Close'] - df['Close'].rolling(window=12).mean()
-        
-        # Categorical Signal Generation
-        df['ttm_signal'] = 0  # Default: No Signal
-        df.loc[df['ttm_squeeze'] & (df['ttm_momentum'] > 0), 'ttm_signal'] = 1  # Buy Setup
-        df.loc[df['ttm_squeeze'] & (df['ttm_momentum'] < 0), 'ttm_signal'] = 2  # Sell Setup
-        
-        # Squeeze Release Detection
-        squeeze_ended = (~df['ttm_squeeze'].astype(bool)) & df['ttm_squeeze'].shift(1).astype(bool)
-        df.loc[squeeze_ended & (df['ttm_momentum'].shift(1) > 0), 'ttm_signal'] = 3  # Fired Long
-        df.loc[squeeze_ended & (df['ttm_momentum'].shift(1) < 0), 'ttm_signal'] = 4  # Fired Short
-        
-        # 8. Returns and Log Returns
-        df['returns'] = df['Close'].pct_change().fillna(0)
-        df['log_returns'] = np.log(1 + df['returns']).fillna(0)
-        
-        # Final NaN Handling
-        df.ffill(inplace=True)
-        df.fillna(0, inplace=True)
-        
+        for col in indicator_cols_to_clean:
+            if col in df.columns:
+                df[col] = np.nan_to_num(df[col], nan=0.0, posinf=np.finfo(np.float32).max, neginf=np.finfo(np.float32).min)
+            else:
+                # This case should ideally not happen if technical_indicators list is correct
+                self.logger.warning(f"Column {col} specified in self.technical_indicators not found in DataFrame during cleaning.")
+
+        # Fill any remaining NaNs that might have been introduced by shifts/rolling operations at the beginning
+        df.fillna(method='bfill', inplace=True) # Backfill first to handle initial NaNs
+        df.fillna(0, inplace=True) # Fill any remaining NaNs with 0 (e.g., if entire column was NaN)
+
+
+        self.logger.info(f"Data preprocessing complete for {self.symbol}. DataFrame shape: {df.shape}")
         return df
 
     def _get_observation(self):
@@ -434,85 +356,59 @@ class CryptoTradingEnv(gym.Env):
         Returns:
             np.ndarray: Normalized state vector with multi-perspective features
         """
-        # Get current timestep data
+        if self.current_step < self.lookback_window -1: # Ensure enough data for lookback
+            # If not enough data, return a zero vector matching observation space shape
+            self.logger.warning(f"Not enough data for lookback at step {self.current_step}. Returning zero observation.")
+            return np.zeros(self.observation_space.shape)
+
+        current_data_full_lookback = self.df_processed.iloc[self.current_step - self.lookback_window + 1 : self.current_step + 1]
+        if current_data_full_lookback.empty or len(current_data_full_lookback) < self.lookback_window:
+            self.logger.error(f"RESET: current_data_full_lookback is empty or too short at step {self.current_step} for lookback {self.lookback_window}")
+            return np.zeros(self.observation_space.shape)
+            
         current_data = self.df_processed.iloc[self.current_step]
-        
-        # 1. Price and Trend Features
-        price_features = [
-            current_data['Close'],  # Current price
-            current_data['sma_10'],  # Short-term moving average
-            current_data['sma_30'],  # Medium-term moving average
-            current_data['ema_10'],  # Short-term exponential moving average
-            current_data['ema_30'],  # Medium-term exponential moving average
-            current_data['price_above_ema50']  # Trend confirmation
-        ]
-        
-        # 2. Heikin-Ashi Features
-        ha_features = [
-            current_data['ha_close'],
-            current_data['ha_open'],
-            current_data['ha_high'],
-            current_data['ha_low']
-        ]
-        
-        # 3. TTM Scalper Features
-        ttm_features = [
-            current_data['ttm_squeeze'],  # Squeeze status (0 or 1)
-            current_data['ttm_momentum'],  # Momentum value
-            current_data['ttm_signal']  # Categorical signal (0-4)
-        ]
-        
-        # 4. Momentum Indicators
-        momentum_features = [
-            current_data['rsi'],  # Relative Strength Index
-            current_data['macd'],  # MACD line
-            current_data['macd_signal'],  # MACD signal line
-            current_data['macd_hist']  # MACD histogram
-        ]
-        
-        # 5. Volatility and Volume Features
-        volatility_volume_features = [
-            current_data['volatility_10'],  # Short-term volatility
-            current_data['volatility_30'],  # Medium-term volatility
-            current_data['Volume'],  # Current volume
-            current_data['volume_ratio']  # Volume relative to 30-day moving average
-        ]
-        
-        # 6. Bollinger and Keltner Channel Features
-        channel_features = [
-            current_data['bb_middle'],
-            current_data['bb_upper'],
-            current_data['bb_lower'],
-            current_data['kc_middle'],
-            current_data['kc_upper'],
-            current_data['kc_lower']
-        ]
-        
-        # 7. Portfolio and Trading Context
+
+        # Check for all required columns from self.technical_indicators
+        missing_indicators = [col for col in self.technical_indicators if col not in current_data]
+        if missing_indicators:
+            for col in missing_indicators:
+                 self.logger.error(f"RESET: Missing technical indicator column in df_processed: {col}. Available: {self.df_processed.columns.tolist()}")
+            # Potentially return zero observation or raise error
+            # This indicates an issue in _preprocess_data or technical_indicators list
+            return np.zeros(self.observation_space.shape) 
+
+        # Technical indicators from the preprocessed data
+        # These should align with self.technical_indicators and the 31-feature space memory
+        indicator_features = []
+        # Example: if self.technical_indicators = ['sma_20', 'rsi', 'macd', ...]
+        for indicator_name in self.technical_indicators:
+            indicator_features.append(current_data[indicator_name])
+
+        # Portfolio features
         portfolio_features = [
-            self.portfolio_balance,  # Available cash
-            self.crypto_held,  # Crypto holdings
-            self.portfolio_value,  # Total portfolio value
-            current_data['Close'] * self.crypto_held  # Current value of crypto holdings
+            self.portfolio_balance / self.initial_balance,  # Normalized balance
+            self.crypto_held / (self.initial_balance / current_data['close'] if current_data['close'] > 0 else 1), # Normalized holdings
+            self.portfolio_value / self.initial_balance, # Normalized total portfolio value
+            (current_data['close'] * self.crypto_held) / self.initial_balance if self.initial_balance > 0 else 0 # Current value of crypto holdings, normalized
         ]
-        
+
         # Combine all features
-        raw_state = (
-            price_features + 
-            ha_features + 
-            ttm_features + 
-            momentum_features + 
-            volatility_volume_features + 
-            channel_features + 
-            portfolio_features
-        )
-        
-        # Normalize the state vector
-        state_vector = self._normalize_state(raw_state)
-        
-        return np.array(state_vector, dtype=np.float32)
-    
-    def _normalize_state(self, state_vector):
+        # The combined list should have 31 features as per MEMORY[9a356701-c8fa-4463-b534-ce392b0caf43]
+        # Ensure `self.technical_indicators` contains 27 items.
+        observation = np.array(indicator_features + portfolio_features, dtype=np.float32)
+
+        if len(observation) != self.observation_space.shape[0]:
+            self.logger.error(
+                f"Observation length ({len(observation)}) does not match observation space ({self.observation_space.shape[0]}). "
+                f"Indicator features: {len(indicator_features)}, Portfolio features: {len(portfolio_features)}. "
+                f"Expected 27 indicator features."
+            )
+            # Fallback to zeros to prevent crashing, but this is an error condition.
+            return np.zeros(self.observation_space.shape, dtype=np.float32)
+
+        return observation
+
+    def _normalize_state(self, state: np.ndarray) -> np.ndarray:
         """
         Normalize state vector using min-max scaling
         
@@ -524,7 +420,7 @@ class CryptoTradingEnv(gym.Env):
         """
         # Clip extreme values to prevent numerical instability
         normalized_state = []
-        for value in state_vector:
+        for value in state:
             # Handle categorical/binary features differently
             if value in [0, 1]:
                 normalized_state.append(float(value))
@@ -544,7 +440,7 @@ class CryptoTradingEnv(gym.Env):
         return normalized_state
     
     def _get_current_price(self):
-        return self.df_processed['Close'].iloc[self.current_step]
+        return self.df_processed['close'].iloc[self.current_step]
 
     def _update_portfolio(self, action: int, current_price: float) -> None:
         """
@@ -732,7 +628,7 @@ class CryptoTradingEnv(gym.Env):
     def _get_market_state(self):
         return {
             'current_price': self._get_current_price(),
-            'previous_price': self.df_processed['Close'].iloc[self.current_step - 1]
+            'previous_price': self.df_processed['close'].iloc[self.current_step - 1]
         }
 
     def _detect_arbitrage(self):
@@ -759,7 +655,7 @@ class CryptoTradingEnv(gym.Env):
 
     def _detect_flash_crash(self):
         """Identify anomalous price movements"""
-        prices = self.df_processed['Close'].iloc[
+        prices = self.df_processed['close'].iloc[
             max(0, self.current_step-10):self.current_step+1
         ].values
         
@@ -776,7 +672,7 @@ class CryptoTradingEnv(gym.Env):
     def _chaos_position_size(self, action):
         """Dynamic sizing based on market stability"""
         fd = self._calculate_fractal_dimension(
-            self.df_processed['Close'].iloc[self.current_step-50:self.current_step].values
+            self.df_processed['close'].iloc[self.current_step-50:self.current_step].values
         )
         
         # Scale position based on market randomness (1.0=Brownian, 1.5=Chaotic)
@@ -809,7 +705,7 @@ class CryptoTradingEnv(gym.Env):
         Returns:
             float: Market volatility metric
         """
-        recent_prices = self.df_processed['Close'].iloc[
+        recent_prices = self.df_processed['close'].iloc[
             max(0, self.current_step-30):self.current_step+1
         ].values
         volatility = np.std(recent_prices) / np.mean(recent_prices)
@@ -836,7 +732,7 @@ class CryptoTradingEnv(gym.Env):
         current_row = self.df_processed.iloc[self.current_step]
         
         # Update current price
-        self.current_price = current_row['Close']
+        self.current_price = current_row['close']
         
         # Trading logic
         trade_cost = 0.001  # 0.1% transaction fee
@@ -880,7 +776,7 @@ class CryptoTradingEnv(gym.Env):
         # Find actual column names for technical indicators, case-insensitive
         available_columns_in_df = {col.lower(): col for col in self.df_processed.columns}
         matched_technical_columns = []
-        for tc_col_name in self.technical_indicator_columns: # Use the list from __init__
+        for tc_col_name in self.technical_indicators: # Use the list from __init__
             lower_tc_col_name = tc_col_name.lower()
             if lower_tc_col_name in available_columns_in_df:
                 matched_technical_columns.append(available_columns_in_df[lower_tc_col_name])
@@ -890,7 +786,7 @@ class CryptoTradingEnv(gym.Env):
                 # Fallback: add a zero or NaN, or raise error. For now, let's log and it will likely result in NaN/0 from _extract_scalar
                 matched_technical_columns.append(tc_col_name) # Add the name, _extract_scalar might handle missing gracefully or error
     
-        observation_feature_count = len(self.technical_indicator_columns) + self.portfolio_feature_count
+        observation_feature_count = len(self.technical_indicators) + self.portfolio_feature_count
         observation = np.zeros(observation_feature_count, dtype=np.float32)
         
         # Extract scalar values, handling nested or complex data
@@ -914,7 +810,7 @@ class CryptoTradingEnv(gym.Env):
                 observation[i] = 0.0 # Fallback for missing columns after logging
     
         # Add portfolio metrics (last 4 features)
-        portfolio_offset = len(self.technical_indicator_columns)
+        portfolio_offset = len(self.technical_indicators)
         observation[portfolio_offset + 0] = self.portfolio_balance
         observation[portfolio_offset + 1] = self.portfolio_value
         observation[portfolio_offset + 2] = self.crypto_held
@@ -955,7 +851,7 @@ class CryptoTradingEnv(gym.Env):
         self.crypto_held = 0.0
         
         # Reset trading state
-        self.current_price = self.df_processed['Close'].iloc[0]
+        self.current_price = self.df_processed['close'].iloc[0]
         self.previous_portfolio_value = self.initial_balance
         
         # Reset portfolio tracking
@@ -974,7 +870,7 @@ class CryptoTradingEnv(gym.Env):
         # Find actual column names for technical indicators, case-insensitive
         available_columns_in_df_reset = {col.lower(): col for col in self.df_processed.columns}
         matched_technical_columns_reset = []
-        for tc_col_name_reset in self.technical_indicator_columns: # Use the list from __init__
+        for tc_col_name_reset in self.technical_indicators: # Use the list from __init__
             lower_tc_col_name_reset = tc_col_name_reset.lower()
             if lower_tc_col_name_reset in available_columns_in_df_reset:
                 matched_technical_columns_reset.append(available_columns_in_df_reset[lower_tc_col_name_reset])
@@ -982,7 +878,7 @@ class CryptoTradingEnv(gym.Env):
                 self.logger.error(f"RESET: Missing technical indicator column in df_processed: {tc_col_name_reset}. Available: {list(available_columns_in_df_reset.keys())}")
                 matched_technical_columns_reset.append(tc_col_name_reset)
 
-        observation_feature_count_reset = len(self.technical_indicator_columns) + self.portfolio_feature_count
+        observation_feature_count_reset = len(self.technical_indicators) + self.portfolio_feature_count
         initial_observation = np.zeros(observation_feature_count_reset, dtype=np.float32)
         
         # Extract scalar values, handling nested or complex data
@@ -1006,7 +902,7 @@ class CryptoTradingEnv(gym.Env):
                 initial_observation[i] = 0.0 # Fallback
     
         # Add initial portfolio metrics (last 4 features)
-        portfolio_offset_reset = len(self.technical_indicator_columns)
+        portfolio_offset_reset = len(self.technical_indicators)
         initial_observation[portfolio_offset_reset + 0] = self.portfolio_balance # initial_balance
         initial_observation[portfolio_offset_reset + 1] = self.portfolio_value   # initial_balance
         initial_observation[portfolio_offset_reset + 2] = self.crypto_held      # 0.0
@@ -1029,7 +925,7 @@ class CryptoTradingEnv(gym.Env):
             mode (str): Rendering mode
         """
         if mode == 'human':
-            current_price = self.df_processed['Close'].iloc[self.current_step]
+            current_price = self.df_processed['close'].iloc[self.current_step]
             print(f"--- Step: {self.current_step} ---")
             print(f"  Price: {current_price:.4f}")
             print(f"  Balance: {self.portfolio_value:.2f}")

@@ -15,12 +15,13 @@ from stable_baselines3 import PPO
 from brokers.base_broker import BaseBroker
 from brokers.robinhood_broker import RobinhoodBroker
 from typing import Dict, Any, Optional, List, Tuple, Union
+from datetime import datetime
 
 # Load environment variables
 load_dotenv()
 
 # Local imports
-from config import load_config, setup_logging, Config
+from config import load_config, setup_logging, Config, DEFAULT_RL_ACTIONS_MAP
 from alt_crypto_data import AltCryptoDataProvider # Import only the class
 
 # Define constants used for RL feature processing directly here
@@ -40,13 +41,47 @@ TECHNICAL_INDICATOR_COLUMNS = [
     'kc_lower', 'ttm_squeeze', 'ttm_momentum', 'ttm_signal'
 ]
 
-# Default mapping from RL integer actions to trade signals
-DEFAULT_RL_ACTIONS_MAP = {0: 'sell', 1: 'hold', 2: 'buy'}
 # Define the expected observation space shape for the RL model
 # This might include flattened historical data + current balance + current holding
 # Example: (lookback_window * num_features) + 2
 # Adjust this based on your actual feature engineering
 EXPECTED_OBS_SHAPE = (31,) # Based on model error: 60 lookback * 4 features + 2 state vars
+
+# Custom JSON encoder for Decimal types
+def decimal_default_json_serializer(obj):
+    if isinstance(obj, Decimal):
+        return str(obj)
+    raise TypeError(f"Object of type {obj.__class__.__name__} is not JSON serializable")
+
+# Helper function for structured JSON logging
+def _log_structured_event(level: int, event_type: str, message: str, details: Optional[Dict[str, Any]] = None, severity: Optional[str] = None, exc_info=None):
+    """Logs an event in a structured JSON format."""
+    # Determine severity based on logging level if not provided
+    if severity is None:
+        if level >= logging.ERROR:
+            severity = "ERROR"
+        elif level >= logging.WARNING:
+            severity = "WARNING"
+        elif level >= logging.INFO:
+            severity = "INFO"
+        else:
+            severity = "DEBUG"
+
+    log_entry = {
+        "timestamp": pd.Timestamp.now(tz='UTC').isoformat(),
+        "source_component": "crypto_bot",
+        "event_type": event_type,
+        "message": message,
+        "severity": severity
+    }
+    if details:
+        log_entry["details"] = details
+    
+    logger_name = Config.LOGGER_NAME if hasattr(Config, 'LOGGER_NAME') else 'crypto_bot_logger'
+    logger = logging.getLogger(logger_name)
+    
+    # Use the custom serializer for Decimal objects
+    logger.log(level, json.dumps(log_entry, default=decimal_default_json_serializer), exc_info=exc_info)
 
 class RobinhoodCryptoBot:
     """
@@ -71,6 +106,7 @@ class RobinhoodCryptoBot:
         self.check_interval = self.config.INTERVAL_MINUTES
         self.trading_strategy = self.config.TRADING_STRATEGY
         self.rl_model_path = self.config.RL_MODEL_PATH
+        self.EXPECTED_OBS_SHAPE = (31,) # Expected shape for RL agent observations
         self.interval = self.check_interval # Assign self.interval = self.check_interval
         self.plot_enabled = self.config.PLOT_ENABLED # Added from view
         self.plot_output_dir = self.config.PLOT_OUTPUT_DIR # Added from view
@@ -87,8 +123,43 @@ class RobinhoodCryptoBot:
         self.rl_features_std = None # Added from view
         self.norm_stats = {} # Initialize dict to store normalization stats per symbol
         self.current_holdings: Dict[str, Decimal] = {symbol.split('-')[0]: Decimal('0.0') for symbol in self.config.SYMBOLS_TO_TRADE} # Initialize holdings keyed by base asset (e.g., 'BTC') using SYMBOLS_TO_TRADE
+        self.current_balance: Decimal = Decimal('0.0') # Initialize current_balance
         self.data_cache = {}
-        self.actions_map = DEFAULT_RL_ACTIONS_MAP
+
+        # Action mapping for RL agent
+        logging.info(f"DEFAULT_RL_ACTIONS_MAP from config: {DEFAULT_RL_ACTIONS_MAP}")
+        self.action_map = DEFAULT_RL_ACTIONS_MAP # Default fallback
+        logging.info(f"Initial self.action_map set to DEFAULT: {self.action_map}")
+
+        if self.trading_strategy == 'rl' and self.rl_agent:
+            try:
+                # Attempt to get action_map from the environment
+                env = self.rl_agent.get_env() # Get the vectorized environment
+                if env is not None:
+                    # Try to access action_map directly from the first unwrapped environment
+                    # This handles cases where the environment might be wrapped (e.g., by DummyVecEnv)
+                    unwrapped_env = env.envs[0] if hasattr(env, 'envs') else env
+                    logging.debug(f"Unwrapped env type: {type(unwrapped_env)}")
+
+                    if hasattr(unwrapped_env, 'action_map') and unwrapped_env.action_map:
+                        self.action_map = unwrapped_env.action_map
+                        logging.info(f"Using action_map from unwrapped_env.action_map: {self.action_map}")
+                    elif hasattr(unwrapped_env, 'action_map_env') and unwrapped_env.action_map_env: # Check for action_map_env as a fallback
+                        self.action_map = unwrapped_env.action_map_env
+                        logging.info(f"Using action_map from unwrapped_env.action_map_env: {self.action_map}")
+                    else:
+                        logging.warning("RL agent's environment does not have 'action_map' or 'action_map_env'. Using default.")
+                else:
+                    logging.warning("Could not get environment from RL agent. Using default action_map.")
+            except AttributeError as e:
+                logging.warning(f"Error accessing action_map from RL agent's environment: {e}. Using default.")
+            except Exception as e:
+                logging.error(f"Unexpected error when trying to get action_map: {e}. Using default action_map.")
+        
+        logging.info(f"Final self.action_map in __init__: {self.action_map}")
+
+        # Initialize experience logger (if not already done or needs specific config)
+        # Assuming setup_logging handles the 'experience_logger' based on config
         self.experience_logger = logging.getLogger('experience_logger') # Get the experience logger
 
         logging.info(f"Configuration loaded: Symbols={self.symbols}, Strategy={self.trading_strategy}, Trading Enabled={self.enable_trading}")
@@ -118,21 +189,40 @@ class RobinhoodCryptoBot:
                     #       self.rl_features_mean, self.rl_features_std = pickle.load(f)
                     #       logging.info("Normalization parameters loaded.")
                 else:
-                    logging.error(f"RL model file not found at {self.rl_model_path}. RL strategy disabled.")
-                    self.trading_strategy = 'hold' # Fallback
-                    self.rl_agent = None # Add check
-                    logging.error("RL model failed to load. RL strategy will not function.")
-            except ImportError:
-                logging.error("stable_baselines3 not found. Please install it ('pip install stable-baselines3') to use the RL strategy. Falling back to hold.")
-                self.trading_strategy = 'hold' # Fallback
-                self.rl_agent = None # Add check
-                logging.error("RL model failed to load. RL strategy will not function.")
+                    error_message = f"RL model file not found at {self.rl_model_path}. RL agent not loaded."
+                    logging.error(error_message)
+                    _log_structured_event(
+                        level=logging.CRITICAL,
+                        event_type="MODEL_LOAD_ERROR",
+                        message=error_message,
+                        details={"model_path": self.rl_model_path, "reason": "File not found"},
+                        severity="CRITICAL"
+                    )
+            except ImportError as e:
+                error_message = "Failed to import PPO from stable_baselines3. RL agent not loaded."
+                logging.exception(error_message) # Keep exception for stack trace
+                _log_structured_event(
+                    level=logging.CRITICAL,
+                    event_type="MODEL_LOAD_ERROR",
+                    message=error_message,
+                    details={"error": str(e), "reason": "ImportError"},
+                    severity="CRITICAL"
+                )
             except Exception as e:
-                logging.exception(f"Error loading RL agent: {e}. Falling back to hold.")
-                self.trading_strategy = 'hold' # Fallback
-                self.rl_agent = None # Add check
-                logging.error("RL model failed to load. RL strategy will not function.")
-
+                error_message = f"Error loading RL model from {self.rl_model_path}."
+                logging.exception(error_message) # Keep exception for stack trace
+                _log_structured_event(
+                    level=logging.CRITICAL,
+                    event_type="MODEL_LOAD_ERROR",
+                    message=error_message,
+                    details={
+                        "model_path": self.rl_model_path,
+                        "error_type": type(e).__name__,
+                        "error_message": str(e)
+                    },
+                    severity="CRITICAL"
+                )
+    
         # 2. Initialize Broker Client (using the interface)
         self.broker: Optional[BaseBroker] = None # Initialize broker attribute
         if self.enable_trading:
@@ -152,34 +242,89 @@ class RobinhoodCryptoBot:
 
             # If broker initialization failed, disable trading
             if self.broker is None:
-                self.enable_trading = False
-            else:
-                # Attempt to connect the broker
-                if not self.broker.connect():
-                    logging.error(f"Failed to connect to {broker_type} broker. Disabling trading.")
-                    self.enable_trading = False
+                error_message = "Broker initialization failed. Trading will be disabled."
+                logging.error(error_message) # Keep a simple log too
+                _log_structured_event(
+                    level=logging.CRITICAL,
+                    event_type="BROKER_INIT_FAILURE_CRITICAL", # More specific event type
+                    message=error_message,
+                    details={"selected_broker_type": broker_type},
+                    severity="CRITICAL"
+                )
+                self.enable_trading = False # Explicitly disable trading
+        else:
+            logging.info("Trading is disabled in the configuration. Broker will not be initialized.")
 
         # 3. Initialize Data Provider
         try:
             logging.info(f"Initializing data provider (Preference: {self.config.DATA_PROVIDER_PREFERENCE})...")
-            self.data_provider = AltCryptoDataProvider() # Still need this if RL uses it?
-            logging.info("Data provider initialized.")
-
-            # 4. Fetch initial historical data and calculate normalization stats if using RL
-            if self.trading_strategy == 'rl':
-                logging.info("Calculating initial normalization statistics...")
-                self._calculate_and_store_norm_stats() # <-- Correct method to fetch data and calc stats
-                if not self.norm_stats:
-                    logging.error("Failed to calculate initial normalization stats. RL may not function correctly.")
-                else:
-                    symbols_with_stats = list(self.norm_stats.keys())
-                    logging.info(f"Normalization stats calculated for: {symbols_with_stats}")
-                    missing_stats = [s for s in self.symbols if s not in self.norm_stats]
-                    if missing_stats:
-                        logging.warning(f"Could not calculate normalization stats for: {missing_stats}")
+            if self.config.DATA_PROVIDER_PREFERENCE == 'yfinance':
+                try:
+                    from data_providers.yfinance_data_provider import YFinanceDataProvider
+                    self.data_provider = YFinanceDataProvider(symbols_to_trade=self.config.SYMBOLS_TO_TRADE)
+                    logging.info("Dedicated YFinanceDataProvider initialized successfully.")
+                except ModuleNotFoundError:
+                    _log_structured_event(
+                        logging.WARNING,
+                        "YFINANCE_PROVIDER_MISSING_FALLBACK_WARNING",
+                        f"DATA_PROVIDER_PREFERENCE is 'yfinance', but YFinanceDataProvider module is missing. Falling back to AltCryptoDataProvider.",
+                        details={"preference": "yfinance", "fallback_provider": "AltCryptoDataProvider"}
+                    )
+                    from alt_crypto_data import AltCryptoDataProvider
+                    self.data_provider = AltCryptoDataProvider()
+                    logging.info("AltCryptoDataProvider initialized as fallback for 'yfinance' preference.")
+            elif self.config.DATA_PROVIDER_PREFERENCE == 'alt_crypto_data':
+                from alt_crypto_data import AltCryptoDataProvider
+                self.data_provider = AltCryptoDataProvider()
+                logging.info("AltCryptoDataProvider initialized successfully based on preference.")
+            else:
+                _log_structured_event(
+                    logging.WARNING,
+                    "INVALID_DATA_PROVIDER_PREFERENCE_DEFAULT_FALLBACK_WARNING",
+                    f"Invalid data provider preference: {self.config.DATA_PROVIDER_PREFERENCE}. Defaulting to AltCryptoDataProvider.",
+                    details={"invalid_preference": self.config.DATA_PROVIDER_PREFERENCE, "default_provider": "AltCryptoDataProvider"}
+                )
+                from alt_crypto_data import AltCryptoDataProvider
+                self.data_provider = AltCryptoDataProvider()
+                logging.info("AltCryptoDataProvider initialized as default fallback due to invalid preference.")
+            # logging.info("Data Provider initialized successfully.") # This message is now more specific within branches
         except Exception as e:
-            logging.exception(f"Failed to initialize data provider: {e}")
-            self.data_provider = None
+            error_message = "Failed to initialize AltCryptoDataProvider."
+            logging.exception(error_message)
+            _log_structured_event(
+                level=logging.CRITICAL,
+                event_type="DATA_PROVIDER_INIT_ERROR",
+                message=error_message,
+                details={"error_type": type(e).__name__, "error_message": str(e)},
+                severity="CRITICAL"
+            )
+            self.data_provider = None # Ensure it's None
+            # If data provider fails, bot cannot function. Consider disabling trading or halting.
+            logging.critical("CRITICAL: Data provider failed to initialize. Bot cannot fetch market data. Trading disabled.")
+            self.enable_trading = False # Disable trading if data provider fails
+
+        # 4. Fetch initial historical data and calculate normalization stats if RL strategy is used
+        # Only proceed if data_provider was initialized successfully
+        if self.data_provider and self.trading_strategy == 'rl':
+            try:
+                self._calculate_and_store_norm_stats() # This method now handles its own internal logging
+                if not self.norm_stats: # Check if any stats were actually calculated
+                    # This is a more general check after the method call, if the method itself didn't make it critical
+                    # _calculate_and_store_norm_stats will log if it fails for ALL symbols
+                    pass # The method itself logs if it fails for all symbols
+            except Exception as e: # Catch unexpected errors from the stats calculation call itself
+                error_message = "Critical error during initial calculation of normalization statistics."
+                logging.exception(error_message)
+                _log_structured_event(
+                    level=logging.CRITICAL,
+                    event_type="NORMALIZATION_STATS_ERROR",
+                    message=error_message,
+                    details={"error_type": type(e).__name__, "error_message": str(e)},
+                    severity="CRITICAL"
+                )
+                # Depending on bot logic, might disable trading or RL strategy
+                logging.critical("Normalization stats calculation failed critically. RL strategy may be impaired.")
+                # self.trading_strategy = 'hold' # Example fallback
 
         # 5. Fetch initial holdings (Requires API Client)
         if self.broker:
@@ -204,7 +349,20 @@ class RobinhoodCryptoBot:
             logging.info(f"{broker_type} initialized successfully.")
             return broker
         except Exception as e:
-            logging.exception(f"Failed to initialize {broker_type}:")
+            error_message = f"Failed to initialize {broker_type}."
+            logging.exception(error_message) # Keep existing exception log for stack trace
+            _log_structured_event(
+                level=logging.CRITICAL,
+                event_type="BROKER_INIT_ERROR",
+                message=error_message,
+                details={
+                    "broker_type": broker_type,
+                    "config_keys": list(broker_config.keys()), # Log keys, not values, for security
+                    "error_type": type(e).__name__,
+                    "error_message": str(e)
+                },
+                severity="CRITICAL"
+            )
             return None
 
     def _calculate_and_store_norm_stats(self):
@@ -214,71 +372,115 @@ class RobinhoodCryptoBot:
         logging.info("Calculating initial normalization statistics for 27 RL technical indicators...")
         self.norm_stats = {} # Reset stats
 
-        # Min rows for indicators (e.g., longest lookback for any single indicator like EMA50 or Volatility30 + some buffer)
-        # This is for the data *before* passing to _add_all_technical_indicators
-        min_rows_for_ohlcv_fetch = 90 # Fetch enough raw data for all indicators to warm up (e.g. 60 for indicators + 30 for some stddev)
-
+        min_rows_for_ohlcv_fetch = 90 
         logging.info(f"Starting normalization stats calculation for symbols: {self.symbols}")
+        
         for symbol in self.symbols:
             logging.debug(f"Processing normalization stats for symbol: {symbol}")
             try:
-                # Fetch historical OHLCV data for the symbol
-                df_ohlcv_history = self.data_provider.fetch_price_history(symbol, lookback_days=min_rows_for_ohlcv_fetch)
+                df_ohlcv_history = self.data_provider.fetch_price_history(symbol, days=min_rows_for_ohlcv_fetch)
 
                 if df_ohlcv_history is None or df_ohlcv_history.empty:
-                    logging.warning(f"No historical OHLCV data found for {symbol}. Skipping normalization stat calculation.")
+                    error_message = f"No historical OHLCV data found for {symbol} during norm_stats calculation."
+                    logging.warning(error_message)
+                    _log_structured_event(
+                        level=logging.WARNING,
+                        event_type="DATA_FETCH_ERROR",
+                        message=error_message,
+                        details={"symbol": symbol, "context": "normalization_stats"},
+                        severity="WARNING"
+                    )
                     continue
                 
-                # It's good practice to ensure OHLCV_COLS are present before passing to helper, though helper also checks
                 if not all(col.lower() in [c.lower() for c in df_ohlcv_history.columns] for col in OHLCV_COLS):
-                    logging.warning(f"Fetched historical data for {symbol} is missing one or more OHLCV columns. Skipping normalization.")
+                    error_message = f"Fetched historical data for {symbol} is missing one or more OHLCV columns. Skipping normalization."
+                    logging.warning(error_message)
+                    _log_structured_event(
+                        level=logging.WARNING,
+                        event_type="DATA_PROCESSING_ERROR",
+                        message=error_message,
+                        details={"symbol": symbol, "missing_columns": True, "context": "normalization_stats"},
+                        severity="WARNING"
+                    )
                     continue
                 
-                # Ensure df_ohlcv_history has enough rows for meaningful indicator calculation by the helper
-                # The helper itself needs a buffer; this check is for the input to the helper.
-                # A general rule could be min_rows_for_ohlcv_fetch / 2 or a fixed number like 50-60.
-                if len(df_ohlcv_history) < 60: # Arbitrary minimum, adjust based on longest indicator period in helper
-                    logging.warning(f"Insufficient historical OHLCV data points for {symbol} ({len(df_ohlcv_history)} points, need ~60). Skipping normalization.")
+                if len(df_ohlcv_history) < 60:
+                    error_message = f"Insufficient historical OHLCV data points for {symbol} ({len(df_ohlcv_history)} points, need ~60). Skipping normalization."
+                    logging.warning(error_message)
+                    _log_structured_event(
+                        level=logging.WARNING,
+                        event_type="DATA_INSUFFICIENT_ERROR",
+                        message=error_message,
+                        details={"symbol": symbol, "rows_found": len(df_ohlcv_history), "rows_needed": 60, "context": "normalization_stats"},
+                        severity="WARNING"
+                    )
                     continue
 
-                # Add all technical indicators using the helper. Pass a copy.
                 df_with_indicators = self._add_all_technical_indicators(df_ohlcv_history.copy())
-
-                # Select only the technical indicator columns for stat calculation
                 df_technical_features = df_with_indicators[TECHNICAL_INDICATOR_COLUMNS].copy()
-                
-                # Drop rows with any NaN values that might remain in technical features
-                # (e.g., from initial warm-up of the longest indicator, despite helper's bfill/fillna(0))
                 df_technical_features.dropna(inplace=True)
 
-                # Check if enough data remains AFTER dropping NaNs for robust statistics
-                # We need at least a few data points. rl_lookback_window is a good reference, or a fixed minimum (e.g., 30).
                 min_data_points_for_stats = max(30, self.rl_lookback_window) 
                 if len(df_technical_features) < min_data_points_for_stats:
-                    logging.warning(f"Insufficient data for {symbol} after indicator calculation & NaN drop ({len(df_technical_features)} points, need {min_data_points_for_stats}). Cannot calc norm stats.")
+                    error_message = f"Insufficient data for {symbol} after indicator calculation & NaN drop ({len(df_technical_features)} points, need {min_data_points_for_stats}). Cannot calc norm stats."
+                    logging.warning(error_message)
+                    _log_structured_event(
+                        level=logging.WARNING,
+                        event_type="DATA_INSUFFICIENT_ERROR",
+                        message=error_message,
+                        details={"symbol": symbol, "rows_found": len(df_technical_features), "rows_needed": min_data_points_for_stats, "context": "normalization_stats_post_indicators"},
+                        severity="WARNING"
+                    )
                     continue
 
                 means = df_technical_features.mean()
                 stds = df_technical_features.std()
-                stds[stds == 0] = 1e-8 # Avoid division by zero
+                stds[stds == 0] = 1e-8
 
                 self.norm_stats[symbol] = {'means': means, 'stds': stds}
                 logging.info(f"Successfully calculated normalization stats for {symbol} using {len(df_technical_features)} data points.")
 
             except Exception as e:
-                logging.exception(f"Error calculating/storing normalization stats for {symbol}:")
-                if symbol in self.norm_stats: # Clean up if partial calculation failed
+                error_message = f"Error calculating/storing normalization stats for {symbol}."
+                logging.exception(error_message) # Keep for stack trace
+                _log_structured_event(
+                    level=logging.ERROR,
+                    event_type="NORMALIZATION_STATS_ERROR",
+                    message=error_message,
+                    details={
+                        "symbol": symbol,
+                        "error_type": type(e).__name__,
+                        "error_message": str(e)
+                    },
+                    severity="ERROR"
+                )
+                if symbol in self.norm_stats:
                     del self.norm_stats[symbol]
 
         logging.info("Finished calculating initial normalization statistics.")
         if not self.norm_stats:
-            logging.error("Failed to calculate normalization statistics for ANY symbol. RL strategy will likely fail.")
+            error_message = "CRITICAL: Failed to calculate normalization statistics for ANY symbol. RL strategy will likely fail or be significantly impaired."
+            logging.error(error_message)
+            _log_structured_event(
+                level=logging.CRITICAL,
+                event_type="NORMALIZATION_STATS_FAILURE_ALL_SYMBOLS",
+                message=error_message,
+                severity="CRITICAL"
+            )
         else:
              symbols_with_stats = list(self.norm_stats.keys())
              logging.info(f"Normalization stats calculated for: {symbols_with_stats}")
              missing_stats = [s for s in self.symbols if s not in self.norm_stats]
              if missing_stats:
                  logging.warning(f"Could not calculate normalization stats for: {missing_stats}")
+                 # Optionally, log a structured event for this too, though it's less critical than ALL failing
+                 _log_structured_event(
+                     level=logging.WARNING,
+                     event_type="NORMALIZATION_STATS_MISSING_SOME_SYMBOLS",
+                     message=f"Failed to calculate normalization stats for some symbols: {missing_stats}",
+                     details={"missing_symbols": missing_stats, "successful_symbols": symbols_with_stats},
+                     severity="WARNING"
+                 )
 
     def _add_all_technical_indicators(self, df_ohlcv: pd.DataFrame) -> pd.DataFrame:
         """
@@ -379,98 +581,12 @@ class RobinhoodCryptoBot:
                 logging.debug(f"Helper: Indicator '{col_name}' missing. Adding placeholder 0.0.")
                 df_processed[col_name] = 0.0
             else:
-                # Fill NaNs that might have occurred from rolling operations at the beginning
+                # Fill NaNs that might have been introduced by _add_all_technical_indicators before normalization
+                # This is critical if _add_all_technical_indicators doesn't perfectly fill its own NaNs for the selected columns
                 df_processed[col_name].fillna(method='bfill', inplace=True) # Backfill first
                 df_processed[col_name].fillna(0.0, inplace=True) # Then fill remaining NaNs with 0
                 
         return df_processed
-
-    def _get_normalized_features(self, symbol: str, df_current_history: pd.DataFrame) -> Optional[np.ndarray]:
-        """Adds indicators, normalizes features, appends portfolio state for the 31-feature model.
-        
-        Args:
-            symbol: The trading symbol (e.g., 'BTC-USD').
-            df_current_history: DataFrame with current historical OHLCV data. 
-                                Must have enough rows for indicator calculation.
-                                (e.g., ~60 rows for indicators to mature before taking the latest readings)
-        Returns:
-            A 1D NumPy array of shape (31,) representing the normalized observation, or None if error.
-        """
-        if symbol not in self.norm_stats:
-            logging.error(f"Normalization stats not found for {symbol}. Cannot normalize features.")
-            return None
-        
-        stats = self.norm_stats[symbol]
-        # Ensure means and stds are Series for proper alignment if they came from single-row DataFrame initially
-        means = pd.Series(stats['means']) if isinstance(stats['means'], dict) else stats['means']
-        stds = pd.Series(stats['stds']) if isinstance(stats['stds'], dict) else stats['stds']
-
-        # Min rows needed for indicator calculation before taking the latest reading.
-        # The input df_current_history should provide at least this many rows.
-        min_rows_for_indicator_calc = 60 # Should be consistent with buffer in _calculate_and_store_norm_stats / _add_all_technical_indicators
-        if df_current_history is None or len(df_current_history) < min_rows_for_indicator_calc:
-            logging.warning(f"Input df_current_history for {symbol} has {len(df_current_history) if df_current_history is not None else 0} rows, need at least {min_rows_for_indicator_calc} for indicator calc. Cannot get features.")
-            return None
-
-        # 1. Add all technical indicators using the helper
-        # df_current_history should be OHLCV data.
-        df_with_indicators = self._add_all_technical_indicators(df_current_history.copy())
-
-        # 2. Select the LATEST row of technical features after indicators are calculated.
-        # The indicators themselves (like SMA_30) incorporate the lookback period.
-        if df_with_indicators.empty or not all(col in df_with_indicators.columns for col in TECHNICAL_INDICATOR_COLUMNS):
-            logging.warning(f"Not enough data or missing columns for {symbol} after adding indicators. Columns: {df_with_indicators.columns.tolist()}")
-            return None
-            
-        latest_technical_features_unnormalized = df_with_indicators[TECHNICAL_INDICATOR_COLUMNS].iloc[-1].copy()
-
-        # 3. Normalize the selected latest technical features
-        # Ensure all columns expected by norm_stats (means/stds Series) are present
-        for col in TECHNICAL_INDICATOR_COLUMNS:
-            if col not in latest_technical_features_unnormalized.index: # It's a Series now
-                logging.error(f"Missing technical feature column '{col}' in latest_technical_features_unnormalized for {symbol}. Adding placeholder 0.0.")
-                latest_technical_features_unnormalized[col] = 0.0
-            if col not in means.index or col not in stds.index: # Check against Series index
-                logging.error(f"Normalization stats (mean/std Series) missing for feature '{col}' for {symbol}. Using 0 for mean, 1 for std.")
-                # Ensure the key exists in means/stds Series before assignment if it's truly missing
-                if col not in means.index: means[col] = 0.0
-                if col not in stds.index: stds[col] = 1.0
-        
-        # Reorder to match means/stds (which should be in TECHNICAL_INDICATOR_COLUMNS order)
-        latest_technical_features_unnormalized = latest_technical_features_unnormalized.reindex(TECHNICAL_INDICATOR_COLUMNS, fill_value=0.0)
-        means = means.reindex(TECHNICAL_INDICATOR_COLUMNS, fill_value=0.0)
-        stds = stds.reindex(TECHNICAL_INDICATOR_COLUMNS, fill_value=1.0).replace(0, 1e-8) # ensure no zero std
-
-        normalized_technical_features_latest = (latest_technical_features_unnormalized - means) / stds
-        normalized_technical_features_latest.fillna(0.0, inplace=True) # Fill any NaNs from division by tiny std
-
-        # 4. Get current portfolio state (4 features)
-        base_asset = symbol.split('-')[0]
-        current_balance_usd = self.get_balance_usd() 
-        current_holding_crypto = self.get_holding_crypto(base_asset) # This should return Decimal
-        
-        latest_close_price_series = df_current_history['close'] if 'close' in df_current_history else pd.Series([0.0])
-        latest_close_price = latest_close_price_series.iloc[-1] if not latest_close_price_series.empty else 0.0
-        
-        total_portfolio_value = current_balance_usd + (current_holding_crypto * Decimal(str(latest_close_price)))
-
-        portfolio_features = np.array([
-            float(current_balance_usd),
-            float(current_holding_crypto),
-            float(latest_close_price), 
-            float(total_portfolio_value)
-        ], dtype=np.float32)
-
-        # 5. Concatenate technical and portfolio features
-        # Ensure normalized_technical_features_latest is a NumPy array for concatenation
-        final_observation = np.concatenate((normalized_technical_features_latest.values, portfolio_features))
-
-        if final_observation.shape != self.EXPECTED_OBS_SHAPE:
-            logging.error(f"Shape mismatch for {symbol}: Expected {self.EXPECTED_OBS_SHAPE}, got {final_observation.shape}. Tech features: {normalized_technical_features_latest.values.shape}, Portfolio: {portfolio_features.shape}")
-            return None 
-
-        logging.debug(f"Generated normalized features for {symbol}. Shape: {final_observation.shape}")
-        return final_observation
 
     def get_current_price(self, symbol: str) -> Optional[Decimal]:
         # Implement this method as needed
@@ -488,41 +604,169 @@ class RobinhoodCryptoBot:
             str: Trading signal (buy/sell/hold)
         """
         signal = 'hold'  # Default signal
+        MIN_ROWS_FOR_FEATURES = self.config.RL_MIN_ROWS_FOR_FEATURES # Corrected access
 
         if self.trading_strategy == 'rl' and self.rl_agent is not None:
             logging.debug(f"Generating signal for {symbol} using RL agent.")
+            obs = None
             try:
-                # 1. Prepare features
-                obs = self._get_normalized_features(symbol, analysis_data)
-                if obs is None:
-                    logging.warning(f"Could not generate normalized features for {symbol}. Defaulting to 'hold'.")
+                # --- Start: Inlined _get_normalized_features logic ---
+                if analysis_data is None or analysis_data.empty or len(analysis_data) < MIN_ROWS_FOR_FEATURES:
+                    _log_structured_event(
+                        logging.WARNING,
+                        "DATA_INSUFFICIENT_ERROR",
+                        f"Insufficient analysis_data for {symbol}. Got {len(analysis_data) if analysis_data is not None else 0} rows, need {MIN_ROWS_FOR_FEATURES}. Defaulting to 'hold'.",
+                        details={"symbol": symbol, "data_rows": len(analysis_data) if analysis_data is not None else 0, "required_rows": MIN_ROWS_FOR_FEATURES}
+                    )
                     return 'hold'
 
-                # Check observation shape (optional but good practice)
-                if obs.shape[0] != EXPECTED_OBS_SHAPE[0]:
-                    logging.warning(f"Observation shape mismatch for {symbol}. Expected {EXPECTED_OBS_SHAPE}, Got {obs.shape}. Defaulting to 'hold'.")
-                    # Potentially pad or handle this case depending on model requirements
+                df_with_indicators = self._add_all_technical_indicators(analysis_data)
+                if df_with_indicators.empty or df_with_indicators[TECHNICAL_INDICATOR_COLUMNS].isnull().all().all():
+                    _log_structured_event(
+                        logging.ERROR,
+                        "INDICATOR_CALCULATION_FAILED",
+                        f"_add_all_technical_indicators returned empty or all-NaN DataFrame for {symbol}. Defaulting to 'hold'.",
+                        details={"symbol": symbol}
+                    )
                     return 'hold'
 
-                # 2. Predict action
-                action, _ = self.rl_agent.predict(obs, deterministic=True)
-                signal = self.actions_map.get(action.item(), 'hold') # Use .item() for numpy int
-                logging.info(f"[{symbol}] RL agent signal: {signal} (action_int: {action.item()})")
+                if symbol not in self.norm_stats or not all(k in self.norm_stats[symbol] for k in ['means', 'stds']):
+                    _log_structured_event(
+                        logging.ERROR,
+                        "NORMALIZATION_STATS_MISSING",
+                        f"Normalization stats (mean/std) not found for {symbol}. Defaulting to 'hold'.",
+                        details={"symbol": symbol, "available_stats_keys": list(self.norm_stats.get(symbol, {}).keys())}
+                    )
+                    return 'hold'
 
-                # --- Log Experience (Action Determined) ---
+                # Select only the technical indicator columns for normalization
+                features_df = df_with_indicators[TECHNICAL_INDICATOR_COLUMNS].copy()
+                if features_df.empty:
+                    _log_structured_event(
+                        logging.ERROR,
+                        "DATA_PROCESSING_ERROR",
+                        f"No technical indicator columns found or data is empty after selection for {symbol}. Defaulting to 'hold'.",
+                        details={"symbol": symbol}
+                    )
+                    return 'hold'
+                
+                # Fill any NaNs that might have been introduced by _add_all_technical_indicators before normalization
+                # This is critical if _add_all_technical_indicators doesn't perfectly fill its own NaNs for the selected columns
+                features_df.fillna(method='bfill', inplace=True)
+                features_df.fillna(0.0, inplace=True) # Fill any remaining NaNs at the beginning with 0
+
+                mean_stats = pd.Series(self.norm_stats[symbol]['means'])[TECHNICAL_INDICATOR_COLUMNS]
+                std_stats = pd.Series(self.norm_stats[symbol]['stds'])[TECHNICAL_INDICATOR_COLUMNS]
+                
+                # Ensure alignment if series come from dicts
+                mean_stats = mean_stats.reindex(features_df.columns)
+                std_stats = std_stats.reindex(features_df.columns)
+
+                normalized_features = (features_df - mean_stats) / (std_stats + 1e-7) # Epsilon for division by zero
+                
+                if normalized_features.isnull().any().any():
+                    _log_structured_event(
+                        logging.WARNING, # Warning as we might proceed with some NaNs if not caught earlier
+                        "DATA_PROCESSING_ERROR",
+                        f"NaNs found in normalized features for {symbol} despite fill efforts. Check std_devs. Defaulting to 'hold'.",
+                        details={"symbol": symbol}
+                    )
+                    # Consider returning 'hold' if NaNs are critical
+                    # For now, we'll let the model try, but this is a data quality issue.
+
+                normalized_latest_indicators = normalized_features.iloc[-1].values.astype(np.float32)
+
+                # --- Placeholder for additional features (balance, holdings, PNL, price change) ---
+                base_asset = symbol.split('-')[0]
+                current_balance_usd = self.current_balance # Assuming self.current_balance is in USD
+                
+                # Example: Normalize balance by dividing by a large constant (e.g., typical portfolio size)
+                # This should ideally use stats from _calculate_and_store_norm_stats if these features were included there
+                balance_norm_divisor = self.config.get('rl_balance_norm_divisor', 10000.0)
+                current_balance_normalized = float(current_balance_usd / Decimal(str(balance_norm_divisor)))
+                _log_structured_event(logging.DEBUG, "PLACEHOLDER_NORMALIZATION_USED", f"Using placeholder normalization for balance for {symbol}. Divisor: {balance_norm_divisor}", details={"symbol": symbol, "feature": "balance", "divisor": balance_norm_divisor})
+
+                current_holding_qty = self.holdings.get(base_asset, Decimal('0.0'))
+                holding_norm_divisor = self.config.get('rl_holding_norm_divisor', 100.0) # e.g. max expected holding qty for a less valuable asset
+                current_holding_qty_normalized = float(current_holding_qty / Decimal(str(holding_norm_divisor)))
+                _log_structured_event(logging.DEBUG, "PLACEHOLDER_NORMALIZATION_USED", f"Using placeholder normalization for holding quantity for {symbol}. Divisor: {holding_norm_divisor}", details={"symbol": symbol, "feature": "holding_qty", "divisor": holding_norm_divisor})
+
+                pnl_normalized = 0.0  # Placeholder
+                _log_structured_event(logging.DEBUG, "PLACEHOLDER_FEATURE_USED", f"Using placeholder 0.0 for PNL feature for {symbol}.", details={"symbol": symbol, "feature": "pnl"})
+                price_change_since_buy_normalized = 0.0 # Placeholder
+                _log_structured_event(logging.DEBUG, "PLACEHOLDER_FEATURE_USED", f"Using placeholder 0.0 for price_change_since_buy feature for {symbol}.", details={"symbol": symbol, "feature": "price_change_since_buy"})
+
+                additional_features = np.array([
+                    current_balance_normalized,
+                    current_holding_qty_normalized,
+                    pnl_normalized,
+                    price_change_since_buy_normalized
+                ], dtype=np.float32)
+
+                obs = np.concatenate((normalized_latest_indicators, additional_features))
+                # --- End: Inlined _get_normalized_features logic ---
+
+            except Exception as e_feature_gen:
+                _log_structured_event(
+                    logging.ERROR,
+                    "FEATURE_GENERATION_ERROR",
+                    f"Error during feature generation for RL agent for {symbol}: {e_feature_gen}",
+                    details={"symbol": symbol, "error_message": str(e_feature_gen), "exc_info": True}
+                )
+                obs = None # Ensure obs is None if feature generation fails
+
+            if obs is None:
+                _log_structured_event(
+                    logging.WARNING,
+                    "FEATURE_GENERATION_FAILED",
+                    f"Could not generate normalized features for {symbol}. Defaulting to 'hold'.",
+                    details={"symbol": symbol}
+                )
+                return 'hold'
+
+            if obs.shape[0] != EXPECTED_OBS_SHAPE[0]:
+                _log_structured_event(
+                    logging.ERROR,
+                    "MODEL_INPUT_SHAPE_MISMATCH",
+                    f"Observation shape mismatch for {symbol}. Expected {EXPECTED_OBS_SHAPE}, Got {obs.shape}. Defaulting to 'hold'.",
+                    details={"symbol": symbol, "expected_shape": str(EXPECTED_OBS_SHAPE), "actual_shape": str(obs.shape)}
+                )
+                return 'hold'
+
+            try:
+                action_raw, _ = self.rl_agent.predict(obs, deterministic=True)
+                action_int = action_raw.item() # Convert numpy array to Python int
+                signal = self.action_map.get(action_int, 'hold')
+                
+                if signal == 'hold' and action_int not in self.action_map:
+                    _log_structured_event(
+                        logging.WARNING,
+                        "INVALID_ACTION_MAPPING",
+                        f"RL agent predicted action {action_int} for {symbol} which is not in action_map. Defaulting to 'hold'.",
+                        details={"symbol": symbol, "predicted_action_int": action_int, "action_map": str(self.action_map)}
+                    )
+                
+                logging.info(f"[{symbol}] RL agent signal: {signal} (action_int: {action_int})")
+
                 self._log_experience(
                     symbol=symbol,
-                    state=obs, # Log the state used for prediction
+                    state=obs,
                     action=signal,
-                    reward=0.0, # Placeholder for now
-                    pnl_change=0.0, # Placeholder for now
-                    portfolio_value=0.0 # Placeholder for now
+                    reward=0.0, # Placeholder
+                    pnl_change=0.0, # Placeholder
+                    portfolio_value=float(self.current_balance) # Log current portfolio value
                 )
                 return signal
-            except Exception as e:
-                logging.exception(f"Error during RL signal generation for {symbol}: {e}")
-                return 'hold' # Default to hold on error
-        elif self.trading_strategy == 'rsi': # Example: Add other strategies
+            except Exception as e_predict:
+                _log_structured_event(
+                    logging.ERROR,
+                    "MODEL_INFERENCE_ERROR",
+                    f"Error during RL agent prediction for {symbol}: {e_predict}",
+                    details={"symbol": symbol, "error_message": str(e_predict), "exc_info": True}
+                )
+                return 'hold'
+                
+        elif self.trading_strategy == 'rsi':
             logging.debug(f"Generating signal for {symbol} using RSI strategy (placeholder).")
             # Placeholder for RSI strategy logic
             # rsi_value = analysis_data['RSI_14'].iloc[-1]
@@ -530,7 +774,12 @@ class RobinhoodCryptoBot:
             # elif rsi_value > 70: return 'sell'
             return 'hold'
         else:
-            logging.warning(f"Unknown or unsupported trading strategy: '{self.trading_strategy}'. Defaulting to 'hold' for {symbol}.")
+            _log_structured_event(
+                logging.WARNING,
+                "STRATEGY_CONFIG_ERROR",
+                f"Unknown or unsupported trading strategy: '{self.trading_strategy}'. Defaulting to 'hold' for {symbol}.",
+                details={"symbol": symbol, "strategy": self.trading_strategy}
+            )
             return 'hold'
  
      # --- Trade Execution ---
@@ -544,29 +793,50 @@ class RobinhoodCryptoBot:
             signal (str): Trading signal
             latest_price (Decimal): The latest price used for signal generation & quantity calculation.
         """
-        # Ensure trading is enabled
+        trade_params = {
+            "symbol": symbol,
+            "signal": signal,
+            "latest_price": float(latest_price) # For JSON serialization
+        }
+
         if not self.enable_trading:
-            logging.info("Trading is disabled. Skipping trade execution.")
+            _log_structured_event(
+                logging.INFO,
+                "TRADE_EXECUTION_DISABLED",
+                "Trading is disabled. Skipping trade execution.",
+                details=trade_params
+            )
             return
 
-        # Ensure API client is available
         if not self.broker:
-            logging.error("Broker not initialized. Cannot execute trade.")
+            _log_structured_event(
+                logging.ERROR,
+                "BROKER_UNAVAILABLE_ERROR",
+                "Broker not initialized. Cannot execute trade.",
+                details=trade_params
+            )
             return
 
-        # 1. Determine Side and Calculate Quantity
         side = None
         quantity = Decimal('0.0')
         trade_amount = Decimal(str(self.trade_amount_usd))
         symbol_base = symbol.split('-')[0]
+        current_holding_qty = Decimal(self.holdings.get(symbol_base, Decimal('0.0')))
+
+        trade_params.update({
+            "trade_amount_usd": float(trade_amount),
+            "current_holding_qty": float(current_holding_qty)
+        })
 
         try:
             if latest_price <= 0:
-                logging.error(f"Invalid latest price ({latest_price}) for {symbol}. Skipping trade.")
+                _log_structured_event(
+                    logging.ERROR,
+                    "INVALID_PRICE_ERROR",
+                    f"Invalid latest price ({latest_price}) for {symbol}. Skipping trade.",
+                    details=trade_params
+                )
                 return
-
-            # Get current holdings
-            current_holding_qty = Decimal(self.holdings.get(symbol_base, Decimal('0.0')))
 
             if signal == 'buy_all':
                 side = 'buy'
@@ -580,56 +850,156 @@ class RobinhoodCryptoBot:
             elif signal == 'sell_half':
                 side = 'sell'
                 quantity = current_holding_qty / Decimal('2')
+            # else: signal is 'hold' or unknown, side remains None
 
         except Exception as e:
-            logging.exception(f"Error calculating quantity for {symbol} signal {signal}: {e}")
+            _log_structured_event(
+                logging.ERROR,
+                "QUANTITY_CALCULATION_ERROR",
+                f"Error calculating quantity for {symbol} signal {signal}: {e}",
+                details={"error_message": str(e), "exc_info": True},
+                **trade_params
+            )
             return
 
-        # 2. Validate Trade
-        if side is None or quantity <= Decimal('0.00000001'): # Check against a minimum tradeable quantity
-            logging.warning(f"Invalid trade parameters for {symbol}: side={side}, calculated quantity={quantity:.8f}. Signal was '{signal}'. Skipping trade.")
+        trade_params["calculated_side"] = side
+        trade_params["calculated_quantity"] = float(quantity)
+
+        min_tradeable_qty_str = self.config.get('min_tradeable_quantity', '0.00000001')
+        min_tradeable_qty = Decimal(min_tradeable_qty_str)
+
+        if side is None or quantity <= min_tradeable_qty:
+            _log_structured_event(
+                logging.WARNING,
+                "INVALID_TRADE_PARAMETERS_WARNING",
+                f"Invalid trade parameters for {symbol}: side={side}, calculated quantity={quantity:.8f} (min: {min_tradeable_qty}). Signal was '{signal}'. Skipping trade.",
+                details={"min_tradeable_qty": float(min_tradeable_qty)},
+                **trade_params
+            )
             return
 
         if side == 'sell' and quantity > current_holding_qty:
-            logging.warning(f"Attempting to sell {quantity:.8f} {symbol_base}, but only hold {current_holding_qty:.8f}. Adjusting to sell max available.")
+            original_sell_qty = quantity
             quantity = current_holding_qty
-            if quantity <= Decimal('0.00000001'): # Double check after adjustment
-                logging.warning(f"No holdings ({current_holding_qty:.8f}) of {symbol_base} to sell after adjustment. Skipping trade.")
+            _log_structured_event(
+                logging.WARNING,
+                "INSUFFICIENT_HOLDINGS_FOR_SELL_WARNING",
+                f"Attempting to sell {original_sell_qty:.8f} {symbol_base}, but only hold {current_holding_qty:.8f}. Adjusting to sell max available ({quantity:.8f}).",
+                details={"original_calculated_quantity": float(original_sell_qty), "adjusted_quantity": float(quantity)},
+                **trade_params
+            )
+            trade_params["calculated_quantity"] = float(quantity) # Update for subsequent logs
+            
+            if quantity <= min_tradeable_qty:
+                _log_structured_event(
+                    logging.WARNING,
+                    "NO_HOLDINGS_TO_SELL_WARNING",
+                    f"No holdings ({current_holding_qty:.8f}) of {symbol_base} to sell after adjustment (min_tradeable: {min_tradeable_qty}). Skipping trade.",
+                    details={"min_tradeable_qty": float(min_tradeable_qty)},
+                    **trade_params
+                )
                 return
 
-        # 3. Prepare and Place Order (Market Order)
-        order_details = self.broker.place_market_order(
-            symbol=symbol,      # e.g., 'BTC-USD'
-            side=signal,        # 'buy' or 'sell'
-            quantity=quantity   # Decimal quantity
-        )
+        order_details = None
+        try:
+            logging.info(f"Attempting to place {side} order for {quantity:.8f} {symbol} at market price.")
+            # Ensure quantity is correctly typed for broker method if it's strict
+            # Most SDKs handle Decimal, float, or string representations.
+            order_details = self.broker.place_market_order(
+                symbol=symbol,      
+                side=side,        
+                quantity=quantity   
+            )
 
-        if order_details and order_details.get('status') not in ['failed', 'rejected', 'cancelled']:
-            # Basic check for success, might need refinement based on states
-            order_id = order_details.get('order_id')
-            logging.info(f"Trade submitted successfully via broker. Order ID: {order_id}")
-        else:
-            logging.error(f"Trade submission failed or was rejected by broker. Response: {order_details}")
+            if order_details and order_details.get('status') not in ['failed', 'rejected', 'cancelled', None, ''] and order_details.get('order_id'): # Basic check for success
+                _log_structured_event(
+                    logging.INFO,
+                    "TRADE_SUBMITTED_SUCCESS",
+                    f"Trade submitted successfully via broker for {symbol}. Side: {side}, Qty: {quantity:.8f}. Order ID: {order_details.get('order_id')}",
+                    details={"order_details": order_details},
+                    **trade_params
+                )
+            else:
+                _log_structured_event(
+                    logging.ERROR,
+                    "BROKER_ORDER_REJECTED_ERROR",
+                    f"Trade submission failed, was rejected, or no order_id returned by broker for {symbol}. Response: {order_details}",
+                    details={"order_details": order_details},
+                    **trade_params
+                )
+        except Exception as e_broker:
+            _log_structured_event(
+                logging.ERROR,
+                "BROKER_API_ERROR",
+                f"Exception during broker API call for {symbol} ({side} {quantity:.8f}): {e_broker}",
+                details={"error_message": str(e_broker), "exc_info": True, "broker_response": order_details}, # Log what we got before the exception if any
+                **trade_params
+            )
 
     def get_holdings(self):
         """Fetches current crypto holdings using the broker client and updates self.holdings."""
+        _log_structured_event(logging.INFO, "HOLDINGS_FETCH_ATTEMPT", "Attempting to fetch current holdings.")
+
         if not self.broker:
-            logging.warning("Attempted to get holdings, but broker is not initialized.")
+            _log_structured_event(
+                logging.ERROR,
+                "BROKER_UNAVAILABLE_FOR_HOLDINGS_ERROR",
+                "Broker is not initialized. Cannot fetch holdings."
+            )
             self.holdings = {}
             return
 
-        logging.info("Fetching current holdings via broker client...")
         try:
-            holdings_data = self.broker.get_holdings()
-            if holdings_data is not None: # Expects Dict[str, Decimal] or None
-                self.holdings = holdings_data
-                logging.info(f"Successfully retrieved {len(self.holdings)} holdings: {list(self.holdings.keys())}")
-            else:
-                logging.warning("Received no data or empty response when fetching holdings.")
+            holdings_data = self.broker.get_holdings() # Assumes this returns Dict[str, Decimal] or None
+            
+            if holdings_data is not None and isinstance(holdings_data, dict):
+                # Ensure values are Decimal, or can be converted, for consistency
+                processed_holdings = {}
+                for asset, qty_str in holdings_data.items():
+                    try:
+                        processed_holdings[asset] = Decimal(str(qty_str))
+                    except InvalidOperation:
+                        _log_structured_event(
+                            logging.WARNING,
+                            "INVALID_HOLDING_QUANTITY_FORMAT",
+                            f"Could not convert holding quantity '{qty_str}' for asset '{asset}' to Decimal. Skipping this asset.",
+                            details={"asset": asset, "invalid_quantity": str(qty_str)}
+                        )
+                
+                self.holdings = processed_holdings
+                _log_structured_event(
+                    logging.INFO,
+                    "HOLDINGS_FETCH_SUCCESS",
+                    f"Successfully retrieved and processed {len(self.holdings)} holdings.",
+                    details={
+                        "holdings_count": len(self.holdings),
+                        "assets_held": list(self.holdings.keys())
+                    }
+                )
+            elif holdings_data is None:
+                _log_structured_event(
+                    logging.WARNING,
+                    "NO_HOLDINGS_DATA_RETURNED_WARNING",
+                    "Broker returned None when fetching holdings. Assuming no holdings or API issue."
+                    # No specific details needed beyond the message itself here
+                )
+                self.holdings = {}
+            else: # Unexpected data type
+                _log_structured_event(
+                    logging.WARNING,
+                    "UNEXPECTED_HOLDINGS_DATA_FORMAT_WARNING",
+                    f"Broker returned unexpected data type for holdings: {type(holdings_data)}. Expected dict or None.",
+                    details={"received_type": str(type(holdings_data))}
+                )
                 self.holdings = {}
 
         except Exception as e:
-            logging.error(f"Failed to fetch holdings: {e}", exc_info=True)
+            _log_structured_event(
+                logging.ERROR,
+                "BROKER_API_HOLDINGS_FETCH_ERROR",
+                f"Failed to fetch holdings due to broker API error: {e}",
+                details={"error_message": str(e), "exc_info": True}
+            )
             self.holdings = {} # Ensure holdings is defined even on error
 
     def _fetch_latest_data(self):
@@ -639,61 +1009,115 @@ class RobinhoodCryptoBot:
 
     def run_trading_cycle(self):
         """Executes one cycle of fetching data, analyzing, and potentially trading."""
-        logging.info("Starting new trading cycle...")
+        _log_structured_event(logging.INFO, "TRADING_CYCLE_START", "Starting new trading cycle.")
+        cycle_start_time = datetime.now()
 
-        # 1. Fetch latest data (you might need a separate method for this)
-        # self._fetch_latest_data() # Assuming this populates self.historical_data or similar
-        # For now, let's assume _calculate_and_store_norm_stats got enough data initially
-        # Or, perhaps fetch data inside analyze_symbol?
-
-        # 2. Fetch current holdings
         if self.broker:
-            self.get_holdings() # Update holdings each cycle
+            _log_structured_event(logging.DEBUG, "HOLDINGS_UPDATE_START", "Attempting to update holdings.")
+            try:
+                self.get_holdings() # Update holdings each cycle
+                _log_structured_event(
+                    logging.DEBUG,
+                    "HOLDINGS_UPDATE_COMPLETE",
+                    "Holdings update process finished.",
+                    details={"holdings": self.holdings}
+                )
+            except Exception as e_holdings:
+                _log_structured_event(
+                    logging.ERROR,
+                    "HOLDINGS_UPDATE_ERROR_IN_CYCLE",
+                    f"Error updating holdings during trading cycle: {e_holdings}",
+                    details={"error_message": str(e_holdings), "exc_info": True}
+                )
 
-        # 3. Analyze each symbol and get signals
-        signals = {}
-        for symbol in self.config.SYMBOLS_TO_TRADE: # Use config list
-            # Fetch or retrieve the necessary data for analysis
-            # This might involve calling self.data_provider.get_historical_data again
-            # or using data already stored in self.historical_data
-            # For RL, we need at least lookback_window length of data ending now.
-            # Placeholder: Assuming data is magically available for now
-            logging.debug(f"Fetching data for analysis for {symbol}...")
-            # Example Fetch (needs proper start/end dates):
-            # analysis_data = self.data_provider.get_historical_data(symbol, ..., interval=self.interval)
-            # For now, skipping actual data fetch in cycle, relying on initial load for demo
-            # analysis_data = self.historical_data.get(symbol) # Use initially fetched if available
+        # Stores {'symbol': {'signal': str, 'latest_price': Decimal, 'analysis_data_present': bool}}
+        symbol_actions = {}
 
-            # Fetch fresh data for analysis in each cycle
-            analysis_days_needed = self.rl_lookback_window + 35 # Lookback + indicator buffer
-            analysis_data = self.data_provider.fetch_price_history(symbol, analysis_days_needed)
+        for symbol in self.config.SYMBOLS_TO_TRADE:
+            action_details = {'signal': 'hold', 'latest_price': None, 'analysis_data_present': False}
+            _log_structured_event(logging.DEBUG, "DATA_FETCH_FOR_SIGNAL_ATTEMPT",
+                                f"Fetching data for {symbol} to generate signal.",
+                                details={"symbol": symbol, "data_provider": self.data_provider.__class__.__name__})
+            try:
+                analysis_data = self.data_provider.fetch_price_history(symbol, days=self.rl_lookback_window + 35)
 
-            if analysis_data is None or analysis_data.empty:
-                 logging.warning(f"No data available for {symbol} to generate signal. Skipping.")
-                 signals[symbol] = 'hold' # Default to hold if no data
-                 continue
+                if analysis_data is None or analysis_data.empty:
+                    _log_structured_event(logging.WARNING, "DATA_UNAVAILABLE_FOR_SIGNAL_WARNING",
+                                        f"No data available for {symbol} after fetch attempt. Skipping signal generation.",
+                                        details={"symbol": symbol})
+                    symbol_actions[symbol] = action_details # Record default 'hold' due to no data
+                    continue # Skip to next symbol
 
-            signals[symbol] = self._get_signal(symbol, analysis_data)
+                _log_structured_event(logging.DEBUG, "SIGNAL_GENERATION_INPUT_DATA_READY",
+                                    f"Data ready for signal generation for {symbol}.",
+                                    details={"symbol": symbol, "data_length": len(analysis_data)})
 
-        # 4. Execute trades based on signals
+                action_details['analysis_data_present'] = True
+                action_details['signal'] = self._get_signal(symbol, analysis_data)
+                if not analysis_data['close'].empty:
+                    action_details['latest_price'] = Decimal(str(analysis_data['close'].iloc[-1]))
+                else:
+                    _log_structured_event(logging.ERROR, "EMPTY_CLOSE_PRICE_IN_ANALYSIS_DATA",
+                                        f"'close' column in analysis_data for {symbol} is empty. Cannot determine latest price.",
+                                        details={"symbol": symbol})
+                    action_details['latest_price'] = None # Explicitly set to None
+                    action_details['signal'] = 'hold' # Fallback to hold if price is indeterminate
+
+            except Exception as e_fetch_signal:
+                _log_structured_event(logging.ERROR, "FETCH_OR_SIGNAL_ERROR_IN_CYCLE",
+                                    f"Error during data fetch or signal generation for {symbol}: {e_fetch_signal}",
+                                    details={"symbol": symbol, "error_message": str(e_fetch_signal), "exc_info": True})
+                symbol_actions[symbol] = action_details # Store default 'hold'
+            finally:
+                symbol_actions[symbol] = action_details
+                _log_structured_event(logging.DEBUG, "SIGNAL_PROCESSED_FOR_SYMBOL",
+                                    f"Signal for {symbol}: {action_details['signal']}, Price: {action_details['latest_price']}",
+                                    details={"symbol": symbol, "signal": action_details['signal'], "latest_price": str(action_details['latest_price']) if action_details['latest_price'] is not None else None})
+
         if self.enable_trading:
-            for symbol, signal in signals.items():
+            _log_structured_event(logging.INFO, "TRADE_EXECUTION_PHASE_START", "Starting trade execution phase based on signals.")
+            for symbol, details in symbol_actions.items():
+                signal = details['signal']
+                latest_price_for_trade = details['latest_price']
+
                 if signal != 'hold':
-                    logging.info(f"Signal for {symbol}: {signal}. Attempting to execute trade...")
+                    trade_log_params = {"symbol": symbol, "signal": signal, "latest_price_for_trade": str(latest_price_for_trade) if latest_price_for_trade else None}
+                    _log_structured_event(logging.INFO, "TRADE_EXECUTION_ATTEMPT", 
+                                        f"Attempting trade for {symbol}: Signal={signal}, Price={latest_price_for_trade}", 
+                                        details=trade_log_params)
+
+                    if not details['analysis_data_present'] or latest_price_for_trade is None:
+                        _log_structured_event(logging.ERROR, "MISSING_DATA_FOR_TRADE_EXECUTION_ERROR",
+                                            f"Cannot execute trade for {symbol} due to missing analysis data or latest price.",
+                                            details=trade_log_params)
+                        continue # Skip to next symbol
+                    
+                    if latest_price_for_trade <= 0:
+                        _log_structured_event(logging.ERROR, "INVALID_PRICE_FOR_TRADE_ERROR",
+                                            f"Invalid latest price ({latest_price_for_trade}) for {symbol} from stored analysis. Skipping trade.",
+                                            details=trade_log_params)
+                        continue # Skip to next symbol
                     try:
-                        # Get the latest price from the analysis data used for the signal
-                        latest_price_for_trade = Decimal(str(analysis_data['close'].iloc[-1]))
-                        if latest_price_for_trade <= 0:
-                            logging.error(f"Invalid latest price ({latest_price_for_trade}) from analysis data for {symbol}. Skipping trade.")
-                            continue
-
                         self._execute_trade(symbol, signal, latest_price_for_trade)
-                    except Exception as e:
-                        logging.exception(f"Error executing trade for {symbol} with signal {signal}:")
+                    except Exception as e_trade_exec:
+                        _log_structured_event(logging.ERROR, "CYCLE_LEVEL_TRADE_EXECUTION_ERROR",
+                                            f"Unhandled error executing trade for {symbol} with signal {signal} in cycle: {e_trade_exec}",
+                                            details={"error_message": str(e_trade_exec), "exc_info": True},
+                                            **trade_log_params)
         else:
-            logging.info("Trading is disabled. Skipping trade execution.")
+            _log_structured_event(logging.INFO, "TRADING_EXECUTION_SKIPPED_DISABLED_INFO", 
+                                "Trading is disabled for this cycle. Skipping trade execution phase.",
+                                details={"signals_generated": {s: d['signal'] for s, d in symbol_actions.items()}})
 
-        logging.info(f"Trading cycle finished. Signals: {signals}")
+        cycle_end_time = datetime.now()
+        cycle_duration = (cycle_end_time - cycle_start_time).total_seconds()
+        _log_structured_event(logging.INFO, "TRADING_CYCLE_COMPLETE", 
+                            f"Trading cycle finished in {cycle_duration:.2f} seconds.",
+                            details={
+                                "cycle_duration_seconds": float(f"{cycle_duration:.2f}"),
+                                "signals_generated": {s: d['signal'] for s, d in symbol_actions.items()},
+                                "trades_attempted": 0 # Add this detail
+                            })
 
     def run(self):
         """Runs the main bot loop, scheduling trading cycles."""

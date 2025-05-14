@@ -9,7 +9,7 @@ load_dotenv(override=True)
 
 # --- Environment Variables (loaded via dotenv) ---
 # --- Logging --- Use standard logging library config
-LOG_LEVEL = os.getenv('LOG_LEVEL', 'INFO').upper()
+LOG_LEVEL = os.getenv('LOG_LEVEL', 'DEBUG').upper() # Changed default to DEBUG
 LOG_FILE = os.getenv('LOG_FILE', 'logs/crypto_bot.log')
 EXPERIENCE_LOG_FILE = os.getenv('EXPERIENCE_LOG_FILE', 'logs/live_experience.log')
 
@@ -51,6 +51,10 @@ RL_PARAMS_PATH = RL_PARAMS_PATH_RAW.split('#')[0].strip()
 
 # Lookback window size used during RL training (MUST match training env)
 RL_LOOKBACK_WINDOW = int(os.getenv('RL_LOOKBACK_WINDOW', '30'))
+
+# Minimum rows of data needed for TA feature generation in RL
+RL_MIN_ROWS_FOR_FEATURES_RAW = os.getenv("RL_MIN_ROWS_FOR_FEATURES", "60") # Default to 60
+RL_MIN_ROWS_FOR_FEATURES = int(RL_MIN_ROWS_FOR_FEATURES_RAW.split('#')[0].strip())
 
 # --- Broker Credentials (Handle with care!) ---
 # Load directly in the script or secure config manager, not hardcoded here
@@ -142,6 +146,7 @@ class Config:
     PLOT_OUTPUT_DIR: str
     DATA_PROVIDER_PREFERENCE: str
     ENABLE_RL_MODEL: bool
+    RL_MIN_ROWS_FOR_FEATURES: int # Added new config
 
 # --- Config Loading Function ---
 def load_config() -> Config:
@@ -178,6 +183,7 @@ def load_config() -> Config:
         'PLOT_OUTPUT_DIR': os.getenv('PLOT_OUTPUT_DIR', 'plots'),
         'DATA_PROVIDER_PREFERENCE': os.getenv('DATA_PROVIDER_PREFERENCE', 'yfinance').lower(),
         'ENABLE_RL_MODEL': os.getenv('ENABLE_RL_MODEL', 'True').lower() == 'true',
+        'RL_MIN_ROWS_FOR_FEATURES': int(os.getenv('RL_MIN_ROWS_FOR_FEATURES', '60')), # Added new config
     }
 
     # CRITICAL DEBUG PRINTING:
@@ -297,3 +303,13 @@ def setup_logging(config: Config):
 if __name__ == '__main__':
     config = load_config()
     setup_logging(config)
+
+# Default action mapping for RL agent (can be overridden by environment's map)
+# 0: Hold, 1: Buy, 2: Sell - standard for CryptoTradingEnv
+DEFAULT_RL_ACTIONS_MAP = {
+    0: 'hold',
+    1: 'buy',
+    2: 'sell'
+}
+
+# --- Broker Configuration ---

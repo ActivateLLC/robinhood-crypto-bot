@@ -189,30 +189,30 @@ class AltCryptoDataProvider:
 
             logger.debug(f"_fetch_with_yfinance: Columns directly from yfinance for {yf_symbol}: {hist.columns.tolist()}")
 
-            # Standardize column names to uppercase
+            # Standardize column names to lowercase
             # This handles if yfinance returns 'open', 'Open', or other variations for the standard OHLCV columns.
             rename_map = {}
             for col in hist.columns:
                 col_lower = str(col).lower()
                 if col_lower == 'open':
-                    rename_map[col] = 'Open'
+                    rename_map[col] = 'open'
                 elif col_lower == 'high':
-                    rename_map[col] = 'High'
+                    rename_map[col] = 'high'
                 elif col_lower == 'low':
-                    rename_map[col] = 'Low'
+                    rename_map[col] = 'low'
                 elif col_lower == 'close':
-                    rename_map[col] = 'Close'
+                    rename_map[col] = 'close'
                 elif col_lower == 'volume':
-                    rename_map[col] = 'Volume'
+                    rename_map[col] = 'volume'
                 # Add other common yfinance columns if needed, e.g., 'adj close'
                 elif col_lower == 'adj close':
-                    rename_map[col] = 'Adj Close'
+                    rename_map[col] = 'adj_close' # Standardize to lowercase with underscore
             
             hist.rename(columns=rename_map, inplace=True)
             logger.debug(f"_fetch_with_yfinance: Columns after renaming for {yf_symbol}: {hist.columns.tolist()}")
 
-            # Select only the essential columns, now that they should be reliably uppercase
-            essential_columns = ['Open', 'High', 'Low', 'Close', 'Volume']
+            # Select only the essential columns, now that they should be reliably lowercase
+            essential_columns = ['open', 'high', 'low', 'close', 'volume']
             
             # Verify that all essential columns are present
             missing_columns = [col for col in essential_columns if col not in hist.columns]
@@ -235,7 +235,7 @@ class AltCryptoDataProvider:
                      raise Exception("Failed to convert yfinance index to DatetimeIndex")
 
             # Drop rows with NaN in critical columns
-            hist.dropna(subset=['Open', 'High', 'Low', 'Close'], inplace=True)
+            hist.dropna(subset=['open', 'high', 'low', 'close'], inplace=True)
 
             if hist.empty:
                 logger.warning(f"No valid OHLC data for {yf_symbol} from yfinance after cleaning.")
@@ -329,13 +329,13 @@ class AltCryptoDataProvider:
                  if len(df) < days:
                      logger.warning(f"CoinGecko data for {coin_id} has only {len(df)} points after requesting {cg_days} and taking tail({days}).")
 
-                 # Rename columns to uppercase to match yfinance and environment expectations
+                 # Rename columns to lowercase to match yfinance and environment expectations
                  rename_map = {
-                     'open': 'Open',
-                     'high': 'High',
-                     'low': 'Low',
-                     'close': 'Close',
-                     'volume': 'Volume'
+                     'open': 'open',
+                     'high': 'high',
+                     'low': 'low',
+                     'close': 'close',
+                     'volume': 'volume'
                  }
                  df.rename(columns=rename_map, inplace=True)
 

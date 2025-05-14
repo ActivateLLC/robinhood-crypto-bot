@@ -16,6 +16,7 @@ from brokers.base_broker import BaseBroker
 from brokers.robinhood_broker import RobinhoodBroker
 from typing import Dict, Any, Optional, List, Tuple, Union
 from datetime import datetime
+from crew_agents.src.crypto_agents import CryptoTradingAgents # Added for CrewAI
 
 # Load environment variables
 load_dotenv()
@@ -123,6 +124,7 @@ class RobinhoodCryptoBot:
         }
         self.current_balance: Decimal = Decimal('0.0') # Initialize current_balance
         self.data_cache = {}
+        self.crew_ai_decision_maker = None # Added for CrewAI
 
         # Action mapping for RL agent
         logging.info(f"DEFAULT_RL_ACTIONS_MAP from config: {DEFAULT_RL_ACTIONS_MAP}")
@@ -386,6 +388,27 @@ class RobinhoodCryptoBot:
             logging.warning("Skipping initial holdings fetch: API client not available or trading disabled.")
             # self.portfolio_state remains as is or empty if never populated
         logging.info(f"RobinhoodCryptoBot __init__ finished. Trading Enabled: {self.enable_trading}")
+
+        if self.trading_strategy == 'CREWAI':
+            _log_structured_event(logging.INFO, "CREWAI_INIT_STARTED", "Initializing CryptoTradingAgents for CREWAI strategy.")
+            try:
+                agent_symbol = self.symbols[0] if self.symbols else 'BTC-USD' # Default or first symbol
+                self.crew_ai_decision_maker = CryptoTradingAgents(symbol=agent_symbol)
+                _log_structured_event(logging.INFO, "CREWAI_INIT_SUCCESS", f"CryptoTradingAgents initialized for symbol: {agent_symbol}")
+            except ImportError as ie:
+                _log_structured_event(
+                    logging.CRITICAL,
+                    "CREWAI_IMPORT_ERROR",
+                    f"Failed to import CryptoTradingAgents: {ie}. Ensure crew_agents.src is in PYTHONPATH or accessible.", exc_info=True
+                )
+                self.enable_trading = False # Disable trading if essential component fails
+            except Exception as e:
+                _log_structured_event(
+                    logging.ERROR,
+                    "CREWAI_INIT_FAILED",
+                    f"Failed to initialize CryptoTradingAgents: {e}", exc_info=True
+                )
+                self.enable_trading = False # Disable trading
 
     def _initialize_broker(self, broker_class: type[BaseBroker], broker_config: Dict[str, Any]) -> Optional[BaseBroker]:
         broker_type = broker_class.__name__
@@ -857,14 +880,49 @@ class RobinhoodCryptoBot:
             # if rsi_value < 30: return 'buy'
             # elif rsi_value > 70: return 'sell'
             return 'hold'
+        elif self.trading_strategy == 'CREWAI':
+            if self.crew_ai_decision_maker:
+                _log_structured_event(logging.INFO, "CREWAI_GET_SIGNAL_STARTED", 
+                                      f"Attempting to get signal from CrewAI for {symbol}", 
+                                      details={"symbol": symbol})
+                try:
+                    # Ensure the agent's symbol matches the current symbol, or re-initialize if necessary.
+                    # This basic re-initialization might be slow for frequent symbol changes.
+                    # A more robust solution would involve a pool of agents or an agent that can handle multiple symbols.
+                    if self.crew_ai_decision_maker.symbol != symbol:
+                        _log_structured_event(logging.WARNING, "CREWAI_SYMBOL_MISMATCH",
+                                              f"CrewAI decision maker initialized with {self.crew_ai_decision_maker.symbol} but getting signal for {symbol}. Re-initializing for current symbol.",
+                                              details={"init_symbol": self.crew_ai_decision_maker.symbol, "current_symbol": symbol})
+                        self.crew_ai_decision_maker = CryptoTradingAgents(symbol=symbol) # Re-init
+
+                    # Pass the historical_data (which is analysis_data here, containing all indicators)
+                    crew_analysis_output = self.crew_ai_decision_maker.analyze_market(historical_data=analysis_data) 
+                    
+                    signal = crew_analysis_output.get('recommended_action', 'hold').lower()
+                    
+                    _log_structured_event(logging.INFO, "CREWAI_SIGNAL_RECEIVED", 
+                                          f"Signal received from CrewAI for {symbol}: {signal}", 
+                                          details={"symbol": symbol, "signal": signal, "crew_output_keys": list(crew_analysis_output.keys()) if crew_analysis_output else []})
+                except Exception as e:
+                    _log_structured_event(
+                        logging.ERROR,
+                        "CREWAI_GET_SIGNAL_ERROR",
+                        f"Error getting signal from CrewAI for {symbol}: {e}", 
+                        details={"symbol": symbol}, exc_info=True
+                    )
+                    signal = 'hold' # Fallback on error
+            else:
+                _log_structured_event(logging.WARNING, "CREWAI_NOT_INITIALIZED",
+                                      f"CrewAI strategy selected but decision maker not initialized/available for {symbol}. Defaulting to hold.",
+                                      details={"symbol": symbol})
+                signal = 'hold'
+
         else:
-            _log_structured_event(
-                logging.WARNING,
-                "STRATEGY_CONFIG_ERROR",
-                f"Unknown or unsupported trading strategy: '{self.trading_strategy}'. Defaulting to 'hold' for {symbol}.",
-                details={"symbol": symbol, "strategy": self.trading_strategy}
-            )
-            return 'hold'
+            _log_structured_event(logging.WARNING, "UNKNOWN_STRATEGY",
+                                  f"Unknown trading strategy: {self.trading_strategy} for {symbol}. Defaulting to hold.")
+            signal = 'hold'
+
+        return signal
  
      # --- Trade Execution ---
     def _execute_trade(self, symbol: str, signal: str, latest_price: Decimal):

@@ -50360,3 +50360,186 @@ Broker Type: robinhood
 Robinhood API Key: None
 Robinhood Private Key (Module Check): None
 --------------------------
+WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.
+--- Configuration Loaded (Module Level) ---
+Symbols: ['BTC-USD']
+Interval: 5 minutes
+Enable Trading: False
+Enable RL Model: False
+Traditional Strategy: CREWAI
+Log Level: INFO
+Data Provider: yfinance
+Broker Type: robinhood
+Robinhood API Key: None
+Robinhood Private Key (Module Check): None
+--------------------------
+WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.
+--- Configuration Loaded (Module Level) ---
+Symbols: ['BTC-USD']
+Interval: 5 minutes
+Enable Trading: False
+Enable RL Model: False
+Traditional Strategy: CREWAI
+Log Level: INFO
+Data Provider: yfinance
+Broker Type: robinhood
+Robinhood API Key: None
+Robinhood Private Key (Module Check): None
+--------------------------
+WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.
+--- Configuration Loaded (Module Level) ---
+Symbols: ['BTC-USD']
+Interval: 5 minutes
+Enable Trading: False
+Enable RL Model: False
+Traditional Strategy: CREWAI
+Log Level: INFO
+Data Provider: yfinance
+Broker Type: robinhood
+Robinhood API Key: None
+Robinhood Private Key (Module Check): None
+--------------------------
+WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.
+--- Configuration Loaded (Module Level) ---
+Symbols: ['BTC-USD']
+Interval: 5 minutes
+Enable Trading: False
+Enable RL Model: False
+Traditional Strategy: CREWAI
+Log Level: INFO
+Data Provider: yfinance
+Broker Type: robinhood
+Robinhood API Key: None
+Robinhood Private Key (Module Check): None
+--------------------------
+WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.
+--- Configuration Loaded (Module Level) ---
+Symbols: ['BTC-USD']
+Interval: 5 minutes
+Enable Trading: False
+Enable RL Model: False
+Traditional Strategy: CREWAI
+Log Level: INFO
+Data Provider: yfinance
+Broker Type: robinhood
+Robinhood API Key: None
+Robinhood Private Key (Module Check): None
+--------------------------
+WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.
+--- Configuration Loaded (Module Level) ---
+Symbols: ['BTC-USD']
+Interval: 5 minutes
+Enable Trading: False
+Enable RL Model: False
+Traditional Strategy: CREWAI
+Log Level: INFO
+Data Provider: yfinance
+Broker Type: robinhood
+Robinhood API Key: None
+Robinhood Private Key (Module Check): None
+--------------------------
+WARNING (Module Level Check): ENABLE_TRADING is True, but Robinhood API key is missing in .env file. Trading will be disabled.
+--- Configuration Loaded (Module Level) ---
+Symbols: ['BTC-USD']
+Interval: 5 minutes
+Enable Trading: False
+Enable RL Model: False
+Traditional Strategy: CREWAI
+Log Level: INFO
+Data Provider: yfinance
+Broker Type: robinhood
+Robinhood API Key: None
+Robinhood Private Key (Module Check): None
+--------------------------
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.
+Attempting to load .env from: /Users/activate/Dev/robinhood-crypto-bot/.env
+OPENAI_API_KEY found in environment after dotenv load.

@@ -67,7 +67,7 @@ The bot's architecture is designed for modularity and sophisticated decision-mak
 
 ## Prerequisites
 
-*   Python 3.8 or higher.
+*   Python 3.8 - 3.12 recommended (tested with 3.11).
 *   A Robinhood account with Crypto Trading enabled.
 *   Robinhood Crypto API Key and Private Key (obtainable from Robinhood API Credentials Portal on a desktop browser).
 *   `OPENAI_API_KEY` in your `.env` file for CrewAI agents.
@@ -82,7 +82,7 @@ The bot's architecture is designed for modularity and sophisticated decision-mak
     ```
 2.  **Create and Activate a Virtual Environment:**
     ```bash
-    python3 -m venv .venv
+    python3.11 -m venv .venv
     source .venv/bin/activate  # On Windows: .venv\Scripts\activate
     ```
 3.  **Install Dependencies:**

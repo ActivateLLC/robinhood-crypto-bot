@@ -105,7 +105,7 @@ class RobinhoodCryptoBot:
         self.trade_amount_usd = self.config.TRADE_AMOUNT_USD
         self.lookback_days = self.config.LOOKBACK_DAYS
         self.check_interval = self.config.INTERVAL_MINUTES
-        self.trading_strategy = self.config.TRADING_STRATEGY
+        self.trading_strategy = self.config.TRADING_STRATEGY.upper() # Ensure uppercase
         self.rl_model_path = self.config.RL_MODEL_PATH
         self.rl_lookback_window = self.config.RL_LOOKBACK_WINDOW
         self.EXPECTED_OBS_SHAPE = (31,) # Expected shape for RL agent observations
@@ -260,26 +260,47 @@ class RobinhoodCryptoBot:
             logging.info(f"Broker {broker_type} initialized. Attempting to connect and fetch account info...")
             if self.broker.connect():
                 logging.info(f"Broker {broker_type} connected successfully.")
-                account_info = self.broker.get_account_info()
-                if account_info and 'cash_usd' in account_info:
-                    self.current_balance = account_info['cash_usd']
-                    logging.info(f"Initial account balance fetched: ${self.current_balance:.2f} USD")
-                    _log_structured_event(
-                        level=logging.INFO,
-                        event_type="ACCOUNT_BALANCE_FETCHED",
-                        message="Successfully fetched initial account balance.",
-                        details={"balance_usd": float(self.current_balance), "broker": broker_type}
-                    )
-                else:
-                    logging.error(f"Failed to fetch account balance after successful connection to {broker_type}. Trading will be disabled.")
+                account_info_list = self.broker.get_account_info()
+                
+                usd_balance_found = False
+                if account_info_list and isinstance(account_info_list, list):
+                    for account in account_info_list:
+                        if isinstance(account, dict) and account.get('currency_code') == 'USD':
+                            balance_str = account.get('balance')
+                            if balance_str is not None:
+                                try:
+                                    self.current_balance = float(balance_str)
+                                    logging.info(f"Initial account balance fetched: ${self.current_balance:.2f} USD")
+                                    _log_structured_event(
+                                        level=logging.INFO,
+                                        event_type="ACCOUNT_BALANCE_FETCHED",
+                                        message="Successfully fetched initial account balance.",
+                                        details={"balance_usd": float(self.current_balance), "broker": broker_type}
+                                    )
+                                    usd_balance_found = True
+                                    break # Found USD balance, exit loop
+                                except ValueError:
+                                    logging.error(f"Could not convert USD balance '{balance_str}' to float. Account: {account}")
+                            else:
+                                logging.warning(f"USD account found, but 'balance' key is missing or None. Account: {account}")
+                        elif isinstance(account, dict) and 'error' in account:
+                            # Log if an individual item in the list is an error dictionary
+                            logging.error(f"Error item in account_info_list: {account.get('details', account.get('error'))}")
+                elif account_info_list and isinstance(account_info_list, dict) and 'error' in account_info_list:
+                    # This case handles if get_account_info itself returned a single error dict (not a list of errors)
+                    # This might be redundant if RobinhoodBroker always returns a list, even for single errors, but good for robustness.
+                    logging.error(f"Failed to fetch account balance: API error from broker.get_account_info(): {account_info_list.get('details', account_info_list.get('error'))}")
+                
+                if not usd_balance_found:
+                    logging.error(f"Failed to fetch or parse USD account balance after successful connection to {broker_type}. Trading will be disabled.")
                     _log_structured_event(
                         level=logging.ERROR,
                         event_type="ACCOUNT_BALANCE_FETCH_FAILED",
-                        message="Failed to fetch account balance post-connection.",
-                        details={"broker": broker_type, "account_info_received": bool(account_info)},
+                        message="Failed to fetch or parse USD account balance post-connection.",
+                        details={"broker": broker_type, "account_info_raw": account_info_list if isinstance(account_info_list, (list, dict)) else str(account_info_list)},
                         severity="ERROR"
                     )
-                    self.enable_trading = False # Disable trading if balance can't be fetched
+                    self.enable_trading = False
             else:
                 logging.error(f"Failed to connect to broker {broker_type}. Trading will be disabled.")
                 _log_structured_event(

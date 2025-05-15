@@ -85,8 +85,7 @@ class RobinhoodBroker(BaseBroker):
         self.logger.debug("Fetching account information via self.trader.get_account() for get_account_info")
         try:
             response = self.trader.get_account()
-            # CryptoAPITrading.get_account() is expected to return a list of account dicts
-            # or a dict in case of an error from make_api_request.
+
             if response is None:
                 self.logger.error("Failed to get account info: self.trader.get_account() returned None.")
                 return None
@@ -94,18 +93,25 @@ class RobinhoodBroker(BaseBroker):
             # Handle potential error dict from CryptoAPITrading's make_api_request exception handling
             if isinstance(response, dict) and 'error' in response:
                 self.logger.error(f"Error fetching account info from API: {response.get('details', response.get('error'))}")
-                return [response] 
+                return [response] # Propagate error dict as a list item for potential downstream parsing
             
-            # Assuming success returns a list of accounts as per typical /accounts/ endpoint behavior
-            if not isinstance(response, list):
-                self.logger.warning(f"Account info from trader not a list as expected: {type(response)}. Wrapping in list.")
-                # This might indicate an issue or a different response structure than anticipated for success.
-                # For now, wrap it to match expected type for consumer (TradeExecutionAgent).
-                # If it's a single account dict, this is okay. If it's an error dict not caught above, that's also handled.
-                return [response] if isinstance(response, dict) else None 
-
-            self.logger.debug(f"Successfully fetched account info: {response}")
-            return response
+            # If the response is a dictionary and contains a 'results' key, that's the list we want.
+            if isinstance(response, dict) and 'results' in response:
+                account_list = response.get('results')
+                if isinstance(account_list, list):
+                    self.logger.debug(f"Successfully fetched account info results: {account_list}")
+                    return account_list
+                else:
+                    self.logger.error(f"Account info 'results' field is not a list: {type(account_list)}. Response: {response}")
+                    return None # Or handle as an error, e.g., return [{'error': 'invalid_results_format'}]
+            
+            # Fallback for unexpected structures or if response was already a list (e.g., if API changes)
+            if isinstance(response, list):
+                self.logger.debug(f"Successfully fetched account info (already a list): {response}")
+                return response
+            
+            self.logger.error(f"Unexpected response format for account info: {type(response)}. Response: {response}")
+            return None # Or handle as an error
         except Exception as e:
             self.logger.exception(f"Exception in get_account_info: {e}")
             return None
@@ -129,15 +135,25 @@ class RobinhoodBroker(BaseBroker):
             # Handle potential error dict from CryptoAPITrading's make_api_request exception handling
             if isinstance(response, dict) and 'error' in response:
                 self.logger.error(f"Error fetching holdings from API for '{asset_code}': {response.get('details', response.get('error'))}")
-                return [response] 
+                return [response] # Propagate error dict as a list item
 
-            # Assuming success returns a list of holdings as per typical /holdings/ endpoint behavior
-            if not isinstance(response, list):
-                self.logger.warning(f"Holdings data from trader for '{asset_code}' not a list: {type(response)}. Wrapping in list.")
-                return [response] if isinstance(response, dict) else None
-                
-            self.logger.debug(f"Successfully fetched holdings for '{asset_code}': {response}")
-            return response
+            # If the response is a dictionary and contains a 'results' key, that's the list we want.
+            if isinstance(response, dict) and 'results' in response:
+                holdings_list = response.get('results')
+                if isinstance(holdings_list, list):
+                    self.logger.debug(f"Successfully fetched holdings results for '{asset_code}': {holdings_list}")
+                    return holdings_list
+                else:
+                    self.logger.error(f"Holdings 'results' field for '{asset_code}' is not a list: {type(holdings_list)}. Response: {response}")
+                    return None 
+                    
+            # Fallback for unexpected structures or if response was already a list
+            if isinstance(response, list):
+                self.logger.debug(f"Successfully fetched holdings for '{asset_code}' (already a list): {response}")
+                return response
+
+            self.logger.error(f"Unexpected response format for holdings '{asset_code}': {type(response)}. Response: {response}")
+            return None
         except Exception as e:
             self.logger.exception(f"Exception in get_holdings for asset_code '{asset_code}': {e}")
             return None

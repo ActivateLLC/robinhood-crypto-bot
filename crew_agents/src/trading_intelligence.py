@@ -144,7 +144,9 @@ class TradingIntelligenceEngine:
                 role='Crypto Market Researcher',
                 goal='Analyze market trends and provide comprehensive insights',
                 backstory='Expert in cryptocurrency market analysis with deep understanding of technical and fundamental factors',
-                llm=self.llm
+                llm=self.llm,
+                allow_delegation=False,  # Explicitly disable delegation
+                verbose=True # Add verbose for more detailed output from this agent
             )
 
             # Technical Analysis Agent
@@ -152,7 +154,9 @@ class TradingIntelligenceEngine:
                 role='Technical Analysis Specialist',
                 goal='Perform advanced technical analysis on cryptocurrency markets',
                 backstory='Skilled in interpreting complex technical indicators and market patterns',
-                llm=self.llm
+                llm=self.llm,
+                allow_delegation=False, # Also set for this agent for consistency in testing
+                verbose=True # Add verbose for more detailed output from this agent
             )
 
             # Market Research Task

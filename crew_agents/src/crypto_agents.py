@@ -65,6 +65,7 @@ class CryptoTradingAgents:
             backstory='An experienced financial analyst with deep understanding '
                       'of global crypto market dynamics and emerging trends',
             verbose=True,
+            allow_delegation=True,  # Enable delegation
             llm=self.llm
         )
     
@@ -77,6 +78,7 @@ class CryptoTradingAgents:
             backstory='A seasoned trader specializing in advanced technical '
                       'analysis techniques for cryptocurrency markets',
             verbose=True,
+            allow_delegation=True,  # Enable delegation
             llm=self.llm
         )
     
@@ -89,6 +91,7 @@ class CryptoTradingAgents:
             backstory='A meticulous risk assessment expert with extensive '
                       'experience in financial risk modeling',
             verbose=True,
+            allow_delegation=True,  # Enable delegation
             llm=self.llm
         )
     
@@ -101,6 +104,7 @@ class CryptoTradingAgents:
             backstory='An innovative strategist who combines quantitative analysis '
                       'with adaptive machine learning techniques',
             verbose=True,
+            allow_delegation=True,  # Enable delegation
             llm=self.llm
         )
     
@@ -241,7 +245,6 @@ class CryptoTradingAgents:
             expected_output=(
                 f"A detailed technical analysis report for {self.symbol}. Include interpretations of key indicators, identified patterns, "
                 f"support/resistance levels, and any clear buy/sell/hold signals derived from the analysis. "
-                f"The historical data is: \n{historical_data.to_string()}"
             ),
             agent=technical_analyst,
             context=[market_research_task]  # Depends on market research

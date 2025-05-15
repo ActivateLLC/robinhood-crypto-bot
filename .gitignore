@@ -4,9 +4,10 @@
 alt_crypto_data.log
 # Ignore specific tracked log file
 logs/unified_optimization/unified_optimization.log
+access.log
+error.log
 
 # Secrets and sensitive files
-#.env
 *.pem
 *.key
 *.secret
@@ -25,6 +26,7 @@ __pycache__/
 
 # Large data files
 *.sqlite3
+optuna_crypto_study_v2.db
 
 # Tensorboard logs
 tensorboard_logs/
@@ -40,3 +42,4 @@ crew_agents/results/
 
 # Virtual environment
 venv/
+.venv/
